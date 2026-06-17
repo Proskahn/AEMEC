@@ -1,0 +1,817 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -dict ./system/topoSetDict.zoneToSet -noZero -constant
+Date   : Jun 16 2026
+Time   : 21:13:12
+Host   : bd7d14a23b06
+PID    : 2334
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh for time = constant
+
+Reading topoSetDict.zoneToSet
+
+Time = constant
+    mesh not changed.
+Created cellSet cchannel
+    Applying source zoneToCell
+    Adding all cells of cell zones: (cchannel) ...
+    Using zone cchannel with 4000 cells
+    cellSet cchannel now size 4000
+Created cellSet achannel
+    Applying source zoneToCell
+    Adding all cells of cell zones: (achannel) ...
+    Using zone achannel with 4000 cells
+    cellSet achannel now size 4000
+Created cellSet electrolyte
+    Applying source zoneToCell
+    Adding all cells of cell zones: (electrolyte) ...
+    Using zone electrolyte with 4000 cells
+    cellSet electrolyte now size 4000
+Created cellSet interconnect
+    Applying source zoneToCell
+    Adding all cells of cell zones: (interconnect) ...
+    Using zone interconnect with 16000 cells
+    cellSet interconnect now size 16000
+Created cellSet cathode
+    Applying source zoneToCell
+    Adding all cells of cell zones: (cathode) ...
+    Using zone cathode with 4000 cells
+    cellSet cathode now size 4000
+Created cellSet anode
+    Applying source zoneToCell
+    Adding all cells of cell zones: (anode) ...
+    Using zone anode with 4000 cells
+    cellSet anode now size 4000
+Created cellSet cmpl
+    Applying source zoneToCell
+    Adding all cells of cell zones: (cmpl) ...
+    Using zone cmpl with 4000 cells
+    cellSet cmpl now size 4000
+Created cellSet ampl
+    Applying source zoneToCell
+    Adding all cells of cell zones: (ampl) ...
+    Using zone ampl with 4000 cells
+    cellSet ampl now size 4000
+Created cellSet ccl
+    Applying source zoneToCell
+    Adding all cells of cell zones: (ccl) ...
+    Using zone ccl with 4000 cells
+    cellSet ccl now size 4000
+Created cellSet acl
+    Applying source zoneToCell
+    Adding all cells of cell zones: (acl) ...
+    Using zone acl with 4000 cells
+    cellSet acl now size 4000
+
+End
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -dict ./system/topoSetDict.afei -noZero -constant
+Date   : Jun 16 2026
+Time   : 21:13:13
+Host   : bd7d14a23b06
+PID    : 2336
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh for time = constant
+
+Reading topoSetDict.afei
+
+Time = constant
+    mesh not changed.
+Created cellZoneSet air
+    Applying source setToCellZone
+    Adding all cells from cell set: cchannel ...
+    cellZoneSet air now size 4000
+Read set cellZoneSet air size:4000
+    Applying source setToCellZone
+    Adding all cells from cell set: cathode ...
+    cellZoneSet air now size 8000
+Read set cellZoneSet air size:8000
+    Applying source setToCellZone
+    Adding all cells from cell set: cmpl ...
+    cellZoneSet air now size 12000
+Read set cellZoneSet air size:12000
+    Applying source setToCellZone
+    Adding all cells from cell set: ccl ...
+    cellZoneSet air now size 16000
+Created cellZoneSet fuel
+    Applying source setToCellZone
+    Adding all cells from cell set: achannel ...
+    cellZoneSet fuel now size 4000
+Read set cellZoneSet fuel size:4000
+    Applying source setToCellZone
+    Adding all cells from cell set: anode ...
+    cellZoneSet fuel now size 8000
+Read set cellZoneSet fuel size:8000
+    Applying source setToCellZone
+    Adding all cells from cell set: ampl ...
+    cellZoneSet fuel now size 12000
+Read set cellZoneSet fuel size:12000
+    Applying source setToCellZone
+    Adding all cells from cell set: acl ...
+    cellZoneSet fuel now size 16000
+Created cellZoneSet electrolyte
+    Applying source setToCellZone
+    Adding all cells from cell set: electrolyte ...
+    cellZoneSet electrolyte now size 4000
+Created cellZoneSet interconnect
+    Applying source setToCellZone
+    Adding all cells from cell set: interconnect ...
+    cellZoneSet interconnect now size 16000
+
+End
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : splitMeshRegions -cellZonesOnly
+Date   : Jun 16 2026
+Time   : 21:13:13
+Host   : bd7d14a23b06
+PID    : 2337
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Creating single patch per inter-region interface.
+
+Using current cellZones to split mesh into regions. This requires all cells to be in one and only one cellZone.
+
+
+Number of regions:4
+
+Writing region per cell file (for manual decomposition) to "/root/openFuelCell2/run/PEMEC/constant/cellToRegion"
+
+Writing region per cell as volScalarField to "/root/openFuelCell2/run/PEMEC/0/cellToRegion"
+
+Region	Cells
+------	-----
+0	16000
+1	16000
+2	4000
+3	16000
+
+Region	Zone	Name
+------	----	----
+0	(0)	air
+1	(1)	fuel
+2	(2)	electrolyte
+3	(3)	interconnect
+
+Sizes of interfaces between regions:
+
+Interface	Region	Region	Faces
+---------	------	------	-----
+0		0	3	1600
+1		1	2	800
+2		0	2	800
+3		1	3	1600
+
+Reading volScalarField: T cellToRegion k
+
+
+Adding patches
+
+
+Adding patches
+
+For interface between region air and interconnect added patches
+    10	air_to_interconnect
+    11	interconnect_to_air
+For interface between region fuel and electrolyte added patches
+    12	fuel_to_electrolyte
+    13	electrolyte_to_fuel
+For interface between region air and electrolyte added patches
+    14	air_to_electrolyte
+    15	electrolyte_to_air
+For interface between region fuel and interconnect added patches
+    16	fuel_to_interconnect
+    17	interconnect_to_fuel
+
+Region 0
+-------- 
+Creating mesh for region 0 air
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region0 points back to base mesh.
+Writing map faceRegionAddressing from region0 faces back to base mesh.
+Writing map cellRegionAddressing from region0 cells back to base mesh.
+Writing map boundaryRegionAddressing from region0 boundary back to base mesh.
+
+Region 1
+-------- 
+Creating mesh for region 1 fuel
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region1 points back to base mesh.
+Writing map faceRegionAddressing from region1 faces back to base mesh.
+Writing map cellRegionAddressing from region1 cells back to base mesh.
+Writing map boundaryRegionAddressing from region1 boundary back to base mesh.
+
+Region 2
+-------- 
+Creating mesh for region 2 electrolyte
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region2 points back to base mesh.
+Writing map faceRegionAddressing from region2 faces back to base mesh.
+Writing map cellRegionAddressing from region2 cells back to base mesh.
+Writing map boundaryRegionAddressing from region2 boundary back to base mesh.
+
+Region 3
+-------- 
+Creating mesh for region 3 interconnect
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region3 points back to base mesh.
+Writing map faceRegionAddressing from region3 faces back to base mesh.
+Writing map cellRegionAddressing from region3 cells back to base mesh.
+Writing map boundaryRegionAddressing from region3 boundary back to base mesh.
+End
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -dict ./system/topoSetDict.phiE -noZero -constant
+Date   : Jun 16 2026
+Time   : 21:13:13
+Host   : bd7d14a23b06
+PID    : 2344
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh for time = constant
+
+Reading topoSetDict.phiE
+
+Time = constant
+    mesh not changed.
+Created cellZoneSet phiEC
+    Applying source setToCellZone
+    Adding all cells from cell set: interconnect ...
+    cellZoneSet phiEC now size 16000
+Read set cellZoneSet phiEC size:16000
+    Applying source setToCellZone
+    Adding all cells from cell set: cathode ...
+    cellZoneSet phiEC now size 20000
+Read set cellZoneSet phiEC size:20000
+    Applying source setToCellZone
+    Adding all cells from cell set: cmpl ...
+    cellZoneSet phiEC now size 24000
+Read set cellZoneSet phiEC size:24000
+    Applying source setToCellZone
+    Adding all cells from cell set: ccl ...
+    cellZoneSet phiEC now size 28000
+Read set cellZoneSet phiEC size:28000
+    Applying source boxToCell
+    Removing cells with centre within boxes 1((-10 -10 -10) (10 10 0))
+    cellZoneSet phiEC now size 20000
+Created cellZoneSet phiEA
+    Applying source setToCellZone
+    Adding all cells from cell set: interconnect ...
+    cellZoneSet phiEA now size 16000
+Read set cellZoneSet phiEA size:16000
+    Applying source setToCellZone
+    Adding all cells from cell set: anode ...
+    cellZoneSet phiEA now size 20000
+Read set cellZoneSet phiEA size:20000
+    Applying source setToCellZone
+    Adding all cells from cell set: ampl ...
+    cellZoneSet phiEA now size 24000
+Read set cellZoneSet phiEA size:24000
+    Applying source setToCellZone
+    Adding all cells from cell set: acl ...
+    cellZoneSet phiEA now size 28000
+Read set cellZoneSet phiEA size:28000
+    Applying source boxToCell
+    Removing cells with centre within boxes 1((-10 -10 0) (10 10 10))
+    cellZoneSet phiEA now size 20000
+Created cellZoneSet phiE0
+    Applying source boxToCell
+    Adding cells with centre within boxes 1((-10 -10 -10) (10 10 10))
+    cellZoneSet phiE0 now size 52000
+Read set cellZoneSet phiE0 size:52000
+    Applying source zoneToCell
+    Removing all cells of cell zones: (phiEC) ...
+    Using zone phiEC with 20000 cells
+    cellZoneSet phiE0 now size 32000
+Read set cellZoneSet phiE0 size:32000
+    Applying source zoneToCell
+    Removing all cells of cell zones: (phiEA) ...
+    Using zone phiEA with 20000 cells
+    cellZoneSet phiE0 now size 12000
+
+End
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : splitMeshRegions -cellZonesOnly
+Date   : Jun 16 2026
+Time   : 21:13:13
+Host   : bd7d14a23b06
+PID    : 2345
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Creating single patch per inter-region interface.
+
+Using current cellZones to split mesh into regions. This requires all cells to be in one and only one cellZone.
+
+
+Number of regions:3
+
+Writing region per cell file (for manual decomposition) to "/root/openFuelCell2/run/PEMEC/constant/cellToRegion"
+
+Writing region per cell as volScalarField to "/root/openFuelCell2/run/PEMEC/0/cellToRegion"
+
+Region	Cells
+------	-----
+0	20000
+1	20000
+2	12000
+
+Region	Zone	Name
+------	----	----
+0	(0)	phiEC
+1	(1)	phiEA
+2	(2)	phiE0
+
+Sizes of interfaces between regions:
+
+Interface	Region	Region	Faces
+---------	------	------	-----
+0		1	2	2400
+1		0	2	2400
+
+Reading volScalarField: T cellToRegion k
+
+
+Adding patches
+
+
+Adding patches
+
+For interface between region phiEA and phiE0 added patches
+    10	phiEA_to_phiE0
+    11	phiE0_to_phiEA
+For interface between region phiEC and phiE0 added patches
+    12	phiEC_to_phiE0
+    13	phiE0_to_phiEC
+
+Region 0
+-------- 
+Creating mesh for region 0 phiEC
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region0 points back to base mesh.
+Writing map faceRegionAddressing from region0 faces back to base mesh.
+Writing map cellRegionAddressing from region0 cells back to base mesh.
+Writing map boundaryRegionAddressing from region0 boundary back to base mesh.
+
+Region 1
+-------- 
+Creating mesh for region 1 phiEA
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region1 points back to base mesh.
+Writing map faceRegionAddressing from region1 faces back to base mesh.
+Writing map cellRegionAddressing from region1 cells back to base mesh.
+Writing map boundaryRegionAddressing from region1 boundary back to base mesh.
+
+Region 2
+-------- 
+Creating mesh for region 2 phiE0
+Writing dummy "phiE0/fvSchemes"
+Writing dummy "phiE0/fvSolution"
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region2 points back to base mesh.
+Writing map faceRegionAddressing from region2 faces back to base mesh.
+Writing map cellRegionAddressing from region2 cells back to base mesh.
+Writing map boundaryRegionAddressing from region2 boundary back to base mesh.
+End
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -dict ./system/topoSetDict.phiI -noZero -constant
+Date   : Jun 16 2026
+Time   : 21:13:14
+Host   : bd7d14a23b06
+PID    : 2353
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh for time = constant
+
+Reading topoSetDict.phiI
+
+Time = constant
+    mesh not changed.
+Created cellZoneSet phiI
+    Applying source setToCellZone
+    Adding all cells from cell set: acl ...
+    cellZoneSet phiI now size 4000
+Read set cellZoneSet phiI size:4000
+    Applying source setToCellZone
+    Adding all cells from cell set: electrolyte ...
+    cellZoneSet phiI now size 8000
+Read set cellZoneSet phiI size:8000
+    Applying source setToCellZone
+    Adding all cells from cell set: ccl ...
+    cellZoneSet phiI now size 12000
+Created cellZoneSet phiI0
+    Applying source boxToCell
+    Adding cells with centre within boxes 1((-10 -10 -10) (10 10 10))
+    cellZoneSet phiI0 now size 52000
+Read set cellZoneSet phiI0 size:52000
+    Applying source zoneToCell
+    Removing all cells of cell zones: (phiI) ...
+    Using zone phiI with 12000 cells
+    cellZoneSet phiI0 now size 40000
+
+End
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : splitMeshRegions -cellZonesOnly
+Date   : Jun 16 2026
+Time   : 21:13:14
+Host   : bd7d14a23b06
+PID    : 2354
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Creating single patch per inter-region interface.
+
+Using current cellZones to split mesh into regions. This requires all cells to be in one and only one cellZone.
+
+
+Number of regions:2
+
+Writing region per cell file (for manual decomposition) to "/root/openFuelCell2/run/PEMEC/constant/cellToRegion"
+
+Writing region per cell as volScalarField to "/root/openFuelCell2/run/PEMEC/0/cellToRegion"
+
+Region	Cells
+------	-----
+0	12000
+1	40000
+
+Region	Zone	Name
+------	----	----
+0	(0)	phiI
+1	(1)	phiI0
+
+Sizes of interfaces between regions:
+
+Interface	Region	Region	Faces
+---------	------	------	-----
+0		0	1	1600
+
+Reading volScalarField: T cellToRegion k
+
+
+Adding patches
+
+
+Adding patches
+
+For interface between region phiI and phiI0 added patches
+    10	phiI_to_phiI0
+    11	phiI0_to_phiI
+
+Region 0
+-------- 
+Creating mesh for region 0 phiI
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region0 points back to base mesh.
+Writing map faceRegionAddressing from region0 faces back to base mesh.
+Writing map cellRegionAddressing from region0 cells back to base mesh.
+Writing map boundaryRegionAddressing from region0 boundary back to base mesh.
+
+Region 1
+-------- 
+Creating mesh for region 1 phiI0
+Mapping fields
+Mapping field T
+Mapping field cellToRegion
+Mapping field k
+Deleting empty patches
+Writing new mesh
+Writing addressing to base mesh
+Writing map pointRegionAddressing from region1 points back to base mesh.
+Writing map faceRegionAddressing from region1 faces back to base mesh.
+Writing map cellRegionAddressing from region1 cells back to base mesh.
+Writing map boundaryRegionAddressing from region1 boundary back to base mesh.
+End
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -region air
+Date   : Jun 16 2026
+Time   : 21:13:14
+Host   : bd7d14a23b06
+PID    : 2361
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh air for time = 0
+
+Reading topoSetDict
+
+Time = 0
+    mesh not changed.
+Created cellZoneSet cathode
+    Applying source masterRegionToCell
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -region fuel
+Date   : Jun 16 2026
+Time   : 21:13:14
+Host   : bd7d14a23b06
+PID    : 2362
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh fuel for time = 0
+
+Reading topoSetDict
+
+Time = 0
+    mesh not changed.
+Created cellZoneSet anode
+    Applying source masterRegionToCell
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -region phiEC
+Date   : Jun 16 2026
+Time   : 21:13:14
+Host   : bd7d14a23b06
+PID    : 2363
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh phiEC for time = 0
+
+Reading topoSetDict
+
+Time = 0
+    mesh not changed.
+Created cellZoneSet cathode
+    Applying source masterRegionToCell
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -region phiEA
+Date   : Jun 16 2026
+Time   : 21:13:14
+Host   : bd7d14a23b06
+PID    : 2364
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh phiEA for time = 0
+
+Reading topoSetDict
+
+Time = 0
+    mesh not changed.
+Created cellZoneSet anode
+    Applying source masterRegionToCell
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : topoSet -region phiI
+Date   : Jun 16 2026
+Time   : 21:13:14
+Host   : bd7d14a23b06
+PID    : 2365
+I/O    : uncollated
+Case   : /root/openFuelCell2/run/PEMEC
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh phiI for time = 0
+
+Reading topoSetDict
+
+Time = 0
+    mesh not changed.
+Created cellZoneSet ccl
+    Applying source masterRegionToCell
+  -Executation time for preprocessing is : 2 Sec 
+
+
