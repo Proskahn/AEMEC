@@ -1,1 +1,0 @@
-../wallDampingModels/linear/linearWallDamping.H

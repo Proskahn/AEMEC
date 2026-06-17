@@ -1,1 +1,0 @@
-../wallDampingModels/interpolated/interpolatedWallDamping.C

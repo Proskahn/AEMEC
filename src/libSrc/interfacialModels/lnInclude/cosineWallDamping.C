@@ -1,1 +1,0 @@
-../wallDampingModels/cosine/cosineWallDamping.C

@@ -1,1 +1,0 @@
-../activationOverpotentialModels/ChangJaffe/ChangJaffe.C

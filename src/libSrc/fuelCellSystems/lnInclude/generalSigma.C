@@ -1,1 +1,0 @@
-../sigmaModels/generalSigma/generalSigma.C

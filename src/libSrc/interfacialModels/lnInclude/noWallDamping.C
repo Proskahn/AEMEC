@@ -1,1 +1,0 @@
-../wallDampingModels/noWallDamping/noWallDamping.C

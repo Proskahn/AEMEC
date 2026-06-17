@@ -1,1 +1,0 @@
-../massTransferModels/sphericalMassTransfer/sphericalMassTransfer.H
