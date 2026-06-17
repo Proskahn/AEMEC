@@ -36,7 +36,7 @@ SourceFiles
 #ifndef Constant_H
 #define Constant_H
 
-#include "ActivationOverpotentialModel.H"
+#include "activationOverpotentialModel.H"
 #include "dimensionedScalar.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

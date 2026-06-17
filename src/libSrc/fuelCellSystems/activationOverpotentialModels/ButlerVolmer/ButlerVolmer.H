@@ -47,7 +47,7 @@ SourceFiles
 #ifndef ButlerVolmer_H
 #define ButlerVolmer_H
 
-#include "ActivationOverpotentialModel.H"
+#include "activationOverpotentialModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

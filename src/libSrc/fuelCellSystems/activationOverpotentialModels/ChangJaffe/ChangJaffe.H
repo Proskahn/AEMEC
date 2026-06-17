@@ -50,7 +50,7 @@ SourceFiles
 #ifndef ChangJaffe_H
 #define ChangJaffe_H
 
-#include "ActivationOverpotentialModel.H"
+#include "activationOverpotentialModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
