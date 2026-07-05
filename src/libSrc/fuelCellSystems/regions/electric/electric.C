@@ -221,6 +221,34 @@ void Foam::regionTypes::electric::solve()
     i_ = -sigmaField_ * fvc::grad(phi_);
     i_.correctBoundaryConditions();
 
+    if (control_)
+    {
+        const label patchID = this->boundaryMesh().findPatchID(patchName_);
+
+        if (patchID == -1)
+        {
+            FatalErrorInFunction
+                << "Cannot find " << patchName_
+                << "please check the patchName" << exit(FatalError);
+        }
+
+        const scalar appliedVoltage =
+            Foam::gAverage(phi_.boundaryField()[patchID]);
+
+        const scalar signedCurrent =
+            Foam::gSum
+            (
+              - sigmaField_.boundaryField()[patchID]
+              * phi_.boundaryField()[patchID].snGrad()
+              * this->magSf().boundaryField()[patchID]
+            );
+
+        Info << "Controlled boundary current (A) at " << patchName_
+            << ": signed = " << signedCurrent
+            << ", magnitude = " << mag(signedCurrent)
+            << ", voltage = " << appliedVoltage << endl;
+    }
+
     if (dissolved_.valid())
     {
         dissolved_->solve();
