@@ -1,0 +1,61 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    arch        "LSB;label=32;scalar=64";
+    class       polyBoundaryMesh;
+    location    "1/interconnect/polyMesh";
+    object      boundary;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+5
+(
+    interconnect0
+    {
+        type            patch;
+        nFaces          800;
+        startFace       44000;
+    }
+    interconnectSides
+    {
+        type            patch;
+        nFaces          3200;
+        startFace       44800;
+    }
+    interconnect1
+    {
+        type            patch;
+        nFaces          800;
+        startFace       48000;
+    }
+    interconnect_to_air
+    {
+        type            mappedWall;
+        inGroups        1(wall);
+        nFaces          1600;
+        startFace       48800;
+        sampleMode      nearestPatchFace;
+        sampleRegion    air;
+        samplePatch     air_to_interconnect;
+    }
+    interconnect_to_fuel
+    {
+        type            mappedWall;
+        inGroups        1(wall);
+        nFaces          1600;
+        startFace       50400;
+        sampleMode      nearestPatchFace;
+        sampleRegion    fuel;
+        samplePatch     fuel_to_interconnect;
+    }
+)
+
+// ************************************************************************* //
