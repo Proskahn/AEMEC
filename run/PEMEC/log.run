@@ -9,9 +9,9 @@ Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : openFuelCell
 Date   : Jul 05 2026
-Time   : 13:51:57
+Time   : 16:33:10
 Host   : 5dc56e304187
-PID    : 54447
+PID    : 18343
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -395,7 +395,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.9999999, Final residual = 9.714189e-12, No Iterations 23
 T: min = 313.1022, mean = 313.1373, max = 313.1503
-ExecutionTime = 2.8 s
+ExecutionTime = 2.46 s
 
 
 
@@ -511,7 +511,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.1854522, Final residual = 4.081553e-12, No Iterations 24
 T: min = 313.0339, mean = 313.1154, max = 313.1514
-ExecutionTime = 3.89 s
+ExecutionTime = 4.18 s
 
 
 
@@ -627,7 +627,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.05609539, Final residual = 2.964462e-12, No Iterations 23
 T: min = 313.0031, mean = 313.0979, max = 313.1507
-ExecutionTime = 4.94 s
+ExecutionTime = 5.69 s
 
 
 
@@ -743,7 +743,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.03989872, Final residual = 7.357109e-12, No Iterations 22
 T: min = 312.9936, mean = 313.0861, max = 313.15
-ExecutionTime = 5.87 s
+ExecutionTime = 6.64 s
 
 
 
@@ -859,7 +859,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.02416873, Final residual = 6.374106e-12, No Iterations 21
 T: min = 312.987, mean = 313.0785, max = 313.1499
-ExecutionTime = 7.26 s
+ExecutionTime = 8.03 s
 
 
 
@@ -975,7 +975,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.01423622, Final residual = 8.554034e-12, No Iterations 20
 T: min = 312.9816, mean = 313.073, max = 313.1499
-ExecutionTime = 8.2 s
+ExecutionTime = 8.98 s
 
 
 
@@ -1091,7 +1091,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.009175792, Final residual = 8.791138e-12, No Iterations 20
 T: min = 312.9759, mean = 313.0688, max = 313.1498
-ExecutionTime = 9.18 s
+ExecutionTime = 9.92 s
 
 
 
@@ -1207,7 +1207,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.006896159, Final residual = 7.827879e-12, No Iterations 19
 T: min = 312.971, mean = 313.0656, max = 313.1498
-ExecutionTime = 10.13 s
+ExecutionTime = 10.87 s
 
 
 
@@ -1323,7 +1323,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.005349412, Final residual = 6.371319e-12, No Iterations 20
 T: min = 312.9664, mean = 313.0632, max = 313.1497
-ExecutionTime = 11.07 s
+ExecutionTime = 11.83 s
 
 
 
@@ -1439,7 +1439,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.004069056, Final residual = 2.504059e-12, No Iterations 19
 T: min = 312.9625, mean = 313.0615, max = 313.1497
-ExecutionTime = 12.46 s
+ExecutionTime = 13.32 s
 
 
 
@@ -1555,7 +1555,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.003096364, Final residual = 9.698089e-12, No Iterations 20
 T: min = 312.959, mean = 313.0603, max = 313.1497
-ExecutionTime = 13.39 s
+ExecutionTime = 14.35 s
 
 
 
@@ -1671,7 +1671,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.002423079, Final residual = 9.961926e-12, No Iterations 18
 T: min = 312.956, mean = 313.0594, max = 313.1496
-ExecutionTime = 14.33 s
+ExecutionTime = 15.29 s
 
 
 
@@ -1787,7 +1787,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.001983066, Final residual = 8.356445e-12, No Iterations 19
 T: min = 312.9534, mean = 313.0588, max = 313.1496
-ExecutionTime = 15.26 s
+ExecutionTime = 16.25 s
 
 
 
@@ -1903,7 +1903,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.001706037, Final residual = 6.454492e-12, No Iterations 19
 T: min = 312.951, mean = 313.0584, max = 313.1496
-ExecutionTime = 16.16 s
+ExecutionTime = 17.2 s
 
 
 
@@ -2019,7 +2019,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.001501652, Final residual = 7.834997e-12, No Iterations 18
 T: min = 312.9488, mean = 313.0582, max = 313.1496
-ExecutionTime = 17.58 s
+ExecutionTime = 18.67 s
 
 
 
@@ -2135,7 +2135,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.001340279, Final residual = 9.861934e-12, No Iterations 17
 T: min = 312.9469, mean = 313.0581, max = 313.1496
-ExecutionTime = 18.55 s
+ExecutionTime = 19.65 s
 
 
 
@@ -2251,7 +2251,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.001211191, Final residual = 9.574523e-12, No Iterations 18
 T: min = 312.9453, mean = 313.0581, max = 313.1496
-ExecutionTime = 19.48 s
+ExecutionTime = 20.61 s
 
 
 
@@ -2367,7 +2367,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.003654005, Final residual = 5.233127e-12, No Iterations 22
 T: min = 312.9459, mean = 313.0601, max = 313.1496
-ExecutionTime = 20.42 s
+ExecutionTime = 21.58 s
 
 
 
@@ -2483,7 +2483,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.1470123, Final residual = 8.634233e-12, No Iterations 22
 T: min = 313.0205, mean = 313.1711, max = 313.3998
-ExecutionTime = 21.37 s
+ExecutionTime = 22.58 s
 
 
 
@@ -2599,7 +2599,7 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.9014975, Final residual = 8.621176e-12, No Iterations 28
 T: min = 313.1493, mean = 316.2925, max = 339.2325
-ExecutionTime = 22.75 s
+ExecutionTime = 24.05 s
 
 
 End
