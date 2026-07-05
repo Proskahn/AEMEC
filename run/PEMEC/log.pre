@@ -8,10 +8,10 @@
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -dict ./system/topoSetDict.zoneToSet -noZero -constant
-Date   : Jul 02 2026
-Time   : 09:00:18
+Date   : Jul 05 2026
+Time   : 13:51:28
 Host   : 5dc56e304187
-PID    : 2679
+PID    : 54117
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -90,10 +90,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -dict ./system/topoSetDict.afei -noZero -constant
-Date   : Jul 02 2026
-Time   : 09:00:19
+Date   : Jul 05 2026
+Time   : 13:51:29
 Host   : 5dc56e304187
-PID    : 2681
+PID    : 54119
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -162,10 +162,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : splitMeshRegions -cellZonesOnly
-Date   : Jul 02 2026
-Time   : 09:00:19
+Date   : Jul 05 2026
+Time   : 13:51:29
 Host   : 5dc56e304187
-PID    : 2697
+PID    : 54120
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -212,7 +212,7 @@ Interface	Region	Region	Faces
 2		0	2	800
 3		1	3	1600
 
-Reading volScalarField: cellToRegion
+Reading volScalarField: T cellToRegion k
 
 
 Adding patches
@@ -237,7 +237,9 @@ Region 0
 -------- 
 Creating mesh for region 0 air
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -250,7 +252,9 @@ Region 1
 -------- 
 Creating mesh for region 1 fuel
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -263,7 +267,9 @@ Region 2
 -------- 
 Creating mesh for region 2 electrolyte
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -276,7 +282,9 @@ Region 3
 -------- 
 Creating mesh for region 3 interconnect
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -296,10 +304,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -dict ./system/topoSetDict.phiE -noZero -constant
-Date   : Jul 02 2026
-Time   : 09:00:19
+Date   : Jul 05 2026
+Time   : 13:51:30
 Host   : 5dc56e304187
-PID    : 2714
+PID    : 54134
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -382,10 +390,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : splitMeshRegions -cellZonesOnly
-Date   : Jul 02 2026
-Time   : 09:00:19
+Date   : Jul 05 2026
+Time   : 13:51:30
 Host   : 5dc56e304187
-PID    : 2715
+PID    : 54135
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -428,7 +436,7 @@ Interface	Region	Region	Faces
 0		1	2	2400
 1		0	2	2400
 
-Reading volScalarField: cellToRegion
+Reading volScalarField: T cellToRegion k
 
 
 Adding patches
@@ -447,7 +455,9 @@ Region 0
 -------- 
 Creating mesh for region 0 phiEC
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -460,7 +470,9 @@ Region 1
 -------- 
 Creating mesh for region 1 phiEA
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -475,7 +487,9 @@ Creating mesh for region 2 phiE0
 Writing dummy "phiE0/fvSchemes"
 Writing dummy "phiE0/fvSolution"
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -495,10 +509,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -dict ./system/topoSetDict.phiI -noZero -constant
-Date   : Jul 02 2026
-Time   : 09:00:20
+Date   : Jul 05 2026
+Time   : 13:51:30
 Host   : 5dc56e304187
-PID    : 2737
+PID    : 54153
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -548,10 +562,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : splitMeshRegions -cellZonesOnly
-Date   : Jul 02 2026
-Time   : 09:00:20
+Date   : Jul 05 2026
+Time   : 13:51:30
 Host   : 5dc56e304187
-PID    : 2745
+PID    : 54154
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -591,7 +605,7 @@ Interface	Region	Region	Faces
 ---------	------	------	-----
 0		0	1	1600
 
-Reading volScalarField: cellToRegion
+Reading volScalarField: T cellToRegion k
 
 
 Adding patches
@@ -607,7 +621,9 @@ Region 0
 -------- 
 Creating mesh for region 0 phiI
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -620,7 +636,9 @@ Region 1
 -------- 
 Creating mesh for region 1 phiI0
 Mapping fields
+Mapping field T
 Mapping field cellToRegion
+Mapping field k
 Deleting empty patches
 Writing new mesh
 Writing addressing to base mesh
@@ -640,10 +658,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -region air
-Date   : Jul 02 2026
-Time   : 09:00:20
+Date   : Jul 05 2026
+Time   : 13:51:31
 Host   : 5dc56e304187
-PID    : 2752
+PID    : 54161
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -687,10 +705,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -region fuel
-Date   : Jul 02 2026
-Time   : 09:00:21
+Date   : Jul 05 2026
+Time   : 13:51:32
 Host   : 5dc56e304187
-PID    : 2753
+PID    : 54169
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -734,10 +752,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -region phiEC
-Date   : Jul 02 2026
-Time   : 09:00:21
+Date   : Jul 05 2026
+Time   : 13:51:32
 Host   : 5dc56e304187
-PID    : 2764
+PID    : 54170
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -786,10 +804,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -region phiEA
-Date   : Jul 02 2026
-Time   : 09:00:21
+Date   : Jul 05 2026
+Time   : 13:51:32
 Host   : 5dc56e304187
-PID    : 2765
+PID    : 54189
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -838,10 +856,10 @@ End
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : topoSet -region phiI
-Date   : Jul 02 2026
-Time   : 09:00:22
+Date   : Jul 05 2026
+Time   : 13:51:33
 Host   : 5dc56e304187
-PID    : 2766
+PID    : 54197
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -875,6 +893,6 @@ Created cellZoneSet membrane
     cellZoneSet membrane now size 4000
 End
 
-  -Executation time for preprocessing is : 4 Sec 
+  -Executation time for preprocessing is : 5 Sec 
 
 

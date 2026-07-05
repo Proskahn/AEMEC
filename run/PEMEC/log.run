@@ -8,10 +8,10 @@
 Build  : _c39a0f64-20231220 OPENFOAM=2312 version=2312
 Arch   : "LSB;label=32;scalar=64"
 Exec   : openFuelCell
-Date   : Jul 02 2026
-Time   : 09:43:51
+Date   : Jul 05 2026
+Time   : 13:51:57
 Host   : 5dc56e304187
-PID    : 30488
+PID    : 54447
 I/O    : uncollated
 Case   : /root/work/AEMEC/run/PEMEC
 nProcs : 1
@@ -239,7 +239,7 @@ Map phiEC to Cell
 Map phiI to Cell 
 
 
-Time = 0.2
+Time = 0.1
 
 Flow time scale min/max = 0.05, 0.0525
 
@@ -395,11 +395,11 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.9999999, Final residual = 9.714189e-12, No Iterations 23
 T: min = 313.1022, mean = 313.1373, max = 313.1503
-ExecutionTime = 2.51 s
+ExecutionTime = 2.8 s
 
 
 
-Time = 0.4
+Time = 0.2
 
 Flow time scale min/max = 0.0008596347, 0.004234912
 
@@ -433,7 +433,7 @@ Total current (A) at acl: 2.48463
 
 Correct diffusivity for specie: H2
 
-ibar: 0	voltage: 1.28
+ibar: 0	voltage: 0.1
 
 Solving for two phase flow:
 
@@ -511,11 +511,11 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.1854522, Final residual = 4.081553e-12, No Iterations 24
 T: min = 313.0339, mean = 313.1154, max = 313.1514
-ExecutionTime = 3.99 s
+ExecutionTime = 3.89 s
 
 
 
-Time = 0.6
+Time = 0.3
 
 Flow time scale min/max = 0.001575897, 0.005173214
 
@@ -536,7 +536,7 @@ Map phiEC from Cell
 Map phiI from Cell 
 
 Nernst air: min = 1.42505, mean = 1.425089, max = 1.425148
-Total current (A) at ccl: 9.026782e-08
+Total current (A) at ccl: 0
 
 Correct diffusivity for specie: O2
 
@@ -549,7 +549,7 @@ Total current (A) at acl: 1.813611
 
 Correct diffusivity for specie: H2
 
-ibar: -0.001128348	voltage: 1.36
+ibar: 0	voltage: 0.2
 
 Solving for two phase flow:
 
@@ -570,10 +570,10 @@ DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7122012, Final residua
 Y: H2O.air:0.04222559 -> 0.04260553
 Constructing face momentum equations
 DILUPBiCGStab:  Solving for e.water, Initial residual = 0.396223, Final residual = 9.811461e-12, No Iterations 3
-DICPCG:  Solving for p_rgh, Initial residual = 0.04457318, Final residual = 4.112814e-05, No Iterations 200
-DICPCG:  Solving for p_rgh, Initial residual = 0.01363742, Final residual = 1.260518e-05, No Iterations 194
-DICPCG:  Solving for p_rgh, Initial residual = 0.001452513, Final residual = 1.035459e-06, No Iterations 193
-DICPCG:  Solving for p_rgh, Initial residual = 0.0003352402, Final residual = 8.859123e-11, No Iterations 213
+DICPCG:  Solving for p_rgh, Initial residual = 0.04457311, Final residual = 4.112808e-05, No Iterations 200
+DICPCG:  Solving for p_rgh, Initial residual = 0.01363746, Final residual = 1.260525e-05, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.00145252, Final residual = 1.035457e-06, No Iterations 193
+DICPCG:  Solving for p_rgh, Initial residual = 0.0003352418, Final residual = 8.859702e-11, No Iterations 213
 
 Solve for single phase flow:
 
@@ -604,7 +604,7 @@ GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, 
 
 Solve for region phiI:
 
-GAMG:  Solving for phi, Initial residual = 0.8314007, Final residual = 1.539032e-15, No Iterations 2
+GAMG:  Solving for phi, Initial residual = 0.8314007, Final residual = 1.56787e-15, No Iterations 2
 DILUPBiCGStab:  Solving for lambda, Initial residual = 0.8816261, Final residual = 8.484055e-15, No Iterations 2
 
 Map to cell 
@@ -627,11 +627,11 @@ Solving for temperature:
 
 DILUPBiCGStab:  Solving for T, Initial residual = 0.05609539, Final residual = 2.964462e-12, No Iterations 23
 T: min = 313.0031, mean = 313.0979, max = 313.1507
-ExecutionTime = 4.92 s
+ExecutionTime = 4.94 s
 
 
 
-Time = 0.8
+Time = 0.4
 
 Flow time scale min/max = 0.00166739, 0.005019899
 
@@ -652,7 +652,7 @@ Map phiEC from Cell
 Map phiI from Cell 
 
 Nernst air: min = 1.425048, mean = 1.425094, max = 1.425117
-Total current (A) at ccl: 3.785584e-06
+Total current (A) at ccl: 0
 
 Correct diffusivity for specie: O2
 
@@ -665,7 +665,7 @@ Total current (A) at acl: 1.024218
 
 Correct diffusivity for specie: H2
 
-ibar: -0.0473198	voltage: 1.44
+ibar: 0	voltage: 0.3
 
 Solving for two phase flow:
 
@@ -675,21 +675,21 @@ Calculating field g.h
 PIMPLE: iteration 1
 Solving for alpha: 
 MULES: Solving for alpha.air
-alpha.air volume fraction = 1.072334e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.519558e-06
+alpha.air volume fraction = 1.072317e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.519558e-06
 MULES: Solving for alpha.air
-alpha.air volume fraction = 1.072402e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.521118e-06
+alpha.air volume fraction = 1.072384e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.521118e-06
 MULES: Solving for alpha.air
-alpha.air volume fraction = 1.072462e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.523805e-06
-DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9397409, Final residual = 4.397909e-12, No Iterations 9
+alpha.air volume fraction = 1.072445e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.523805e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9397315, Final residual = 4.398606e-12, No Iterations 9
 Y: O2.air:0.8922333 -> 0.9564645
-DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7077565, Final residual = 6.890826e-12, No Iterations 2
-Y: H2O.air:0.04218573 -> 0.04255942
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7077545, Final residual = 6.890893e-12, No Iterations 2
+Y: H2O.air:0.04218575 -> 0.04255942
 Constructing face momentum equations
 DILUPBiCGStab:  Solving for e.water, Initial residual = 0.1524183, Final residual = 2.587188e-12, No Iterations 3
-DICPCG:  Solving for p_rgh, Initial residual = 0.02560387, Final residual = 2.492903e-05, No Iterations 200
-DICPCG:  Solving for p_rgh, Initial residual = 0.01146708, Final residual = 9.048465e-06, No Iterations 197
-DICPCG:  Solving for p_rgh, Initial residual = 0.001089239, Final residual = 9.213107e-07, No Iterations 193
-DICPCG:  Solving for p_rgh, Initial residual = 0.0002839758, Final residual = 9.153791e-11, No Iterations 213
+DICPCG:  Solving for p_rgh, Initial residual = 0.02560736, Final residual = 2.493184e-05, No Iterations 200
+DICPCG:  Solving for p_rgh, Initial residual = 0.01147171, Final residual = 9.051156e-06, No Iterations 197
+DICPCG:  Solving for p_rgh, Initial residual = 0.001089518, Final residual = 9.215364e-07, No Iterations 193
+DICPCG:  Solving for p_rgh, Initial residual = 0.0002840482, Final residual = 9.146808e-11, No Iterations 213
 
 Solve for single phase flow:
 
@@ -716,12 +716,12 @@ GAMGPCG:  Solving for phi, Initial residual = 0.004291481, Final residual = 8.86
 
 Solve for region phiEC:
 
-GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065439e-11, No Iterations 9
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
 
 Solve for region phiI:
 
-GAMG:  Solving for phi, Initial residual = 0.5826728, Final residual = 2.059065e-15, No Iterations 2
-DILUPBiCGStab:  Solving for lambda, Initial residual = 0.5429599, Final residual = 7.308053e-15, No Iterations 2
+GAMG:  Solving for phi, Initial residual = 0.5826756, Final residual = 2.001667e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.5429599, Final residual = 7.308054e-15, No Iterations 2
 
 Map to cell 
 
@@ -741,15 +741,15 @@ Map phiI to Cell
 
 Solving for temperature:
 
-DILUPBiCGStab:  Solving for T, Initial residual = 0.03989869, Final residual = 7.357111e-12, No Iterations 22
+DILUPBiCGStab:  Solving for T, Initial residual = 0.03989872, Final residual = 7.357109e-12, No Iterations 22
 T: min = 312.9936, mean = 313.0861, max = 313.15
-ExecutionTime = 5.84 s
+ExecutionTime = 5.87 s
 
 
 
-Time = 1
+Time = 0.5
 
-Flow time scale min/max = 0.001649324, 0.005052127
+Flow time scale min/max = 0.001649326, 0.005052155
 
 Map from cell 
 
@@ -768,20 +768,20 @@ Map phiEC from Cell
 Map phiI from Cell 
 
 Nernst air: min = 1.425054, mean = 1.425107, max = 1.425131
-Total current (A) at ccl: 7.578303e-05
+Total current (A) at ccl: 0
 
 Correct diffusivity for specie: O2
 
 
 Correct diffusivity for specie: H2O
 
-Tf.airAndWater: min = 313.0469, mean = 313.0957, max = 313.1657
+Tf.airAndWater: min = 313.0467, mean = 313.0956, max = 313.1657
 Nernst fuel: min = 0.2085745, mean = 0.2111043, max = 0.2132707
-Total current (A) at acl: 0.6815305
+Total current (A) at acl: 0.6815301
 
 Correct diffusivity for specie: H2
 
-ibar: -0.9472879	voltage: 1.52
+ibar: 0	voltage: 0.4
 
 Solving for two phase flow:
 
@@ -791,21 +791,21 @@ Calculating field g.h
 PIMPLE: iteration 1
 Solving for alpha: 
 MULES: Solving for alpha.air
-alpha.air volume fraction = 1.120865e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.940412e-06
+alpha.air volume fraction = 1.104535e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.603306e-06
 MULES: Solving for alpha.air
-alpha.air volume fraction = 1.120958e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.940412e-06
+alpha.air volume fraction = 1.104621e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.660365e-06
 MULES: Solving for alpha.air
-alpha.air volume fraction = 1.121034e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.940412e-06
-DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9386949, Final residual = 5.439955e-12, No Iterations 9
-Y: O2.air:0.7013366 -> 0.9570702
-DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7495976, Final residual = 8.077517e-12, No Iterations 2
-Y: H2O.air:0.04212754 -> 0.04256823
+alpha.air volume fraction = 1.104697e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.700023e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9296568, Final residual = 6.204458e-12, No Iterations 9
+Y: O2.air:0.8924755 -> 0.9570702
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7522502, Final residual = 8.166935e-12, No Iterations 2
+Y: H2O.air:0.04212815 -> 0.04256823
 Constructing face momentum equations
-DILUPBiCGStab:  Solving for e.water, Initial residual = 0.07521553, Final residual = 1.136305e-12, No Iterations 3
-DICPCG:  Solving for p_rgh, Initial residual = 0.01820801, Final residual = 1.743795e-05, No Iterations 200
-DICPCG:  Solving for p_rgh, Initial residual = 0.008359063, Final residual = 7.356188e-06, No Iterations 197
-DICPCG:  Solving for p_rgh, Initial residual = 0.0008086341, Final residual = 6.327526e-07, No Iterations 194
-DICPCG:  Solving for p_rgh, Initial residual = 0.0002287185, Final residual = 7.595032e-11, No Iterations 213
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.07521573, Final residual = 1.136326e-12, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.01803978, Final residual = 1.741729e-05, No Iterations 200
+DICPCG:  Solving for p_rgh, Initial residual = 0.008441023, Final residual = 7.403517e-06, No Iterations 197
+DICPCG:  Solving for p_rgh, Initial residual = 0.0008133566, Final residual = 6.362237e-07, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0002300298, Final residual = 7.655766e-11, No Iterations 213
 
 Solve for single phase flow:
 
@@ -815,7 +815,7 @@ Calculating field g.h
 Creating field dpdt
 
 PIMPLE: iteration 1
-DILUPBiCGStab:  Solving for H2, Initial residual = 0.3784649, Final residual = 8.726704e-12, No Iterations 45
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.3784649, Final residual = 8.726364e-12, No Iterations 45
 Y: H2:0.2432138 -> 0.5406266
 Constructing momentum equations
 DILUPBiCGStab:  Solving for Ux, Initial residual = 0.00121595, Final residual = 6.760075e-10, No Iterations 3
@@ -824,20 +824,20 @@ DILUPBiCGStab:  Solving for Uz, Initial residual = 0.6918527, Final residual = 3
 DICPCG:  Solving for p_rgh, Initial residual = 0.06080287, Final residual = 5.253447e-05, No Iterations 196
 DICPCG:  Solving for p_rgh, Initial residual = 0.03302981, Final residual = 2.660295e-05, No Iterations 197
 DICPCG:  Solving for p_rgh, Initial residual = 0.01934633, Final residual = 1.093674e-05, No Iterations 197
-DICPCG:  Solving for p_rgh, Initial residual = 0.01297271, Final residual = 8.98373e-11, No Iterations 232
+DICPCG:  Solving for p_rgh, Initial residual = 0.01297271, Final residual = 8.983733e-11, No Iterations 232
 
 Solve for region phiEA:
 
-GAMGPCG:  Solving for phi, Initial residual = 0.003282634, Final residual = 9.602302e-11, No Iterations 8
+GAMGPCG:  Solving for phi, Initial residual = 0.003282638, Final residual = 9.602314e-11, No Iterations 8
 
 Solve for region phiEC:
 
-GAMGPCG:  Solving for phi, Initial residual = 0.9999997, Final residual = 1.065452e-11, No Iterations 9
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
 
 Solve for region phiI:
 
-GAMG:  Solving for phi, Initial residual = 0.3047677, Final residual = 1.656212e-15, No Iterations 2
-DILUPBiCGStab:  Solving for lambda, Initial residual = 0.4666638, Final residual = 5.64347e-15, No Iterations 2
+GAMG:  Solving for phi, Initial residual = 0.3048093, Final residual = 1.627123e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.4666639, Final residual = 5.643478e-15, No Iterations 2
 
 Map to cell 
 
@@ -857,9 +857,1749 @@ Map phiI to Cell
 
 Solving for temperature:
 
-DILUPBiCGStab:  Solving for T, Initial residual = 0.02416748, Final residual = 6.409933e-12, No Iterations 21
+DILUPBiCGStab:  Solving for T, Initial residual = 0.02416873, Final residual = 6.374106e-12, No Iterations 21
 T: min = 312.987, mean = 313.0785, max = 313.1499
-ExecutionTime = 7.2 s
+ExecutionTime = 7.26 s
+
+
+
+Time = 0.6
+
+Flow time scale min/max = 0.001636753, 0.005010887
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425054, mean = 1.425116, max = 1.425143
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 313.0272, mean = 313.082, max = 313.1638
+Nernst fuel: min = 0.2071253, mean = 0.2107549, max = 0.2136054
+Total current (A) at acl: 0.5113141
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 0.5
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.136888e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.894256e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.137076e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.894256e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.137149e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.913953e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9256609, Final residual = 8.069774e-12, No Iterations 9
+Y: O2.air:0.8917093 -> 0.9573855
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7877901, Final residual = 8.919133e-12, No Iterations 2
+Y: H2O.air:0.04207533 -> 0.04256568
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.04264774, Final residual = 7.719702e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.01208451, Final residual = 1.103513e-05, No Iterations 200
+DICPCG:  Solving for p_rgh, Initial residual = 0.006863836, Final residual = 6.489921e-06, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.0006437697, Final residual = 5.270821e-07, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0001952652, Final residual = 8.328308e-11, No Iterations 212
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.2755079, Final residual = 6.749448e-12, No Iterations 59
+Y: H2:0.2438967 -> 0.4793977
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0002354525, Final residual = 2.052214e-10, No Iterations 3
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.6144082, Final residual = 3.796582e-10, No Iterations 3
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.2697903, Final residual = 1.01905e-10, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.09964645, Final residual = 9.057661e-05, No Iterations 199
+DICPCG:  Solving for p_rgh, Initial residual = 0.0454063, Final residual = 4.365005e-05, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.0253785, Final residual = 2.37721e-05, No Iterations 199
+DICPCG:  Solving for p_rgh, Initial residual = 0.01567472, Final residual = 8.110222e-11, No Iterations 232
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.002431895, Final residual = 7.643716e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.2083978, Final residual = 1.530503e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.4454559, Final residual = 4.669022e-15, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.01423622, Final residual = 8.554034e-12, No Iterations 20
+T: min = 312.9816, mean = 313.073, max = 313.1499
+ExecutionTime = 8.2 s
+
+
+
+Time = 0.7
+
+Flow time scale min/max = 0.001627114, 0.005004951
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425055, mean = 1.425122, max = 1.425154
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 313.0126, mean = 313.0719, max = 313.1623
+Nernst fuel: min = 0.2056232, mean = 0.2146806, max = 0.2170976
+Total current (A) at acl: 0.4405211
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 0.6
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.169331e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.943816e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.169574e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.001292e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.169662e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.033174e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9218778, Final residual = 9.719665e-12, No Iterations 9
+Y: O2.air:0.8913738 -> 0.9575594
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.8152793, Final residual = 9.595086e-12, No Iterations 2
+Y: H2O.air:0.04203441 -> 0.04256185
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.02805523, Final residual = 5.165479e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.009110149, Final residual = 5.587358e-06, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.005670919, Final residual = 4.442108e-06, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.0005215079, Final residual = 3.939244e-07, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0001667855, Final residual = 8.419284e-11, No Iterations 212
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.2133645, Final residual = 1.676971e-12, No Iterations 60
+Y: H2:0.244832 -> 0.4593857
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0001426641, Final residual = 7.715524e-11, No Iterations 3
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.1181635, Final residual = 8.993532e-11, No Iterations 3
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.1135132, Final residual = 7.037952e-11, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.1721188, Final residual = 0.000146174, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.04040754, Final residual = 3.442441e-05, No Iterations 199
+DICPCG:  Solving for p_rgh, Initial residual = 0.02297577, Final residual = 2.030652e-05, No Iterations 198
+DICPCG:  Solving for p_rgh, Initial residual = 0.01440415, Final residual = 7.34292e-11, No Iterations 232
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.001343204, Final residual = 4.281735e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.1743611, Final residual = 1.486575e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.3967198, Final residual = 8.936961e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.009175792, Final residual = 8.791138e-12, No Iterations 20
+T: min = 312.9759, mean = 313.0688, max = 313.1498
+ExecutionTime = 9.18 s
+
+
+
+Time = 0.8
+
+Flow time scale min/max = 0.001620275, 0.004996059
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425055, mean = 1.425126, max = 1.425162
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 313.001, mean = 313.0643, max = 313.1608
+Nernst fuel: min = 0.2075036, mean = 0.2143826, max = 0.2165965
+Total current (A) at acl: 0.3783592
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 0.7
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.202015e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.106304e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.202258e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.165619e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.202373e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.195788e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9189253, Final residual = 2.295716e-12, No Iterations 10
+Y: O2.air:0.8912913 -> 0.95767
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.8157432, Final residual = 9.937315e-12, No Iterations 2
+Y: H2O.air:0.04200401 -> 0.04255733
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.02045386, Final residual = 3.600229e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.007065582, Final residual = 3.829068e-06, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.004679172, Final residual = 4.311812e-06, No Iterations 195
+DICPCG:  Solving for p_rgh, Initial residual = 0.0004292389, Final residual = 2.874908e-07, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0001431521, Final residual = 6.283994e-11, No Iterations 212
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.1885389, Final residual = 9.89769e-12, No Iterations 61
+Y: H2:0.2446487 -> 0.4659204
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0002190184, Final residual = 7.524479e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.3197706, Final residual = 1.317505e-10, No Iterations 3
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.1061231, Final residual = 6.523318e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.1140939, Final residual = 0.0001020766, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.03257058, Final residual = 2.175718e-05, No Iterations 198
+DICPCG:  Solving for p_rgh, Initial residual = 0.01966107, Final residual = 1.625738e-05, No Iterations 197
+DICPCG:  Solving for p_rgh, Initial residual = 0.012829, Final residual = 6.933777e-11, No Iterations 231
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.001366363, Final residual = 4.980925e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.1475332, Final residual = 1.444422e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.3224048, Final residual = 7.377831e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.006896159, Final residual = 7.827879e-12, No Iterations 19
+T: min = 312.971, mean = 313.0656, max = 313.1498
+ExecutionTime = 10.13 s
+
+
+
+Time = 0.9
+
+Flow time scale min/max = 0.001615393, 0.004994112
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425056, mean = 1.425128, max = 1.42517
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9916, mean = 313.0585, max = 313.1595
+Nernst fuel: min = 0.2091369, mean = 0.2143695, max = 0.2162829
+Total current (A) at acl: 0.3220727
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 0.8
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.234542e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.310053e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.234801e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.323443e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.234919e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.359213e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9161639, Final residual = 2.728833e-12, No Iterations 10
+Y: O2.air:0.8913504 -> 0.9577666
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.8108758, Final residual = 1.640723e-14, No Iterations 3
+Y: H2O.air:0.04198038 -> 0.04255281
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.01554335, Final residual = 2.664807e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.005513144, Final residual = 2.813476e-06, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.003836393, Final residual = 3.21157e-06, No Iterations 195
+DICPCG:  Solving for p_rgh, Initial residual = 0.0003562506, Final residual = 3.156932e-07, No Iterations 193
+DICPCG:  Solving for p_rgh, Initial residual = 0.000123163, Final residual = 8.794159e-11, No Iterations 211
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.1696451, Final residual = 7.520521e-12, No Iterations 61
+Y: H2:0.2437932 -> 0.4720235
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0001881542, Final residual = 7.172329e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.08667796, Final residual = 8.440795e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.1496612, Final residual = 8.631401e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.1193761, Final residual = 0.0001179463, No Iterations 198
+DICPCG:  Solving for p_rgh, Initial residual = 0.02632118, Final residual = 2.154448e-05, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.01547457, Final residual = 1.205376e-05, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.009912915, Final residual = 8.352895e-11, No Iterations 229
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.00144162, Final residual = 4.615189e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.1251643, Final residual = 1.491402e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.2460415, Final residual = 5.81239e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.005349412, Final residual = 6.371319e-12, No Iterations 20
+T: min = 312.9664, mean = 313.0632, max = 313.1497
+ExecutionTime = 11.07 s
+
+
+
+Time = 1
+
+Flow time scale min/max = 0.001611927, 0.004996997
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425057, mean = 1.42513, max = 1.425175
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9839, mean = 313.0541, max = 313.1582
+Nernst fuel: min = 0.2124981, mean = 0.2145783, max = 0.2162291
+Total current (A) at acl: 0.2788107
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 0.9
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.267069e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.43518e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.267347e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.482703e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.267487e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.526822e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9142623, Final residual = 3.19302e-12, No Iterations 10
+Y: O2.air:0.8913798 -> 0.9578305
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.8058937, Final residual = 1.677535e-14, No Iterations 3
+Y: H2O.air:0.04196179 -> 0.04254856
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.01199523, Final residual = 2.102971e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.004319208, Final residual = 2.152617e-06, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.00312774, Final residual = 2.389225e-06, No Iterations 195
+DICPCG:  Solving for p_rgh, Initial residual = 0.0002964489, Final residual = 2.325066e-07, No Iterations 193
+DICPCG:  Solving for p_rgh, Initial residual = 0.0001057739, Final residual = 6.541733e-11, No Iterations 209
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.161193, Final residual = 8.321669e-12, No Iterations 68
+Y: H2:0.2433197 -> 0.4773368
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0002999148, Final residual = 5.479086e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.2157722, Final residual = 1.167932e-10, No Iterations 3
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.1818505, Final residual = 9.330658e-11, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.07517665, Final residual = 5.494152e-05, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.0216962, Final residual = 2.065179e-05, No Iterations 199
+DICPCG:  Solving for p_rgh, Initial residual = 0.0129822, Final residual = 9.216889e-06, No Iterations 198
+DICPCG:  Solving for p_rgh, Initial residual = 0.008376691, Final residual = 9.288432e-11, No Iterations 229
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.001300566, Final residual = 3.83359e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.1092673, Final residual = 1.490662e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.1769466, Final residual = 4.453918e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.004069056, Final residual = 2.504059e-12, No Iterations 19
+T: min = 312.9625, mean = 313.0615, max = 313.1497
+ExecutionTime = 12.46 s
+
+
+
+Time = 1.1
+
+Flow time scale min/max = 0.001609466, 0.005002934
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425057, mean = 1.425131, max = 1.425179
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9773, mean = 313.0508, max = 313.1572
+Nernst fuel: min = 0.2132711, mean = 0.2147874, max = 0.2162326
+Total current (A) at acl: 0.2468665
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 1
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.299652e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.599532e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.299959e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.658038e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.300124e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.699438e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9126554, Final residual = 3.517246e-12, No Iterations 10
+Y: O2.air:0.8915531 -> 0.9578769
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.8007081, Final residual = 1.687058e-14, No Iterations 3
+Y: H2O.air:0.04194708 -> 0.04254494
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.009452372, Final residual = 1.674279e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.003406185, Final residual = 3.250584e-06, No Iterations 200
+DICPCG:  Solving for p_rgh, Initial residual = 0.002535254, Final residual = 2.394317e-06, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0002469414, Final residual = 1.686121e-07, No Iterations 193
+DICPCG:  Solving for p_rgh, Initial residual = 9.053159e-05, Final residual = 8.722647e-11, No Iterations 208
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.1223705, Final residual = 9.658144e-12, No Iterations 65
+Y: H2:0.2415287 -> 0.4816992
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0002656173, Final residual = 5.099757e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.09790057, Final residual = 8.778085e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.1654227, Final residual = 9.454842e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.06497529, Final residual = 3.536896e-05, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.02054199, Final residual = 1.658402e-05, No Iterations 182
+DICPCG:  Solving for p_rgh, Initial residual = 0.01252163, Final residual = 9.683489e-06, No Iterations 195
+DICPCG:  Solving for p_rgh, Initial residual = 0.008236684, Final residual = 8.39581e-11, No Iterations 229
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.001108065, Final residual = 2.959802e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.09842051, Final residual = 1.530537e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.1304267, Final residual = 3.369985e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.003096364, Final residual = 9.698089e-12, No Iterations 20
+T: min = 312.959, mean = 313.0603, max = 313.1497
+ExecutionTime = 13.39 s
+
+
+
+Time = 1.2
+
+Flow time scale min/max = 0.001607716, 0.005006968
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425058, mean = 1.425131, max = 1.425183
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9717, mean = 313.0483, max = 313.1563
+Nernst fuel: min = 0.2138175, mean = 0.2149741, max = 0.2162284
+Total current (A) at acl: 0.2227606
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 1.1
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.332276e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.767036e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.332578e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.819796e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.332736e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.855549e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9115214, Final residual = 3.936828e-12, No Iterations 10
+Y: O2.air:0.8917113 -> 0.9579269
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.795332, Final residual = 1.697856e-14, No Iterations 3
+Y: H2O.air:0.04193497 -> 0.04254154
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.00771262, Final residual = 1.341539e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.002649999, Final residual = 2.47729e-06, No Iterations 199
+DICPCG:  Solving for p_rgh, Initial residual = 0.002048741, Final residual = 1.81466e-06, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0002061666, Final residual = 1.966764e-07, No Iterations 190
+DICPCG:  Solving for p_rgh, Initial residual = 7.750786e-05, Final residual = 9.382613e-11, No Iterations 207
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.08260497, Final residual = 8.824152e-12, No Iterations 66
+Y: H2:0.2402328 -> 0.4850889
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0002122902, Final residual = 5.670472e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.2057904, Final residual = 8.456472e-11, No Iterations 3
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.1134375, Final residual = 6.97202e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.06971267, Final residual = 4.609548e-05, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.02407938, Final residual = 2.336735e-05, No Iterations 197
+DICPCG:  Solving for p_rgh, Initial residual = 0.01430484, Final residual = 9.905566e-06, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.009135493, Final residual = 7.605947e-11, No Iterations 229
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.0009419402, Final residual = 2.639056e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.09087724, Final residual = 1.586155e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.1021364, Final residual = 2.658975e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.002423079, Final residual = 9.961926e-12, No Iterations 18
+T: min = 312.956, mean = 313.0594, max = 313.1496
+ExecutionTime = 14.33 s
+
+
+
+Time = 1.3
+
+Flow time scale min/max = 0.00160647, 0.005008624
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425058, mean = 1.425132, max = 1.425186
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9669, mean = 313.0464, max = 313.1555
+Nernst fuel: min = 0.2140708, mean = 0.2151279, max = 0.2162538
+Total current (A) at acl: 0.2039597
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 1.2
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.364868e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.927512e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.365191e-06  Min(alpha.air) = 0  Max(alpha.air) = 2.995213e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.365371e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.028797e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9107684, Final residual = 4.342839e-12, No Iterations 10
+Y: O2.air:0.8918006 -> 0.9579659
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7889893, Final residual = 1.699854e-14, No Iterations 3
+Y: H2O.air:0.04192423 -> 0.04253859
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.006890692, Final residual = 1.106191e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.00207573, Final residual = 2.06451e-06, No Iterations 198
+DICPCG:  Solving for p_rgh, Initial residual = 0.001650299, Final residual = 1.377751e-06, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0001724778, Final residual = 1.406232e-07, No Iterations 190
+DICPCG:  Solving for p_rgh, Initial residual = 6.638427e-05, Final residual = 8.70181e-11, No Iterations 208
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.05957001, Final residual = 8.050751e-12, No Iterations 67
+Y: H2:0.2387248 -> 0.4877391
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0001986709, Final residual = 5.13036e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.07146734, Final residual = 6.064439e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.07146474, Final residual = 5.361461e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.07065268, Final residual = 5.750099e-05, No Iterations 201
+DICPCG:  Solving for p_rgh, Initial residual = 0.01782285, Final residual = 1.721801e-05, No Iterations 172
+DICPCG:  Solving for p_rgh, Initial residual = 0.01114709, Final residual = 9.354706e-06, No Iterations 195
+DICPCG:  Solving for p_rgh, Initial residual = 0.007284086, Final residual = 9.264627e-11, No Iterations 228
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.0008125782, Final residual = 2.346995e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.08548303, Final residual = 1.60124e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.08256157, Final residual = 2.172427e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.001983066, Final residual = 8.356445e-12, No Iterations 19
+T: min = 312.9534, mean = 313.0588, max = 313.1496
+ExecutionTime = 15.26 s
+
+
+
+Time = 1.4
+
+Flow time scale min/max = 0.001605564, 0.005009769
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425058, mean = 1.425132, max = 1.425188
+Total current (A) at ccl: 0
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9629, mean = 313.045, max = 313.1548
+Nernst fuel: min = 0.2139961, mean = 0.2152061, max = 0.2162637
+Total current (A) at acl: 0.1886618
+
+Correct diffusivity for specie: H2
+
+ibar: 0	voltage: 1.3
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.397519e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.103421e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.397858e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.163646e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.398048e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.20385e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9101769, Final residual = 4.618626e-12, No Iterations 10
+Y: O2.air:0.8919153 -> 0.9579929
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7822133, Final residual = 1.688068e-14, No Iterations 3
+Y: H2O.air:0.04191518 -> 0.04253618
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.006368549, Final residual = 9.24194e-14, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.001648739, Final residual = 1.518396e-06, No Iterations 198
+DICPCG:  Solving for p_rgh, Initial residual = 0.001325693, Final residual = 1.050869e-06, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0001433192, Final residual = 1.016062e-07, No Iterations 190
+DICPCG:  Solving for p_rgh, Initial residual = 5.643857e-05, Final residual = 7.12741e-11, No Iterations 208
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.05530528, Final residual = 5.987859e-12, No Iterations 72
+Y: H2:0.2367495 -> 0.4899297
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0002040231, Final residual = 3.715339e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.1007398, Final residual = 6.857876e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.06451508, Final residual = 4.194408e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.05102073, Final residual = 3.693035e-05, No Iterations 198
+DICPCG:  Solving for p_rgh, Initial residual = 0.01039957, Final residual = 7.377275e-06, No Iterations 121
+DICPCG:  Solving for p_rgh, Initial residual = 0.006187615, Final residual = 4.969164e-06, No Iterations 192
+DICPCG:  Solving for p_rgh, Initial residual = 0.003983483, Final residual = 6.92542e-11, No Iterations 227
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.0007210078, Final residual = 2.181939e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.0814544, Final residual = 1.694995e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.0665246, Final residual = 1.757799e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.001706037, Final residual = 6.454492e-12, No Iterations 19
+T: min = 312.951, mean = 313.0584, max = 313.1496
+ExecutionTime = 16.16 s
+
+
+
+Time = 1.5
+
+Flow time scale min/max = 0.001604914, 0.00501064
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425058, mean = 1.425132, max = 1.425191
+Total current (A) at ccl: 1.020163e-06
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9595, mean = 313.044, max = 313.1542
+Nernst fuel: min = 0.213939, mean = 0.2152451, max = 0.2162985
+Total current (A) at acl: 0.1758208
+
+Correct diffusivity for specie: H2
+
+ibar: -0.01275204	voltage: 1.4
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.430191e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.271474e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.430539e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.345011e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.430741e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.35872e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9097118, Final residual = 4.966018e-12, No Iterations 10
+Y: O2.air:0.8919925 -> 0.9580127
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7764567, Final residual = 1.674397e-14, No Iterations 3
+Y: H2O.air:0.04190733 -> 0.0425341
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.005950325, Final residual = 8.009663e-14, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.001275752, Final residual = 1.035537e-06, No Iterations 198
+DICPCG:  Solving for p_rgh, Initial residual = 0.001060947, Final residual = 7.869758e-07, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 0.0001201296, Final residual = 6.96497e-08, No Iterations 190
+DICPCG:  Solving for p_rgh, Initial residual = 4.814878e-05, Final residual = 6.544795e-11, No Iterations 208
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.04826359, Final residual = 5.909638e-12, No Iterations 72
+Y: H2:0.2352324 -> 0.4918576
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0001356738, Final residual = 2.511302e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.05114735, Final residual = 3.513746e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.04877882, Final residual = 3.09626e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.03212003, Final residual = 2.936957e-05, No Iterations 203
+DICPCG:  Solving for p_rgh, Initial residual = 0.009695221, Final residual = 9.270143e-06, No Iterations 193
+DICPCG:  Solving for p_rgh, Initial residual = 0.005931945, Final residual = 5.054986e-06, No Iterations 195
+DICPCG:  Solving for p_rgh, Initial residual = 0.003815382, Final residual = 6.510582e-11, No Iterations 228
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.0006538316, Final residual = 1.967156e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 1, Final residual = 1.065438e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.07834845, Final residual = 1.759699e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.05423236, Final residual = 1.450515e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.001501652, Final residual = 7.834997e-12, No Iterations 18
+T: min = 312.9488, mean = 313.0582, max = 313.1496
+ExecutionTime = 17.58 s
+
+
+
+Time = 1.6
+
+Flow time scale min/max = 0.001604448, 0.005011295
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425058, mean = 1.425132, max = 1.425192
+Total current (A) at ccl: 4.536546e-05
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9565, mean = 313.0432, max = 313.1537
+Nernst fuel: min = 0.2139007, mean = 0.2152689, max = 0.216325
+Total current (A) at acl: 0.1648741
+
+Correct diffusivity for specie: H2
+
+ibar: -0.5670683	voltage: 1.5
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.467375e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.425165e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.467731e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.497869e-06
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.467936e-06  Min(alpha.air) = 0  Max(alpha.air) = 3.514406e-06
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9130844, Final residual = 5.072096e-12, No Iterations 10
+Y: O2.air:0.8686483 -> 0.9580266
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.7694304, Final residual = 1.65138e-14, No Iterations 3
+Y: H2O.air:0.04190056 -> 0.04253235
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.005621967, Final residual = 7.296297e-14, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.00111335, Final residual = 1.050758e-06, No Iterations 199
+DICPCG:  Solving for p_rgh, Initial residual = 0.0008177978, Final residual = 5.905415e-07, No Iterations 194
+DICPCG:  Solving for p_rgh, Initial residual = 9.994953e-05, Final residual = 5.329849e-08, No Iterations 190
+DICPCG:  Solving for p_rgh, Initial residual = 4.071662e-05, Final residual = 8.799504e-11, No Iterations 207
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.04208014, Final residual = 3.479148e-12, No Iterations 73
+Y: H2:0.2335264 -> 0.4935761
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 8.778674e-05, Final residual = 2.138545e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.04946511, Final residual = 3.721633e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.04460607, Final residual = 2.786157e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.02578568, Final residual = 1.921281e-05, No Iterations 200
+DICPCG:  Solving for p_rgh, Initial residual = 0.006921919, Final residual = 6.8634e-06, No Iterations 193
+DICPCG:  Solving for p_rgh, Initial residual = 0.004173042, Final residual = 3.43337e-06, No Iterations 192
+DICPCG:  Solving for p_rgh, Initial residual = 0.002664365, Final residual = 9.485191e-11, No Iterations 220
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.0005978575, Final residual = 1.815001e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.9999999, Final residual = 1.065445e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.07591955, Final residual = 1.803405e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.04390063, Final residual = 1.170617e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.001340279, Final residual = 9.861934e-12, No Iterations 17
+T: min = 312.9469, mean = 313.0581, max = 313.1496
+ExecutionTime = 18.55 s
+
+
+
+Time = 1.7
+
+Flow time scale min/max = 0.001604141, 0.005011617
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425058, mean = 1.425131, max = 1.425194
+Total current (A) at ccl: 0.001945435
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9683, mean = 313.0501, max = 313.1533
+Nernst fuel: min = 0.2138748, mean = 0.2152968, max = 0.2163564
+Total current (A) at acl: 0.155479
+
+Correct diffusivity for specie: H2
+
+ibar: -24.31794	voltage: 1.6
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.699969e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.140239e-05
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.700331e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.140239e-05
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.700541e-06  Min(alpha.air) = 0  Max(alpha.air) = 1.140198e-05
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9699913, Final residual = 6.965867e-12, No Iterations 9
+Y: O2.air:0.2082639 -> 0.9580344
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.4717394, Final residual = 3.175091e-12, No Iterations 2
+Y: H2O.air:0.0419283 -> 0.04253081
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.005326669, Final residual = 9.75853e-12, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.006969168, Final residual = 6.195533e-06, No Iterations 191
+DICPCG:  Solving for p_rgh, Initial residual = 0.001781087, Final residual = 1.593819e-06, No Iterations 185
+DICPCG:  Solving for p_rgh, Initial residual = 8.39377e-05, Final residual = 7.782335e-08, No Iterations 188
+DICPCG:  Solving for p_rgh, Initial residual = 3.227768e-05, Final residual = 6.847817e-11, No Iterations 207
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.03741854, Final residual = 8.294009e-12, No Iterations 71
+Y: H2:0.2316271 -> 0.495045
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0001052029, Final residual = 1.342288e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.04392898, Final residual = 3.708394e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.04314193, Final residual = 2.64704e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.02017979, Final residual = 1.519172e-05, No Iterations 202
+DICPCG:  Solving for p_rgh, Initial residual = 0.007470693, Final residual = 7.232789e-06, No Iterations 197
+DICPCG:  Solving for p_rgh, Initial residual = 0.004681173, Final residual = 3.08946e-06, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.003068032, Final residual = 9.819633e-11, No Iterations 225
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.0005471892, Final residual = 1.545503e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.9999971, Final residual = 1.065741e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.07312672, Final residual = 1.894522e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.03241528, Final residual = 8.721525e-13, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.001211191, Final residual = 9.574523e-12, No Iterations 18
+T: min = 312.9453, mean = 313.0581, max = 313.1496
+ExecutionTime = 19.48 s
+
+
+
+Time = 1.8
+
+Flow time scale min/max = 0.001602731, 0.00499935
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.425058, mean = 1.425122, max = 1.425195
+Total current (A) at ccl: 0.08322458
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9658, mean = 314.3725, max = 321.0139
+Nernst fuel: min = 0.2138534, mean = 0.215321, max = 0.2163967
+Total current (A) at acl: 0.1473905
+
+Correct diffusivity for specie: H2
+
+ibar: -1040.307	voltage: 1.7
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.030212e-05  Min(alpha.air) = 0  Max(alpha.air) = 0.0004442544
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.030782e-05  Min(alpha.air) = 0  Max(alpha.air) = 0.0004444367
+MULES: Solving for alpha.air
+alpha.air volume fraction = 1.030806e-05  Min(alpha.air) = 0  Max(alpha.air) = 0.0004444368
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.8118884, Final residual = 5.841879e-12, No Iterations 8
+Y: O2.air:0.04901084 -> 0.9580453
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.878343, Final residual = 8.133649e-15, No Iterations 2
+Y: H2O.air:0.04192524 -> 0.07474015
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.005069133, Final residual = 9.05768e-12, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.1928179, Final residual = 0.0001387745, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.006753561, Final residual = 4.684564e-06, No Iterations 190
+DICPCG:  Solving for p_rgh, Initial residual = 0.0001656335, Final residual = 1.312137e-07, No Iterations 192
+DICPCG:  Solving for p_rgh, Initial residual = 4.935362e-05, Final residual = 8.825118e-11, No Iterations 209
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.03411131, Final residual = 8.313661e-12, No Iterations 71
+Y: H2:0.2300523 -> 0.4962978
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0001298055, Final residual = 9.22424e-11, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.06119226, Final residual = 3.272713e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.04088093, Final residual = 2.233797e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.02407455, Final residual = 1.882731e-05, No Iterations 205
+DICPCG:  Solving for p_rgh, Initial residual = 0.007102179, Final residual = 4.872768e-06, No Iterations 199
+DICPCG:  Solving for p_rgh, Initial residual = 0.004297668, Final residual = 4.124628e-06, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.002785425, Final residual = 5.854545e-11, No Iterations 228
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.00049957, Final residual = 1.39364e-11, No Iterations 8
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.9998742, Final residual = 1.077729e-11, No Iterations 9
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.03380903, Final residual = 1.924405e-15, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.03168963, Final residual = 9.204234e-13, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.003654005, Final residual = 5.233127e-12, No Iterations 22
+T: min = 312.9459, mean = 313.0601, max = 313.1496
+ExecutionTime = 20.42 s
+
+
+
+Time = 1.9
+
+Flow time scale min/max = 0.001539687, 0.004772342
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.423578, mean = 1.424844, max = 1.42522
+Total current (A) at ccl: 3.532373
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 312.9713, mean = 328.4077, max = 375.0834
+Nernst fuel: min = 0.2138308, mean = 0.2153412, max = 0.2164274
+Total current (A) at acl: 0.1441696
+
+Correct diffusivity for specie: H2
+
+ibar: -44154.67	voltage: 1.8
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 0.0003624233  Min(alpha.air) = 5.429433e-07  Max(alpha.air) = 0.01880811
+MULES: Solving for alpha.air
+alpha.air volume fraction = 0.0003716164  Min(alpha.air) = 5.429289e-07  Max(alpha.air) = 0.01914539
+MULES: Solving for alpha.air
+alpha.air volume fraction = 0.000371821  Min(alpha.air) = 5.429289e-07  Max(alpha.air) = 0.0191517
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9569708, Final residual = 6.081905e-12, No Iterations 7
+Y: O2.air:0.7579495 -> 1
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.262025, Final residual = 7.573512e-12, No Iterations 1
+Y: H2O.air:0.04184919 -> 0.8647312
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.0267263, Final residual = 8.083581e-13, No Iterations 3
+DICPCG:  Solving for p_rgh, Initial residual = 0.5866769, Final residual = 0.0004716842, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.009569477, Final residual = 7.705841e-06, No Iterations 193
+DICPCG:  Solving for p_rgh, Initial residual = 0.004771769, Final residual = 4.081494e-06, No Iterations 192
+DICPCG:  Solving for p_rgh, Initial residual = 0.001372151, Final residual = 7.822504e-11, No Iterations 220
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.03280201, Final residual = 9.428936e-12, No Iterations 69
+Y: H2:0.2287338 -> 0.4973829
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 8.523822e-05, Final residual = 7.85375e-11, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.03131534, Final residual = 2.212645e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.03356248, Final residual = 1.805633e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.0212906, Final residual = 2.121418e-05, No Iterations 203
+DICPCG:  Solving for p_rgh, Initial residual = 0.004830131, Final residual = 3.057572e-06, No Iterations 199
+DICPCG:  Solving for p_rgh, Initial residual = 0.002771313, Final residual = 2.273802e-06, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.001752481, Final residual = 9.113774e-11, No Iterations 225
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.0002311546, Final residual = 6.614316e-11, No Iterations 7
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.9946556, Final residual = 7.79637e-11, No Iterations 8
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.6893091, Final residual = 7.707023e-16, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.08398498, Final residual = 3.739456e-12, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.1470123, Final residual = 8.634233e-12, No Iterations 22
+T: min = 313.0205, mean = 313.1711, max = 313.3998
+ExecutionTime = 21.37 s
+
+
+
+Time = 2
+
+Flow time scale min/max = 0.0002339867, 0.001059704
+
+Map from cell 
+
+Map air from Cell
+
+Map fuel from Cell
+
+Map electrolyte from Cell
+
+Map interconnect from Cell
+
+Map phiEA from Cell 
+
+Map phiEC from Cell 
+
+Map phiI from Cell 
+
+Nernst air: min = 1.418853, mean = 1.42461, max = 1.427188
+Total current (A) at ccl: 50.84687
+
+Correct diffusivity for specie: O2
+
+
+Correct diffusivity for specie: H2O
+
+Tf.airAndWater: min = 313.1497, mean = 324.5623, max = 359.7932
+Nernst fuel: min = 0.2138116, mean = 0.2153642, max = 0.2164642
+Total current (A) at acl: 0.3291537
+
+Correct diffusivity for specie: H2
+
+ibar: -635585.9	voltage: 1.9
+
+Solving for two phase flow:
+
+Reading hRef
+Calculating field g.h
+
+PIMPLE: iteration 1
+Solving for alpha: 
+MULES: Solving for alpha.air
+alpha.air volume fraction = 0.003114805  Min(alpha.air) = 6.795631e-07  Max(alpha.air) = 0.1344449
+MULES: Solving for alpha.air
+alpha.air volume fraction = 0.003654771  Min(alpha.air) = 6.795631e-07  Max(alpha.air) = 0.1477983
+MULES: Solving for alpha.air
+alpha.air volume fraction = 0.00373329  Min(alpha.air) = 6.795631e-07  Max(alpha.air) = 0.1495467
+DILUPBiCGStab:  Solving for O2.air, Initial residual = 0.9997098, Final residual = 1.693177e-12, No Iterations 4
+Y: O2.air:0.8657847 -> 1
+DILUPBiCGStab:  Solving for H2O.air, Initial residual = 0.1726229, Final residual = 2.615648e-14, No Iterations 2
+Y: H2O.air:0.03718413 -> 0.4089732
+Constructing face momentum equations
+DILUPBiCGStab:  Solving for e.water, Initial residual = 0.1706314, Final residual = 3.817632e-13, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.3848031, Final residual = 0.0003647029, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.01812803, Final residual = 1.758976e-05, No Iterations 197
+DICPCG:  Solving for p_rgh, Initial residual = 0.05378522, Final residual = 4.670538e-05, No Iterations 196
+DICPCG:  Solving for p_rgh, Initial residual = 0.01129049, Final residual = 8.874499e-11, No Iterations 228
+
+Solve for single phase flow:
+
+Reading hRef
+Calculating field g.h
+
+Creating field dpdt
+
+PIMPLE: iteration 1
+DILUPBiCGStab:  Solving for H2, Initial residual = 0.04014863, Final residual = 7.771781e-12, No Iterations 66
+Y: H2:0.2278466 -> 0.4987685
+Constructing momentum equations
+DILUPBiCGStab:  Solving for Ux, Initial residual = 0.0001246157, Final residual = 5.640094e-11, No Iterations 2
+DILUPBiCGStab:  Solving for Uy, Initial residual = 0.04923184, Final residual = 3.138757e-10, No Iterations 2
+DILUPBiCGStab:  Solving for Uz, Initial residual = 0.03101773, Final residual = 1.602251e-10, No Iterations 2
+DICPCG:  Solving for p_rgh, Initial residual = 0.01981516, Final residual = 1.800461e-05, No Iterations 202
+DICPCG:  Solving for p_rgh, Initial residual = 0.005812109, Final residual = 5.457401e-06, No Iterations 175
+DICPCG:  Solving for p_rgh, Initial residual = 0.003441686, Final residual = 2.620429e-06, No Iterations 192
+DICPCG:  Solving for p_rgh, Initial residual = 0.002210355, Final residual = 8.759573e-11, No Iterations 225
+
+Solve for region phiEA:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.01217364, Final residual = 2.707925e-11, No Iterations 9
+
+Solve for region phiEC:
+
+GAMGPCG:  Solving for phi, Initial residual = 0.8184632, Final residual = 2.218472e-11, No Iterations 10
+
+Solve for region phiI:
+
+GAMG:  Solving for phi, Initial residual = 0.9843872, Final residual = 2.132778e-16, No Iterations 2
+DILUPBiCGStab:  Solving for lambda, Initial residual = 0.5322248, Final residual = 1.171485e-14, No Iterations 2
+
+Map to cell 
+
+Map air to Cell
+
+Map fuel to Cell
+
+Map electrolyte to Cell
+
+Map interconnect to Cell
+
+Map phiEA to Cell 
+
+Map phiEC to Cell 
+
+Map phiI to Cell 
+
+Solving for temperature:
+
+DILUPBiCGStab:  Solving for T, Initial residual = 0.9014975, Final residual = 8.621176e-12, No Iterations 28
+T: min = 313.1493, mean = 316.2925, max = 339.2325
+ExecutionTime = 22.75 s
 
 
 End
