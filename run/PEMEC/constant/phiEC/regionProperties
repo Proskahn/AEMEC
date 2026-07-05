@@ -21,11 +21,19 @@ relax             1.0e-5;
 
 galvanostatic
 {
-    active      true;
+    active      false;
     region      phiEC;
     patchName   interconnect0;
 
-    ibar -8000;
+    voltage
+    {
+        type    table;
+        values
+        (
+            (0 0)
+            (2 2)
+        );
+    }
 }
 
 
