@@ -290,8 +290,12 @@ void Foam::regionTypes::electric::correct()
             {
                 phi_.boundaryFieldRef()[patchID] == voltage_->value(time().value());
             }
-            
-            Info << "ibar: " << ibar0 << "\t"<< "voltage: " << Foam::gAverage(phiBoundary) << endl;
+
+            const scalar appliedVoltage =
+                Foam::gAverage(phi_.boundaryField()[patchID]);
+
+            Info << "ibar: " << ibar0
+                << "\tvoltage: " << appliedVoltage << endl;
         }
     }
 
