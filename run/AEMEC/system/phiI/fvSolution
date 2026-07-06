@@ -34,6 +34,15 @@ solvers
         tolerance        1e-11;
         relTol           0;
     }
+
+    cH2
+    {
+        solver           PBiCGStab;
+        preconditioner   DILU;
+        tolerance        1e-11;
+        relTol           0;
+        maxIter          100;
+    }
 }
 
 

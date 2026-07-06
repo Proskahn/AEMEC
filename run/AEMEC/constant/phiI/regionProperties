@@ -54,7 +54,7 @@ hydrogenCrossover
         sinkZone        acl;
 
         i               i;
-        j               j;
+        j               J;
 
         // Water-drag coefficient in J_H2,drag = i/F*xi*cH2/cElec.
         xi              1;
