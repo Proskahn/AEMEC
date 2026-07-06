@@ -27,7 +27,7 @@ License
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "activationOverpotentialModel.H"
+#include "activationOverpotentialModelTemplate.H"
 #include "ButlerVolmer.H"
 #include "Tafel.H"
 #include "Constant.H"

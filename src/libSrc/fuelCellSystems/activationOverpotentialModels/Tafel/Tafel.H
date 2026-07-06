@@ -49,7 +49,7 @@ SourceFiles
 #ifndef Tafel_H
 #define Tafel_H
 
-#include "activationOverpotentialModel.H"
+#include "activationOverpotentialModelTemplate.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
