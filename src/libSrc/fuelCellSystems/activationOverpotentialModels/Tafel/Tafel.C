@@ -25,6 +25,7 @@ License
 
 #include "Tafel.H"
 #include "phaseModel.H"
+#include "constants.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -163,7 +164,14 @@ void Foam::activationOverpotentialModels::Tafel<Thermo>::correct()
             coeff[fluidId]*
             Foam::pow(s[fluidId], this->gamma_)*
             (
-                Foam::exp(n*this->alpha_*F*eta[fluidId]/Rgas/T[fluidId])
+                Foam::exp
+                (
+                    n*this->alpha_
+                   *constant::physicoChemical::F.value()
+                   *eta[fluidId]
+                   /constant::physicoChemical::R.value()
+                   /T[fluidId]
+                )
             )
             ,
             scalar(0)

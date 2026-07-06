@@ -25,6 +25,7 @@ License
 
 #include "ButlerVolmer.H"
 #include "phaseModel.H"
+#include "constants.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -163,8 +164,22 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
             coeff[fluidId]*
             Foam::pow(s[fluidId], this->gamma_)*
             (
-                Foam::exp(n*this->alpha_*F*eta[fluidId]/Rgas/T[fluidId])
-              - Foam::exp(-n*(scalar(1) - this->alpha_)*F*eta[fluidId]/Rgas/T[fluidId])
+                Foam::exp
+                (
+                    n*this->alpha_
+                   *constant::physicoChemical::F.value()
+                   *eta[fluidId]
+                   /constant::physicoChemical::R.value()
+                   /T[fluidId]
+                )
+              - Foam::exp
+                (
+                   -n*(scalar(1) - this->alpha_)
+                   *constant::physicoChemical::F.value()
+                   *eta[fluidId]
+                   /constant::physicoChemical::R.value()
+                   /T[fluidId]
+                )
             )
             ,
             scalar(0)
