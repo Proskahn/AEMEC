@@ -21,6 +21,8 @@ relax           -4.0e-11;
 
 dissolveOnOff   true;
 
+hydrogenCrossoverOnOff true;
+
 dissolved
 {
     type        standard;
@@ -38,6 +40,45 @@ dissolved
         );
 
         relax 1.0e-4;
+    }
+}
+
+hydrogenCrossover
+{
+    type        standard;
+
+    standardCoeffs
+    {
+        // AEMEC convention: source at cathode catalyst layer, crossover to anode.
+        sourceZone      ccl;
+        sinkZone        acl;
+
+        i               i;
+        j               j;
+
+        // Water-drag coefficient in J_H2,drag = i/F*xi*cH2/cElec.
+        xi              1;
+
+        // 1 M KOH at 60 C from the reference text: 52 mol/l.
+        cElec           52000;
+
+        // D_eff = epsilonM/tau*DelecH2.
+        DelecH2         4.5e-9;
+        epsilonM        0.2;
+        tau             1;
+
+        // Dissolved H2 concentrations corresponding to the gas pressures.
+        // Replace these with the selected H2 solubility/Henry relation if needed.
+        cH2Initial      0.78;   // 1 bar-side initial dissolved H2 [mol/m3]
+        cH2Anode        0.78;   // 1 bar anode-side dissolved H2 [mol/m3]
+        cH2Cathode      7.8;    // 10 bar cathode-side dissolved H2 [mol/m3]
+
+        // Optional implicit anode-side release/sink for stationary closed-submesh runs.
+        sinkCoeff       1.0;
+
+        // Positive means the current-field direction carries H2 from ccl to acl.
+        dragSign        1;
+        relax           0.7;
     }
 }
 

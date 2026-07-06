@@ -13,7 +13,7 @@ Time   : 20:07:37
 Host   : 5dc56e304187
 PID    : 55524
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)

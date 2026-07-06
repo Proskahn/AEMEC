@@ -55,6 +55,7 @@ namespace Foam
 class fuelCellSystem;
 class sigmaModelList;
 class dissolvedModel;
+class hydrogenCrossoverModel;
 
 namespace regionTypes
 {
@@ -103,6 +104,10 @@ private:
         //- Refer to the region of CCM (carbon coated membrane)
         Switch dissolveOnOff_;
         autoPtr<dissolvedModel> dissolved_;
+
+        //- Hydrogen crossover through the membrane
+        Switch hydrogenCrossoverOnOff_;
+        autoPtr<hydrogenCrossoverModel> hydrogenCrossover_;
 
         //- Patch name
         //- The reference boundary for the prescribed current density or voltage

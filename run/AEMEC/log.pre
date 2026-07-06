@@ -13,7 +13,7 @@ Time   : 13:51:28
 Host   : 5dc56e304187
 PID    : 54117
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -95,7 +95,7 @@ Time   : 13:51:29
 Host   : 5dc56e304187
 PID    : 54119
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -167,7 +167,7 @@ Time   : 13:51:29
 Host   : 5dc56e304187
 PID    : 54120
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -185,9 +185,9 @@ Using current cellZones to split mesh into regions. This requires all cells to b
 
 Number of regions:4
 
-Writing region per cell file (for manual decomposition) to "/root/work/AEMEC/run/PEMEC/constant/cellToRegion"
+Writing region per cell file (for manual decomposition) to "/root/work/AEMEC/run/AEMEC/constant/cellToRegion"
 
-Writing region per cell as volScalarField to "/root/work/AEMEC/run/PEMEC/0/cellToRegion"
+Writing region per cell as volScalarField to "/root/work/AEMEC/run/AEMEC/0/cellToRegion"
 
 Region	Cells
 ------	-----
@@ -309,7 +309,7 @@ Time   : 13:51:30
 Host   : 5dc56e304187
 PID    : 54134
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -395,7 +395,7 @@ Time   : 13:51:30
 Host   : 5dc56e304187
 PID    : 54135
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -413,9 +413,9 @@ Using current cellZones to split mesh into regions. This requires all cells to b
 
 Number of regions:3
 
-Writing region per cell file (for manual decomposition) to "/root/work/AEMEC/run/PEMEC/constant/cellToRegion"
+Writing region per cell file (for manual decomposition) to "/root/work/AEMEC/run/AEMEC/constant/cellToRegion"
 
-Writing region per cell as volScalarField to "/root/work/AEMEC/run/PEMEC/0/cellToRegion"
+Writing region per cell as volScalarField to "/root/work/AEMEC/run/AEMEC/0/cellToRegion"
 
 Region	Cells
 ------	-----
@@ -514,7 +514,7 @@ Time   : 13:51:30
 Host   : 5dc56e304187
 PID    : 54153
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -567,7 +567,7 @@ Time   : 13:51:30
 Host   : 5dc56e304187
 PID    : 54154
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -585,9 +585,9 @@ Using current cellZones to split mesh into regions. This requires all cells to b
 
 Number of regions:2
 
-Writing region per cell file (for manual decomposition) to "/root/work/AEMEC/run/PEMEC/constant/cellToRegion"
+Writing region per cell file (for manual decomposition) to "/root/work/AEMEC/run/AEMEC/constant/cellToRegion"
 
-Writing region per cell as volScalarField to "/root/work/AEMEC/run/PEMEC/0/cellToRegion"
+Writing region per cell as volScalarField to "/root/work/AEMEC/run/AEMEC/0/cellToRegion"
 
 Region	Cells
 ------	-----
@@ -663,7 +663,7 @@ Time   : 13:51:31
 Host   : 5dc56e304187
 PID    : 54161
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -710,7 +710,7 @@ Time   : 13:51:32
 Host   : 5dc56e304187
 PID    : 54169
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -757,7 +757,7 @@ Time   : 13:51:32
 Host   : 5dc56e304187
 PID    : 54170
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -809,7 +809,7 @@ Time   : 13:51:32
 Host   : 5dc56e304187
 PID    : 54189
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
@@ -861,7 +861,7 @@ Time   : 13:51:33
 Host   : 5dc56e304187
 PID    : 54197
 I/O    : uncollated
-Case   : /root/work/AEMEC/run/PEMEC
+Case   : /root/work/AEMEC/run/AEMEC
 nProcs : 1
 trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
 fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)

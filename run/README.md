@@ -5,13 +5,7 @@
 For each application, which is able to be simulated by the code, a tutorial case is provided.
 
 - conjugate heat transfer: CHT
-- Low temperature PEM electrolyzer: PEMEC
-- Low temperature PEM fuel cell: PEMFC
-- High temperature PEM electrolyzer: HTPEMEC
-- High temperature PEM fuel cell: HTPEMFC
-- Hydrogen pump: hydrogenPump
-- Solid oxide fuel cell: SOFC
-- Solid oxide electrolyzer: SOEC
+- Low temperature AEM electrolyzer: AEMEC
 
 Each tutorial:
 

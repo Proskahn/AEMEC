@@ -72,7 +72,7 @@ protected:
 
         //- Phase change
         //- This is used for the nernst potential
-        //- In low-temperature PEMFC/PEMEC, the product and reactant
+        //- In low-temperature PEMFC/AEMEC, the product and reactant
         //- exist in different phases. The calculation of nernst potential
         //- can be different.
         Switch phaseChange_;

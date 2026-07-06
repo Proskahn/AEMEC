@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Plot a PEMEC polarization curve from an openFuelCell log.
+"""Plot a AEMEC polarization curve from an openFuelCell log.
 
-The script reads the potentiostatic scan output from run/PEMEC/log.run and
+The script reads the potentiostatic scan output from run/AEMEC/log.run and
 plots voltage against current density. For stepped voltage scans it keeps the
 last reported current at each voltage, which is normally the closest sample to
 the converged value for that hold.
@@ -141,7 +141,7 @@ def plot_curve(samples: list[Sample], output_path: Path, use_signed: bool) -> No
     ax.plot(x_values, y_values, marker="o", linewidth=1.8)
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Cell voltage [V]")
-    ax.set_title("PEMEC Polarization Curve")
+    ax.set_title("AEMEC Polarization Curve")
     ax.grid(True, which="major", alpha=0.3)
     ax.ticklabel_format(axis="x", style="plain")
     fig.savefig(output_path, dpi=200)
@@ -150,12 +150,12 @@ def plot_curve(samples: list[Sample], output_path: Path, use_signed: bool) -> No
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Plot a polarization curve from run/PEMEC/log.run."
+        description="Plot a polarization curve from run/AEMEC/log.run."
     )
     parser.add_argument(
         "--log",
         type=Path,
-        default=Path("run/PEMEC/log.run"),
+        default=Path("run/AEMEC/log.run"),
         help="Path to openFuelCell log file.",
     )
     parser.add_argument(

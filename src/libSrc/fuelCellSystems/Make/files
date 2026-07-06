@@ -30,6 +30,11 @@ dissolvedModels/dissolvedModel/newDissolvedModel.C
 dissolvedModels/standardDWModel/standardDWModel.C
 dissolvedModels/noneDWModel/noneDWModel.C
 
+hydrogenCrossoverModels/hydrogenCrossoverModel/hydrogenCrossoverModel.C
+hydrogenCrossoverModels/hydrogenCrossoverModel/newHydrogenCrossoverModel.C
+hydrogenCrossoverModels/standardH2Crossover/standardH2Crossover.C
+hydrogenCrossoverModels/noneH2Crossover/noneH2Crossover.C
+
 electroChemicalModel/electroChemicalReactions.C
 
 regions/region/regionType.C

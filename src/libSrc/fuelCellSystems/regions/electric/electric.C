@@ -31,6 +31,7 @@ License
 
 #include "sigmaModelList.H"
 #include "dissolvedModel.H"
+#include "hydrogenCrossoverModel.H"
 #include "activationOverpotentialModel.H"
 
 #include "fuelCellSystem.H"
@@ -134,6 +135,10 @@ Foam::regionTypes::electric::electric
     relax_(dict_.lookupOrDefault<scalar>("relax", 0.0)),
     control_(dict_.lookupOrDefault<Switch>("control", false)),
     dissolveOnOff_(dict_.lookupOrDefault<Switch>("dissolveOnOff", false)),
+    hydrogenCrossoverOnOff_
+    (
+        dict_.lookupOrDefault<Switch>("hydrogenCrossoverOnOff", false)
+    ),
     patchName_(word::null),
     zoneName_(word::null),
     cellZoneIDs_(),
@@ -144,6 +149,12 @@ Foam::regionTypes::electric::electric
     if (dissolveOnOff_)
     {
         dissolved_ = dissolvedModel::New(*this, dict_.subDict("dissolved"));
+    }
+
+    if (hydrogenCrossoverOnOff_)
+    {
+        hydrogenCrossover_ =
+            hydrogenCrossoverModel::New(*this, dict_.subDict("hydrogenCrossover"));
     }
 
     sigma_.reset
@@ -253,6 +264,11 @@ void Foam::regionTypes::electric::solve()
     {
         dissolved_->solve();
     }
+
+    if (hydrogenCrossover_.valid())
+    {
+        hydrogenCrossover_->solve();
+    }
 }
 
 
@@ -330,6 +346,11 @@ void Foam::regionTypes::electric::correct()
     if (dissolved_.valid())
     {
         dissolved_->correct();
+    }
+
+    if (hydrogenCrossover_.valid())
+    {
+        hydrogenCrossover_->correct();
     }
 }
 
