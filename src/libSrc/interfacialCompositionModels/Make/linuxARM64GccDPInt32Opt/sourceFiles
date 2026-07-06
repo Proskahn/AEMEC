@@ -6,8 +6,8 @@ massTransferModels/sphericalMassTransfer/sphericalMassTransfer.C \
 surfaceTensionModels/surfaceTensionModel/surfaceTensionModel.C \
 surfaceTensionModels/surfaceTensionModel/newSurfaceTensionModel.C \
 surfaceTensionModels/constantSurfaceTensionCoefficient/constantSurfaceTensionCoefficient.C \
-interfaceCompositionModels/interfaceCompositionModel/interfaceCompositionModel.C \
-interfaceCompositionModels/interfaceCompositionModel/newInterfaceCompositionModel.C \
+interfaceCompositionModels/InterfaceCompositionModel/interfaceCompositionModel.C \
+interfaceCompositionModels/InterfaceCompositionModel/newInterfaceCompositionModel.C \
 interfaceCompositionModels/InterfaceCompositionModel/InterfaceCompositionModels.C \
 saturationModels/saturationModel/saturationModel.C \
 saturationModels/saturationModel/newSaturationModel.C \
