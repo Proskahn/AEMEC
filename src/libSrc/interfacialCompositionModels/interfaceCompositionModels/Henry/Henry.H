@@ -39,7 +39,7 @@ SourceFiles
 #ifndef Henry_H
 #define Henry_H
 
-#include "InterfaceCompositionModel.H"
+#include "interfaceCompositionModelTemplate.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

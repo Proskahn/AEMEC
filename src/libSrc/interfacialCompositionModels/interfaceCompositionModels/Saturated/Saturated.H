@@ -36,7 +36,7 @@ SourceFiles
 #ifndef Saturated_H
 #define Saturated_H
 
-#include "InterfaceCompositionModel.H"
+#include "interfaceCompositionModelTemplate.H"
 #include "saturationModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
