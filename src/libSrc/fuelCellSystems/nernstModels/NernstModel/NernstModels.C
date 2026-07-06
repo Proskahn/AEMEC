@@ -28,7 +28,7 @@ License
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #include "nernstModel.H"
-#include "NernstModel.H"
+#include "nernstModelTemplate.H"
 #include "standard.H"
 #include "fixedValue.H"
 

@@ -53,7 +53,7 @@ SourceFiles
 #ifndef fixedValue_H
 #define fixedValue_H
 
-#include "NernstModel.H"
+#include "nernstModelTemplate.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -118,4 +118,3 @@ public:
 #endif
 
 // ************************************************************************* //
-

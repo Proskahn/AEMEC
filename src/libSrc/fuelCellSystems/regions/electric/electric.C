@@ -137,7 +137,11 @@ Foam::regionTypes::electric::electric
     dissolveOnOff_(dict_.lookupOrDefault<Switch>("dissolveOnOff", false)),
     hydrogenCrossoverOnOff_
     (
-        dict_.lookupOrDefault<Switch>("hydrogenCrossoverOnOff", false)
+        dict_.lookupOrDefault<Switch>
+        (
+            "hydrogenCrossoverOnOff",
+            dict_.found("hydrogenCrossover")
+        )
     ),
     patchName_(word::null),
     zoneName_(word::null),
@@ -146,6 +150,12 @@ Foam::regionTypes::electric::electric
     ibar_(nullptr),
     voltage_(nullptr)
 {
+    Info<< "Electric region " << name()
+        << ": dissolveOnOff=" << dissolveOnOff_
+        << ", hydrogenCrossoverOnOff=" << hydrogenCrossoverOnOff_
+        << ", hydrogenCrossoverDict=" << dict_.found("hydrogenCrossover")
+        << endl;
+
     if (dissolveOnOff_)
     {
         dissolved_ = dissolvedModel::New(*this, dict_.subDict("dissolved"));

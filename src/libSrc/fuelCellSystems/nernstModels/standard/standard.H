@@ -53,7 +53,7 @@ SourceFiles
 #ifndef standard_H
 #define standard_H
 
-#include "NernstModel.H"
+#include "nernstModelTemplate.H"
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
