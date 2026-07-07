@@ -593,8 +593,7 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/Function1.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/function1Base.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/Function1.C \
 ../fuelCellSystems/lnInclude/Constant.H \
-../fuelCellSystems/lnInclude/activationOverpotentialModel.H \
-../fuelCellSystems/lnInclude/regionType.H \
+../fuelCellSystems/lnInclude/Constant.C \
 ../fuelCellSystems/lnInclude/phaseModel.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/surfaceFields.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/surfaceMesh.H \
@@ -615,8 +614,6 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/wordIOList.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/basic/lnInclude/basicThermoTemplates.C \
 $(WM_PROJECT_DIR)/src/transportModels/compressible/lnInclude/compressibleTransportModel.H \
 ../fuelCellSystems/lnInclude/phaseCompressibleTurbulenceModelFwd.H \
-../fuelCellSystems/lnInclude/nernstModel.H \
-../fuelCellSystems/lnInclude/Constant.C \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/addToRunTimeSelectionTable.H \
 
 #END

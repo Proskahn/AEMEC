@@ -328,7 +328,8 @@ $(WM_PROJECT_DIR)/src/OSspecific/POSIX/lnInclude/sigWriteNow.H \
 $(WM_PROJECT_DIR)/src/OSspecific/POSIX/lnInclude/sigStopAtWriteNow.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/TimeI.H \
 ../fuelCellSystems/lnInclude/Constant.H \
-../fuelCellSystems/lnInclude/activationOverpotentialModel.H \
+../fuelCellSystems/lnInclude/Constant.C \
+../fuelCellSystems/lnInclude/phaseModel.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/volFields.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/GeometricFields.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/GeometricScalarField.H \
@@ -593,8 +594,6 @@ $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/zeroGradientFvPatchField.C \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvPatchFieldMacros.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/calculatedFvPatchFields.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/volFieldsI.H \
-../fuelCellSystems/lnInclude/regionType.H \
-../fuelCellSystems/lnInclude/phaseModel.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/surfaceFields.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/surfaceMesh.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvsPatchFields.H \
@@ -614,8 +613,6 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/wordIOList.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/basic/lnInclude/basicThermoTemplates.C \
 $(WM_PROJECT_DIR)/src/transportModels/compressible/lnInclude/compressibleTransportModel.H \
 ../fuelCellSystems/lnInclude/phaseCompressibleTurbulenceModelFwd.H \
-../fuelCellSystems/lnInclude/nernstModel.H \
-../fuelCellSystems/lnInclude/Constant.C \
 lnInclude/alphatPhaseChangeJayatillekeWallFunctionFvPatchScalarField.H \
 lnInclude/alphatPhaseChangeWallFunctionFvPatchScalarField.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fixedValueFvPatchFields.H \

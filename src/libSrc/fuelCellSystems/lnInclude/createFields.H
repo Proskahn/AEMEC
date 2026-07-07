@@ -1,1 +1,1 @@
-../solvers/twoPhaseSystem/createFields.H
+../solvers/driftFluxSystem/createFields.H

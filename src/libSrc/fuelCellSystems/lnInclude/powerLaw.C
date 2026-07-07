@@ -1,1 +1,1 @@
-../populationBalanceModel/breakupModels/powerLaw/powerLaw.C
+../porosityModel/powerLaw/powerLaw.C

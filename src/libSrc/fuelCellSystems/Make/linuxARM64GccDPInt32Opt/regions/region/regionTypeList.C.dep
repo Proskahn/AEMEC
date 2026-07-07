@@ -683,7 +683,8 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/Function1.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/function1Base.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/Function1.C \
 lnInclude/Constant.H \
-lnInclude/activationOverpotentialModel.H \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModelTemplate.H \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModel.H \
 lnInclude/phaseModel.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvMatricesFwd.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/basic/lnInclude/rhoThermo.H \
@@ -693,7 +694,8 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/wordIOList.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/basic/lnInclude/basicThermoTemplates.C \
 $(WM_PROJECT_DIR)/src/transportModels/compressible/lnInclude/compressibleTransportModel.H \
 lnInclude/phaseCompressibleTurbulenceModelFwd.H \
-lnInclude/nernstModel.H \
+nernstModels/NernstModel/nernstModel.H \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModelTemplate.C \
 lnInclude/Constant.C \
 $(WM_PROJECT_DIR)/src/meshTools/lnInclude/coordinateScaling.C \
 $(WM_PROJECT_DIR)/src/meshTools/lnInclude/PatchFunction1.C \

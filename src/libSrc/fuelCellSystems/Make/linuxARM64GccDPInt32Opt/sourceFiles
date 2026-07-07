@@ -14,11 +14,11 @@ $(porosity)/porosityModel/porousZoneList.C \
 $(porosity)/DarcyForchheimer/DarcyForchheimer.C \
 $(porosity)/fixedCoeff/fixedCoeff.C \
 $(porosity)/powerLaw/powerLaw.C \
-nernstModels/nernstModel/nernstModel.C \
-nernstModels/nernstModel/newNernstModel.C \
+nernstModels/NernstModel/nernstModel.C \
+nernstModels/NernstModel/newNernstModel.C \
 nernstModels/NernstModel/NernstModels.C \
-activationOverpotentialModels/activationOverpotentialModel/activationOverpotentialModel.C \
-activationOverpotentialModels/activationOverpotentialModel/newActivationOverpotentialModel.C \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModel.C \
+activationOverpotentialModels/ActivationOverpotentialModel/newActivationOverpotentialModel.C \
 activationOverpotentialModels/ActivationOverpotentialModel/ActivationOverpotentialModels.C \
 dissolvedModels/dissolvedModel/dissolvedModel.C \
 dissolvedModels/dissolvedModel/newDissolvedModel.C \

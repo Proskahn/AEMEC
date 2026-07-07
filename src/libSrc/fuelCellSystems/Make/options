@@ -3,6 +3,8 @@ EXE_INC = \
     -I../interfacialCompositionModels/lnInclude \
     -I../derivedFvPatchFields/lnInclude \
     -I../multiPhaseCompressibleTurbulenceModels/lnInclude \
+    -InernstModels/NernstModel \
+    -IactivationOverpotentialModels/ActivationOverpotentialModel \
     -I$(LIB_SRC)/thermophysicalModels/solidThermo/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/specie/lnInclude \

@@ -1,1 +1,1 @@
-../solvers/twoPhaseSystem/pU/UEqns.H
+../solvers/driftFluxSystem/pUf/UEqns.H

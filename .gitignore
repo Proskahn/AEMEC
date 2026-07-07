@@ -1,0 +1,4 @@
+**/Make/linux*
+**/lnInclude/
+*.o
+*.dep

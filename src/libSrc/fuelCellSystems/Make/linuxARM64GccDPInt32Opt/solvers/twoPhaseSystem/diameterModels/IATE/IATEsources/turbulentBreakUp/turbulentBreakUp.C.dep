@@ -636,9 +636,11 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/Function1.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/function1Base.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/Function1.C \
 lnInclude/Constant.H \
-lnInclude/activationOverpotentialModel.H \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModelTemplate.H \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModel.H \
 lnInclude/regionType.H \
-lnInclude/nernstModel.H \
+nernstModels/NernstModel/nernstModel.H \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModelTemplate.C \
 lnInclude/Constant.C \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/MRFZoneTemplates.C \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvMatrices.H \

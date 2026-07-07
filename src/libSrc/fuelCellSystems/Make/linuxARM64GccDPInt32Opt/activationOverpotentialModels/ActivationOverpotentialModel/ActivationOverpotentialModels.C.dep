@@ -1,6 +1,7 @@
 $(OBJECTS_DIR)/activationOverpotentialModels/ActivationOverpotentialModel/ActivationOverpotentialModels.C.dep: \
 activationOverpotentialModels/ActivationOverpotentialModel/ActivationOverpotentialModels.C \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/addToRunTimeSelectionTable.H \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModelTemplate.H \
 activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModel.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/dictionary.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/entry.H \
@@ -610,9 +611,17 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/wordIOList.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/basic/lnInclude/basicThermoTemplates.C \
 $(WM_PROJECT_DIR)/src/transportModels/compressible/lnInclude/compressibleTransportModel.H \
 lnInclude/phaseCompressibleTurbulenceModelFwd.H \
-lnInclude/nernstModel.H \
+nernstModels/NernstModel/nernstModel.H \
+activationOverpotentialModels/ActivationOverpotentialModel/activationOverpotentialModelTemplate.C \
 lnInclude/ButlerVolmer.H \
 lnInclude/ButlerVolmer.C \
+$(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/constants.H \
+$(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/fundamentalConstants.H \
+$(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/universalConstants.H \
+$(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/electromagneticConstants.H \
+$(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/atomicConstants.H \
+$(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/physicoChemicalConstants.H \
+$(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/thermodynamicConstants.H \
 lnInclude/Tafel.H \
 lnInclude/Tafel.C \
 lnInclude/Constant.H \
@@ -623,7 +632,6 @@ $(WM_PROJECT_DIR)/src/thermophysicalModels/reactionThermo/lnInclude/SpecieMixtur
 $(WM_PROJECT_DIR)/src/thermophysicalModels/reactionThermo/lnInclude/SpecieMixture.C \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/specie/lnInclude/thermoPhysicsTypes.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/specie/lnInclude/specie.H \
-$(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/thermodynamicConstants.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/specie/lnInclude/specieI.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/specie/lnInclude/perfectGas.H \
 $(WM_PROJECT_DIR)/src/thermophysicalModels/specie/lnInclude/perfectGasI.H \
