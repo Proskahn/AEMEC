@@ -142,12 +142,12 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
 
     //- The total current: volume averaged
     scalar Rj(0.0);
-    const scalar exponentLimit = this->dict_.lookupOrDefault<scalar>
+    const scalar exponentLimit = this->dict_.template lookupOrDefault<scalar>
     (
         "exponentLimit",
         50.0
     );
-    const scalar jMax = this->dict_.lookupOrDefault<scalar>("jMax", GREAT);
+    const scalar jMax = this->dict_.template lookupOrDefault<scalar>("jMax", GREAT);
 
     forAll(cells, cellI)
     {
