@@ -133,6 +133,9 @@ Foam::regionTypes::electric::electric
         zeroGradientFvPatchScalarField::typeName
     ),
     relax_(dict_.lookupOrDefault<scalar>("relax", 0.0)),
+    maxVoltageStep_(GREAT),
+    minVoltage_(-GREAT),
+    maxVoltage_(GREAT),
     control_(dict_.lookupOrDefault<Switch>("control", false)),
     dissolveOnOff_(dict_.lookupOrDefault<Switch>("dissolveOnOff", false)),
     hydrogenCrossoverOnOff_
@@ -181,6 +184,18 @@ Foam::regionTypes::electric::electric
         const dictionary& controlDict = dict_.subDict("galvanostatic");
         patchName_ = controlDict.get<word>("patchName");
         galvanostatic_ = controlDict.get<Switch>("active");
+        maxVoltageStep_ =
+            controlDict.lookupOrDefault<scalar>("maxVoltageStep", GREAT);
+        minVoltage_ = controlDict.lookupOrDefault<scalar>("minVoltage", -GREAT);
+        maxVoltage_ = controlDict.lookupOrDefault<scalar>("maxVoltage", GREAT);
+
+        if (maxVoltageStep_ <= 0 || minVoltage_ >= maxVoltage_)
+        {
+            FatalErrorInFunction
+                << "Invalid galvanostatic voltage limits: maxVoltageStep="
+                << maxVoltageStep_ << ", minVoltage=" << minVoltage_
+                << ", maxVoltage=" << maxVoltage_ << exit(FatalError);
+        }
 
         if (galvanostatic_)
         {
@@ -337,8 +352,25 @@ void Foam::regionTypes::electric::correct()
 
             if (galvanostatic_)
             {
-                phi_.boundaryFieldRef()[patchID] ==
-                    phiBoundary + relax_*(ibar0 - ibar_->value(time().value()));
+                const scalar targetIbar = ibar_->value(time().value());
+                const scalar rawVoltageStep = relax_*(ibar0 - targetIbar);
+                const scalar voltageStep = Foam::max
+                (
+                    -maxVoltageStep_,
+                    Foam::min(maxVoltageStep_, rawVoltageStep)
+                );
+                const scalar oldVoltage = Foam::gAverage(phiBoundary);
+                const scalar newVoltage = Foam::max
+                (
+                    minVoltage_,
+                    Foam::min(maxVoltage_, oldVoltage + voltageStep)
+                );
+
+                phi_.boundaryFieldRef()[patchID] == newVoltage;
+
+                Info << "galvanostatic target: " << targetIbar
+                    << " A/m2, raw dV: " << rawVoltageStep
+                    << ", limited dV: " << voltageStep << endl;
             }
             else
             {

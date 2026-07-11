@@ -93,6 +93,13 @@ private:
         //- Relaxation
         scalar relax_;
 
+        //- Maximum galvanostatic voltage correction per outer iteration
+        scalar maxVoltageStep_;
+
+        //- Allowed voltage range for galvanostatic control
+        scalar minVoltage_;
+        scalar maxVoltage_;
+
         //- Active side?
         //- Reference side: voltage = 0.0
         //- Active side: voltage: fixed or calculated
