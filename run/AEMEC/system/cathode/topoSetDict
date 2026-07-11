@@ -18,6 +18,16 @@ FoamFile
 actions
 (
     {
+        name    cathodeChannel;
+        type    cellZoneSet;
+        action  new;
+        source  masterRegionToCell;
+        sourceInfo
+        {
+            name cathodeChannel;
+        }
+    }
+    {
         name    cathodeGDL;
         type    cellZoneSet;
         action  new;
@@ -28,7 +38,7 @@ actions
         }
     }
     {
-        name    mpl;
+        name    cathodeMPL;
         type    cellZoneSet;
         action  new;
         source  masterRegionToCell;

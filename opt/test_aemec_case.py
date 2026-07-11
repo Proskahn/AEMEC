@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -33,6 +34,16 @@ def copy_controls(case: Path) -> None:
 
 
 class AemecCaseTests(unittest.TestCase):
+    def test_static_case_preflight_passes(self) -> None:
+        result = subprocess.run(
+            [str(ROOT / "run/AEMEC/check_case.py"), "--static"],
+            cwd=ROOT / "run/AEMEC",
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_case_uses_the_cathode_fed_aem_region_contract(self) -> None:
         case = ROOT / "run/AEMEC"
         regions = (case / "constant/regionProperties").read_text(encoding="utf-8")

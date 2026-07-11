@@ -18,6 +18,16 @@ FoamFile
 actions
 (
     {
+        name    anodeChannel;
+        type    cellZoneSet;
+        action  new;
+        source  masterRegionToCell;
+        sourceInfo
+        {
+            name anodeChannel;
+        }
+    }
+    {
         name    anodeGDL;
         type    cellZoneSet;
         action  new;
@@ -28,7 +38,7 @@ actions
         }
     }
     {
-        name    mpl;
+        name    anodeMPL;
         type    cellZoneSet;
         action  new;
         source  masterRegionToCell;

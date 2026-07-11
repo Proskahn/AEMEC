@@ -17,6 +17,7 @@ mesh:
 	(renumberMesh -overwrite)
 	(./preprocessing.sh | tee log.pre)
 	(cp -rf ./system/controlDict.run ./system/controlDict)
+	(./check_case.py)
 
 salomeMesh:
 	(cp -rf ./system/controlDict.mesh ./system/controlDict)
@@ -25,6 +26,10 @@ salomeMesh:
 	(renumberMesh -overwrite)
 	(./preprocessing.sh | tee log.pre)
 	(cp -rf ./system/controlDict.run ./system/controlDict)
+	(./check_case.py)
+
+check:
+	(./check_case.py)
 
 ################################################################################
 
@@ -45,7 +50,7 @@ parallel:
 
 ################################################################################
 
-run:
+run: check
 	(mpirun -np 4 openFuelCell -parallel -fileHandler collated | tee log.run);
 
 ################################################################################
@@ -55,7 +60,7 @@ plot:
 
 ################################################################################
 
-srun:
+srun: check
 	(openFuelCell | tee log.run);
 
 ################################################################################
