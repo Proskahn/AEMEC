@@ -41,6 +41,10 @@ class AemecCaseTests(unittest.TestCase):
         crossover = (case / "constant/phiAnion/regionProperties").read_text(encoding="utf-8")
         cathode_reaction = (case / "constant/cathode/combustionProperties").read_text(encoding="utf-8")
         anode_reaction = (case / "constant/anode/combustionProperties.oxygen").read_text(encoding="utf-8")
+        cathode_diffusivity = (case / "constant/cathode/diffusivityModel.hydrogen").read_text(encoding="utf-8")
+        anode_diffusivity = (case / "constant/anode/diffusivityModel.oxygen").read_text(encoding="utf-8")
+        cathode_porous = (case / "constant/cathode/porousZones").read_text(encoding="utf-8")
+        anode_porous = (case / "constant/anode/porousZones").read_text(encoding="utf-8")
         cathode_water_velocity = (case / "0.orig/cathode/U.water").read_text(encoding="utf-8")
         anode_water_velocity = (case / "0.orig/anode/U.water").read_text(encoding="utf-8")
 
@@ -52,6 +56,10 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("sinkZone        anodeCL", crossover)
         self.assertIn("H2O    -1", cathode_reaction)
         self.assertIn("H2O     1", anode_reaction)
+        self.assertIn("cathodeChannel\n{", cathode_diffusivity)
+        self.assertIn("anodeChannel\n{", anode_diffusivity)
+        self.assertIn("cellZone        cathodeMPL", cathode_porous)
+        self.assertIn("cellZone        anodeMPL", anode_porous)
         self.assertIn("uniform (0.01 0 0)", cathode_water_velocity)
         self.assertIn("uniform (0 0 0)", anode_water_velocity)
 

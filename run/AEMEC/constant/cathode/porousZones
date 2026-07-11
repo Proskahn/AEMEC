@@ -45,11 +45,11 @@ cathodeGDL
     k           1.7;
 }
 
-mpl
+cathodeMPL
 {
     type            DarcyForchheimer;	// porosity Model: fixCoeff, powerLaw, DarcyForchheimer
     active          yes;		// status
-    cellZone        mpl;		// name of porous zone
+    cellZone        cathodeMPL;		// name of porous zone
     porosity        0.4;		// porosity
 
     DarcyForchheimerCoeffs		// coefficents for DarcyForchheimer; with the name of type + Coeffs

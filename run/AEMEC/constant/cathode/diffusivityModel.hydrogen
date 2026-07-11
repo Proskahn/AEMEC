@@ -15,7 +15,8 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-hydrogen{
+cathodeChannel
+{
     type            binaryFSG;
 
     binaryFSGCoeffs

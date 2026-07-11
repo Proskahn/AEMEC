@@ -15,7 +15,8 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-oxygen{
+anodeChannel
+{
     type            binaryFSG;
 
     binaryFSGCoeffs
