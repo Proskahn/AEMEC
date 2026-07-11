@@ -388,6 +388,8 @@ Foam::twoPhaseSystem::phirMag() const
 void Foam::twoPhaseSystem::solve()
 {
     Info << "\nSolving for two phase flow:" << endl;
+    Info << "Two-phase pressure safeguards active: drag denominator floor = 1e-8"
+        << endl;
 
     fvMesh& mesh = const_cast<fvMesh&>(mesh_);
 
