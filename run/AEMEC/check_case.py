@@ -97,6 +97,35 @@ def check_static(case: Path, errors: list[str]) -> None:
         if not has_dictionary_block(anion_properties, zone) or f"sigma               {conductivity};" not in anion_properties:
             errors.append(f"constant/phiAnion/regionProperties is missing effective conductivity {conductivity} for '{zone}'")
 
+    for entry in (
+        "cathodeFluidRegion  cathode;",
+        "anodeFluidRegion    anode;",
+        "hydrogenSpecies     H2;",
+        "diffusivityModel    porosityTortuosity;",
+        "dragModel       constant;",
+        "UMembrane       (0 0 0);",
+    ):
+        if entry not in anion_properties:
+            errors.append(
+                f"constant/phiAnion/regionProperties is missing crossover entry '{entry}'"
+            )
+    for interface in ("cathodeInterface", "anodeInterface"):
+        if not has_dictionary_block(anion_properties, interface) or "henryCoefficient" not in anion_properties:
+            errors.append(
+                f"constant/phiAnion/regionProperties must configure Henry interface '{interface}'"
+            )
+
+    anode_thermo = read(case / "constant/anode/thermophysicalProperties.oxygen", errors)
+    if not re.search(r"species\s*\([^)]*\bH2\b", anode_thermo, re.DOTALL):
+        errors.append("constant/anode/thermophysicalProperties.oxygen must include H2")
+    anode_h2 = read(case / "0.orig/anode/H2.oxygen", errors)
+    for patch in ("anodeInlet", "anodeOutlet", "anode_to_electrolyte", "anode_to_interconnect"):
+        if not has_dictionary_block(anode_h2, patch):
+            errors.append(f"0.orig/anode/H2.oxygen is missing boundary entry '{patch}'")
+    anode_water_velocity = read(case / "0.orig/anode/U.water", errors)
+    if "uniform (0.01 0 0)" not in anode_water_velocity:
+        errors.append("0.orig/anode/U.water must provide the aqueous-KOH feed at (0.01 0 0) m/s")
+
     for relative_path in ("constant/anode/combustionProperties.oxygen", "constant/cathode/combustionProperties"):
         text = read(case / relative_path, errors)
         if "jMax            5.0e8;" not in text or "exponentLimit   50;" not in text:
@@ -174,6 +203,12 @@ def check_generated_mesh(case: Path, errors: list[str]) -> None:
             errors.append(
                 f"generated 0/{region}/alpha.{liquid} is stale; run 'make mesh' to apply the complementary liquid fraction"
             )
+
+    anode_h2 = read(case / "0/anode/H2.oxygen", errors)
+    if "internalField   uniform 1e-12;" not in anode_h2:
+        errors.append(
+            "generated 0/anode/H2.oxygen is stale; run 'make mesh' to apply the anode H2 crossover field"
+        )
 
 
 def main() -> int:

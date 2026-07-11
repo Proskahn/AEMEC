@@ -34,6 +34,9 @@ Foam::hydrogenCrossoverModel::hydrogenCrossoverModel
         )
     ),
     mesh_(mesh),
+    cathodeFluidRegion_(dict.lookupOrDefault<word>("cathodeFluidRegion", "cathode")),
+    anodeFluidRegion_(dict.lookupOrDefault<word>("anodeFluidRegion", "anode")),
+    hydrogenSpecies_(dict.lookupOrDefault<word>("hydrogenSpecies", "H2")),
     cH2_
     (
         IOobject
@@ -50,6 +53,44 @@ Foam::hydrogenCrossoverModel::hydrogenCrossoverModel
             "cH2",
             dimMoles/dimVol,
             dict.lookupOrDefault<scalar>("cH2Initial", 0.0)
+        ),
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    cH2CathodeInterface_
+    (
+        IOobject
+        (
+            "cH2CathodeInterface",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "cH2CathodeInterface",
+            dimMoles/dimVol,
+            dict.lookupOrDefault<scalar>("cH2Cathode", 0.0)
+        ),
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    cH2AnodeInterface_
+    (
+        IOobject
+        (
+            "cH2AnodeInterface",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "cH2AnodeInterface",
+            dimMoles/dimVol,
+            dict.lookupOrDefault<scalar>("cH2Anode", 0.0)
         ),
         zeroGradientFvPatchScalarField::typeName
     ),
@@ -107,6 +148,62 @@ Foam::hydrogenCrossoverModel::hydrogenCrossoverModel
         ),
         mesh,
         dimensionedScalar("JH2Drag", dimMoles/sqr(dimLength)/dimTime, 0.0),
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    JH2Conv_
+    (
+        IOobject
+        (
+            "JH2Conv",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("JH2Conv", dimMoles/sqr(dimLength)/dimTime, 0.0),
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    JH2Cross_
+    (
+        IOobject
+        (
+            "JH2Cross",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("JH2Cross", dimMoles/sqr(dimLength)/dimTime, 0.0),
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    h2CathodeDmdt_
+    (
+        IOobject
+        (
+            "h2CathodeDmdt",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("h2CathodeDmdt", dimMoles/dimVol/dimTime, 0.0),
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    h2AnodeDmdt_
+    (
+        IOobject
+        (
+            "h2AnodeDmdt",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("h2AnodeDmdt", dimMoles/dimVol/dimTime, 0.0),
         zeroGradientFvPatchScalarField::typeName
     )
 {}

@@ -31,11 +31,28 @@ protected:
 
     const fvMesh& mesh_;
 
+    //- Fluid-region contract used to map membrane crossover sources without
+    //  relying on cell ordering between regions.
+    word cathodeFluidRegion_;
+    word anodeFluidRegion_;
+    word hydrogenSpecies_;
+
+    //- Dissolved hydrogen concentration in the membrane [mol/m3].
     volScalarField cH2_;
+    //- Equilibrium dissolved H2 concentration at each membrane interface.
+    volScalarField cH2CathodeInterface_;
+    volScalarField cH2AnodeInterface_;
     volScalarField DH2Eff_;
     volScalarField h2Dmdt_;
     volScalarField JH2Diff_;
     volScalarField JH2Drag_;
+    volScalarField JH2Conv_;
+    volScalarField JH2Cross_;
+
+    //- Conservative molar source terms mapped into the cathode/anode H2 gas
+    //  species equations.  Their global integrals are equal and opposite.
+    volScalarField h2CathodeDmdt_;
+    volScalarField h2AnodeDmdt_;
 
 public:
 
@@ -76,6 +93,12 @@ public:
     inline const volScalarField& cH2() const;
     inline volScalarField& cH2();
 
+    inline const volScalarField& cH2CathodeInterface() const;
+    inline volScalarField& cH2CathodeInterface();
+
+    inline const volScalarField& cH2AnodeInterface() const;
+    inline volScalarField& cH2AnodeInterface();
+
     inline const volScalarField& DH2Eff() const;
     inline volScalarField& DH2Eff();
 
@@ -87,6 +110,22 @@ public:
 
     inline const volScalarField& JH2Drag() const;
     inline volScalarField& JH2Drag();
+
+    inline const volScalarField& JH2Conv() const;
+    inline volScalarField& JH2Conv();
+
+    inline const volScalarField& JH2Cross() const;
+    inline volScalarField& JH2Cross();
+
+    inline const volScalarField& h2CathodeDmdt() const;
+    inline volScalarField& h2CathodeDmdt();
+
+    inline const volScalarField& h2AnodeDmdt() const;
+    inline volScalarField& h2AnodeDmdt();
+
+    inline const word& cathodeFluidRegion() const;
+    inline const word& anodeFluidRegion() const;
+    inline const word& hydrogenSpecies() const;
 
     virtual bool writeData(Ostream& os) const;
 };

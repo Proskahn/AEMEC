@@ -28,6 +28,7 @@ License
 #include "phaseSystem.H"
 #include "activationOverpotentialModel.H"
 #include "dissolvedModel.H"
+#include "hydrogenCrossoverModel.H"
 
 #include "constants.H"
 
@@ -262,7 +263,69 @@ Foam::combustionModels::electroChemicalReaction<ReactionThermo>::R
 
     iDmdt = wSpecie;
 
-    return fvm::Sp(wSpecie/(Y + SMALL), Y);     // TODO: is this a good approach.
+    // Hydrogen that leaves the cathode membrane interface and reaches the
+    // anode must be coupled to both gas-phase species equations.  The source
+    // fields live on the anion/electrolyte mesh, so map via the common master
+    // cell labels.  This is valid for decomposed cases and deliberately does
+    // not assume local cell indices agree between regions.
+    const word anionRegionKey =
+        eta_->regions().found("anion") ? "anion" : "ion";
+    const regionType& anionPhase = eta_->region
+    (
+        word(eta_->regions().subDict(anionRegionKey).lookup("name"))
+    );
+
+    if
+    (
+        anionPhase.foundObject<hydrogenCrossoverModel>
+        (hydrogenCrossoverModel::modelName)
+    )
+    {
+        const hydrogenCrossoverModel& crossover =
+            anionPhase.lookupObject<hydrogenCrossoverModel>
+            (hydrogenCrossoverModel::modelName);
+
+        if (Y.member() == crossover.hydrogenSpecies())
+        {
+            const volScalarField* crossoverDmdt = nullptr;
+
+            if (this->mesh().name() == crossover.cathodeFluidRegion())
+            {
+                crossoverDmdt = &crossover.h2CathodeDmdt();
+            }
+            else if (this->mesh().name() == crossover.anodeFluidRegion())
+            {
+                crossoverDmdt = &crossover.h2AnodeDmdt();
+            }
+
+            if (crossoverDmdt)
+            {
+                const word fluidRegionKey = "fluid";
+                const regionType& fluidPhase = eta_->region
+                (
+                    word
+                    (
+                        eta_->regions().subDict(fluidRegionKey).lookup("name")
+                    )
+                );
+                const Map<label>& anionCells = anionPhase.cellMap();
+
+                forAll(iDmdt, fluidCell)
+                {
+                    const label masterCell = fluidPhase.cellMapIO()[fluidCell];
+
+                    if (anionCells.found(masterCell))
+                    {
+                        const label anionCell = anionCells[masterCell];
+                        iDmdt[fluidCell] +=
+                            (*crossoverDmdt)[anionCell]*Wi.value();
+                    }
+                }
+            }
+        }
+    }
+
+    return fvm::Sp(iDmdt/(Y + SMALL), Y);       // TODO: is this a good approach.
 }
 
 

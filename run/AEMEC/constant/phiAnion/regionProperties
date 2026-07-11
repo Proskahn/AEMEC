@@ -39,22 +39,57 @@ hydrogenCrossover
         i               i;
         j               J;
 
-        // Water-drag coefficient in J_H2,drag = i/F*xi*cH2/cElec.
+        // Names used by the conservative species-source mapping.  Mapping is
+        // through the common parent mesh, not local region-cell ordering.
+        cathodeFluidRegion  cathode;
+        anodeFluidRegion    anode;
+        hydrogenSpecies     H2;
+
+        // J_H2,drag = i/F*xi*cH2*/cElec.  The constant drag coefficient is
+        // the initial extension point for hydration/temperature correlations.
+        dragModel       constant;
         xi              1;
 
-        // 1 M KOH at 60 C from the reference text: 52 mol/l.
+        // Nominal aqueous-carrier molar concentration [mol/m3] used by the
+        // drag closure. Calibrate it with the selected KOH concentration.
         cElec           52000;
 
-        // D_eff = epsilonM/tau*DelecH2.
+        // Select one of: constant, porosityTortuosity, bruggeman.
+        // DelecH2 is D_H2^0 [m2/s].
+        diffusivityModel    porosityTortuosity;
         DelecH2         4.5e-9;
         epsilonM        0.2;
         tau             1;
+        bruggemanExponent 1.5;
 
-        // Dissolved H2 concentrations corresponding to the gas pressures.
-        // Replace these with the selected H2 solubility/Henry relation if needed.
+        // Fallback dissolved H2 concentrations [mol/m3] for fixed interface
+        // mode. The selected Henry interfaces below instead use c = H*p_H2,
+        // where H is entered in mol/(m3 Pa), and are the active settings.
         cH2Initial      0.78;   // 1 bar-side initial dissolved H2 [mol/m3]
         cH2Anode        0.78;   // 1 bar anode-side dissolved H2 [mol/m3]
         cH2Cathode      7.8;    // 10 bar cathode-side dissolved H2 [mol/m3]
+
+        cathodeInterface
+        {
+            type                henry;
+            gasPhase            hydrogen;
+            // c_H2,dissolved [mol/m3] = H [mol/(m3 Pa)] * p_H2 [Pa].
+            henryCoefficient    7.8e-6;
+        }
+
+        anodeInterface
+        {
+            type                henry;
+            gasPhase            oxygen;
+            // Same convention as cathodeInterface. H2 is a trace component
+            // of the anode oxygen phase and rises through conservative
+            // crossover coupling.
+            henryCoefficient    7.8e-6;
+        }
+
+        // Optional through-membrane convective velocity [m/s].  Keep zero
+        // unless a validated pressure/permeability closure is supplied.
+        UMembrane       (0 0 0);
 
         // Optional implicit anode-side release/sink for stationary
         // closed-submesh runs.

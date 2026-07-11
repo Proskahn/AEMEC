@@ -24,10 +24,10 @@ from typing import Iterable, Sequence
 from optimization_lib import ObjectiveResult, OptimizationError
 
 
-# Version 3 records the cathode-to-anode crossover definition used by the
-# renamed cathode-fed AEM case.  It must not resume legacy fuel-cell-labelled
-# studies whose crossover direction was the reverse.
-OBJECTIVE_SCHEMA_VERSION = 3
+# Version 4 records the conservative cathode-to-anode H2 gas-source objective.
+# It must not resume earlier studies that used a membrane-release diagnostic
+# rather than the coupled anode gas source.
+OBJECTIVE_SCHEMA_VERSION = 4
 DEFAULT_TARGET_CURRENT_DENSITY_A_M2 = 10_000.0
 DEFAULT_CURRENT_RELATIVE_TOLERANCE = 0.05
 DEFAULT_TARGET_HOLD_DURATION_S = 30.0

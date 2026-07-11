@@ -17,8 +17,14 @@ Both fluid regions are two-phase:
 
 - `cathode` is a water/hydrogen region and receives liquid water at
   `cathodeInlet` with `U.water = (0.01 0 0) m/s`.
-- `anode` is a water/oxygen region. Its inlet velocity is zero in this
-  cathode-fed configuration; oxygen and water leave through `anodeOutlet`.
+- `anode` is a water/oxygen region and also receives liquid aqueous KOH at
+  `anodeInlet` with `U.water = (0.01 0 0) m/s`; oxygen, water, and any
+  crossover H2 leave through `anodeOutlet`.
+
+At this level of the solver, the water phase is the aqueous-KOH carrier.
+There is no independent KOH mass-fraction, electrolyte-density, or solute
+transport equation yet, so do not interpret the liquid phase as pure water in
+a quantitative electrolyte-balance calculation.
 
 The reaction dictionaries use the AEM-electrolyzer source signs:
 
@@ -42,9 +48,14 @@ For the proof-of-concept run, both Butler–Volmer dictionaries use a numerical
 prevent an uncalibrated initial potential from destabilizing the flow solver;
 replace them with validated kinetic parameters before quantitative use.
 
-Hydrogen crossover is defined from `cathodeCL` to `anodeCL`. Validate the
-diffusion/drag parameters and mass balance at a reference thickness before
-running an optimization.
+Hydrogen crossover is defined from `cathodeCL` to `anodeCL`; the anode oxygen
+phase therefore contains a trace `H2` component. The crossover model reports
+separate `JH2Diff`, `JH2Drag`, `JH2Conv`, and `JH2Cross` fields, then removes
+the resulting molar rate from cathode gas H2 and adds the identical rate to
+anode gas H2. See [the membrane-crossover model](docs/membrane-crossover.md)
+for the assumptions, dictionary contract, and remaining limitations. Validate
+diffusion/drag parameters and the printed conservation line at a reference
+thickness before running an optimization.
 
 ## Run
 
@@ -52,6 +63,10 @@ running an optimization.
 make mesh
 make srun
 ```
+
+After changing C++ source, rebuild once with `./src/Allwmake` before these
+case commands. You do not rebuild the solver between optimization trials;
+each trial remeshes and runs the case with its selected membrane thickness.
 
 For MPI, set `NPROCS`, then run `make decompose`, `make parallel`, and
 `make run`.

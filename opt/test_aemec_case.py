@@ -58,6 +58,8 @@ class AemecCaseTests(unittest.TestCase):
         anode_porous = (case / "constant/anode/porousZones").read_text(encoding="utf-8")
         cathode_water_velocity = (case / "0.orig/cathode/U.water").read_text(encoding="utf-8")
         anode_water_velocity = (case / "0.orig/anode/U.water").read_text(encoding="utf-8")
+        anode_thermo = (case / "constant/anode/thermophysicalProperties.oxygen").read_text(encoding="utf-8")
+        anode_hydrogen = (case / "0.orig/anode/H2.oxygen").read_text(encoding="utf-8")
         electrolyte_temperature = (case / "0.orig/electrolyte/T").read_text(encoding="utf-8")
         interconnect_temperature = (case / "0.orig/interconnect/T").read_text(encoding="utf-8")
 
@@ -74,7 +76,15 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("cellZone        cathodeMPL", cathode_porous)
         self.assertIn("cellZone        anodeMPL", anode_porous)
         self.assertIn("uniform (0.01 0 0)", cathode_water_velocity)
-        self.assertIn("uniform (0 0 0)", anode_water_velocity)
+        self.assertIn("uniform (0.01 0 0)", anode_water_velocity)
+        self.assertIn("H2", anode_thermo)
+        self.assertIn("object          yH2;", anode_hydrogen)
+        self.assertIn("cathodeFluidRegion  cathode;", crossover)
+        self.assertIn("anodeFluidRegion    anode;", crossover)
+        self.assertIn("diffusivityModel    porosityTortuosity;", crossover)
+        self.assertIn("cathodeInterface", crossover)
+        self.assertIn("anodeInterface", crossover)
+        self.assertIn("UMembrane       (0 0 0);", crossover)
         self.assertIn("electrolyte_to_anode", electrolyte_temperature)
         self.assertIn("electrolyte_to_cathode", electrolyte_temperature)
         self.assertIn("interconnect_to_anode", interconnect_temperature)
@@ -107,15 +117,15 @@ Time = 1
 galvanostatic target: -10000 A/m2, raw dV: 0.0001, limited dV: 0.0001
 ibar: -8000 voltage: 1.7
 Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = -10000 A/m2, voltage = 1.8
-Hydrogen crossover objective: anode release rate = 2.0e-5 mol/s
+Hydrogen crossover objective: anode gas source rate = 2.0e-5 mol/s
 Time = 2
 galvanostatic target: -10000 A/m2, raw dV: 0.0001, limited dV: 0.0001
 Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = -10005 A/m2, voltage = 1.801
-Hydrogen crossover objective: anode release rate = 2.01e-5 mol/s
+Hydrogen crossover objective: anode gas source rate = 2.01e-5 mol/s
 Time = 3
 galvanostatic target: -10000 A/m2, raw dV: 0.0001, limited dV: 0.0001
 Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = -10010 A/m2, voltage = 1.8
-Hydrogen crossover objective: anode release rate = 2.0e-5 mol/s
+Hydrogen crossover objective: anode gas source rate = 2.0e-5 mol/s
 End
 """
         samples = parse_objective_samples(log)
