@@ -16,6 +16,10 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# Local optimization studies and scratch cases
+opt/results/
+opt/work/
+
 # OpenFOAM build products
 **/lnInclude/
 **/Make/linux*/

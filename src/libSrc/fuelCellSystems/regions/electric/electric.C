@@ -279,9 +279,22 @@ void Foam::regionTypes::electric::solve()
               * this->magSf().boundaryField()[patchID]
             );
 
+        const scalar patchArea =
+            Foam::gSum(this->magSf().boundaryField()[patchID]);
+
+        if (patchArea <= VSMALL)
+        {
+            FatalErrorInFunction
+                << "Controlled boundary patch " << patchName_
+                << " has zero area" << exit(FatalError);
+        }
+
+        const scalar signedCurrentDensity = signedCurrent/patchArea;
+
         Info << "Controlled boundary current (A) at " << patchName_
             << ": signed = " << signedCurrent
             << ", magnitude = " << mag(signedCurrent)
+            << ", current density = " << signedCurrentDensity << " A/m2"
             << ", voltage = " << appliedVoltage << endl;
     }
 

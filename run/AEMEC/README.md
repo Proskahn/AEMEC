@@ -21,8 +21,17 @@ The water may exist in vapor and liquid in PEM water electrolyzer cells
     supply:                 liquid water
     Active area             0.8 cm2
 
-    Mean current density    8000 A/m3
+    Mean current density    8000 A/m2
     ```
+
+## Membrane-thickness optimization
+
+The black-box, two-objective optimization driver is split into focused guides:
+[AEMEC/OpenFOAM adapter details](../../opt/docs/aemec-openfoam.md) and the
+[optimization runbook](../../opt/docs/runbook.md). It regenerates the block
+mesh and runs this case once per membrane-thickness proposal, checks the
+voltage at 1 A/cm2 and the modeled anode-side crossover rate, and writes a
+Pareto-front CSV and plot after the requested number of completed evaluations.
 
 To run the case:
 

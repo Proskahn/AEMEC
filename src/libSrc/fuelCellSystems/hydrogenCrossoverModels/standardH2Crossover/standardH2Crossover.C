@@ -244,6 +244,28 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
 
     correct();
 
+    if (sinkCoeff_.value() > 0.0 && sinkZoneName_ != word::null)
+    {
+        // The implicit anode-side sink represents H2 released from the ionomer.
+        // At steady state its integral is the rate transported across the
+        // membrane into the anode.  Only positive release above the configured
+        // equilibrium concentration is counted as crossover.
+        tmp<volScalarField> tH2ReleaseRate
+        (
+            h2SinkCoeff
+           *max
+            (
+                cH2_ - cH2Anode_,
+                dimensionedScalar("zero", cH2_.dimensions(), 0.0)
+            )
+        );
+        const scalar h2CrossoverRate =
+            zoneIntegral(tH2ReleaseRate(), sinkZoneName_);
+
+        Info<< "Hydrogen crossover objective: anode release rate = "
+            << h2CrossoverRate << " mol/s" << endl;
+    }
+
     Info<< "Hydrogen crossover: generated in " << sourceZoneName_
         << " = " << zoneIntegral(h2Dmdt_, sourceZoneName_) << " mol/s";
 
