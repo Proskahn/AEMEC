@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Plot a AEMEC polarization curve from an openFuelCell log.
+"""Plot an AEMEC polarization curve from an openFuelCell log.
 
-The script reads the potentiostatic scan output from run/AEMEC/log.run and
-plots voltage against current density. For stepped voltage scans it keeps the
-last reported current at each voltage, which is normally the closest sample to
-the converged value for that hold.
+The script supports potentiostatic and galvanostatic stepped scans. It plots
+voltage against current density and keeps the last reported sample from each
+hold, which is normally the closest sample to the converged value.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import math
 import re
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -101,6 +101,23 @@ def last_sample_per_voltage(
     return sorted(by_voltage.values(), key=lambda sample: sample.voltage_v)
 
 
+def last_sample_per_hold(
+    samples: list[Sample], hold_duration: float
+) -> list[Sample]:
+    """Keep the last sample in each (0, hold], (hold, 2*hold], ... interval."""
+    by_hold: OrderedDict[int, Sample] = OrderedDict()
+    for sample in samples:
+        if sample.time is None:
+            continue
+        hold_index = max(1, math.ceil(sample.time / hold_duration))
+        by_hold[hold_index] = sample
+
+    if not by_hold:
+        raise ValueError("Cannot group current holds because the log has no Time entries")
+
+    return list(by_hold.values())
+
+
 def write_csv(samples: list[Sample], output_path: Path) -> None:
     with output_path.open("w", newline="", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
@@ -179,7 +196,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--all-samples",
         action="store_true",
-        help="Plot every parsed sample instead of the last sample per voltage.",
+        help="Plot every parsed sample instead of the settled sample per hold.",
+    )
+    parser.add_argument(
+        "--scan-mode",
+        choices=("current", "voltage"),
+        default="current",
+        help="Controlled quantity used for grouping stepped holds (default: current).",
+    )
+    parser.add_argument(
+        "--hold-duration",
+        type=float,
+        default=10.0,
+        help="Current-hold duration in seconds (default: 10).",
     )
     parser.add_argument(
         "--signed",
@@ -208,11 +237,15 @@ def main() -> None:
     if not samples:
         raise SystemExit(f"No current/voltage samples found in: {log_path}")
 
-    curve_samples = (
-        samples
-        if args.all_samples
-        else last_sample_per_voltage(samples, args.voltage_precision)
-    )
+    if args.hold_duration <= 0:
+        raise SystemExit("--hold-duration must be greater than zero")
+
+    if args.all_samples:
+        curve_samples = samples
+    elif args.scan_mode == "current":
+        curve_samples = last_sample_per_hold(samples, args.hold_duration)
+    else:
+        curve_samples = last_sample_per_voltage(samples, args.voltage_precision)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     csv_path.parent.mkdir(parents=True, exist_ok=True)
