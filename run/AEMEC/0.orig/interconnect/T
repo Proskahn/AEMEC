@@ -30,11 +30,11 @@ boundaryField
     {
         type            zeroGradient;
     }
-    interconnect_to_air
+    interconnect_to_anode
     {
         type            zeroGradient;
     }
-    interconnect_to_fuel
+    interconnect_to_cathode
     {
         type            zeroGradient;
     }

@@ -58,6 +58,8 @@ class AemecCaseTests(unittest.TestCase):
         anode_porous = (case / "constant/anode/porousZones").read_text(encoding="utf-8")
         cathode_water_velocity = (case / "0.orig/cathode/U.water").read_text(encoding="utf-8")
         anode_water_velocity = (case / "0.orig/anode/U.water").read_text(encoding="utf-8")
+        electrolyte_temperature = (case / "0.orig/electrolyte/T").read_text(encoding="utf-8")
+        interconnect_temperature = (case / "0.orig/interconnect/T").read_text(encoding="utf-8")
 
         self.assertIn("fluid (anode cathode)", regions)
         self.assertIn("electric (phiECathode phiEAnode phiAnion)", regions)
@@ -73,6 +75,10 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("cellZone        anodeMPL", anode_porous)
         self.assertIn("uniform (0.01 0 0)", cathode_water_velocity)
         self.assertIn("uniform (0 0 0)", anode_water_velocity)
+        self.assertIn("electrolyte_to_anode", electrolyte_temperature)
+        self.assertIn("electrolyte_to_cathode", electrolyte_temperature)
+        self.assertIn("interconnect_to_anode", interconnect_temperature)
+        self.assertIn("interconnect_to_cathode", interconnect_temperature)
 
     def test_thickness_rewrite_preserves_other_layers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -25,11 +25,11 @@ boundaryField
     {
         type            zeroGradient;
     }
-    electrolyte_to_air
+    electrolyte_to_anode
     {
         type            zeroGradient;
     }
-    electrolyte_to_fuel
+    electrolyte_to_cathode
     {
         type            zeroGradient;
     }

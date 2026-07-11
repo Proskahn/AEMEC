@@ -30,6 +30,8 @@ ELECTRIC_ZONES = {
     "phiAnion": ("anodeCL", "cathodeCL", "membrane"),
 }
 
+LEGACY_INTERFACE_NAMES = ("electrolyte_to_air", "electrolyte_to_fuel", "interconnect_to_air", "interconnect_to_fuel")
+
 
 def read(path: Path, errors: list[str]) -> str:
     try:
@@ -60,6 +62,24 @@ def check_static(case: Path, errors: list[str]) -> None:
         text = read(case / "constant" / region / "regionProperties", errors)
         if phase_line not in text:
             errors.append(f"constant/{region}/regionProperties must contain '{phase_line}'")
+
+    expected_interfaces = {
+        "0.orig/electrolyte/T": ("electrolyte_to_anode", "electrolyte_to_cathode"),
+        "0.orig/interconnect/T": ("interconnect_to_anode", "interconnect_to_cathode"),
+    }
+    for relative_path, patches in expected_interfaces.items():
+        text = read(case / relative_path, errors)
+        for patch in patches:
+            if not has_dictionary_block(text, patch):
+                errors.append(f"{relative_path} is missing boundary entry '{patch}'")
+
+    for field in sorted((case / "0.orig").rglob("*")):
+        if not field.is_file():
+            continue
+        text = read(field, errors)
+        for legacy_name in LEGACY_INTERFACE_NAMES:
+            if legacy_name in text:
+                errors.append(f"{field.relative_to(case)} still references legacy patch '{legacy_name}'")
 
     for region, zones in POROUS_FLUID_ZONES.items():
         porous = read(case / "constant" / region / "porousZones", errors)
@@ -94,6 +114,25 @@ def check_generated_mesh(case: Path, errors: list[str]) -> None:
         for zone in zones:
             if not has_dictionary_block(text, zone):
                 errors.append(f"generated mesh {path.relative_to(case)} is missing cellZone '{zone}'")
+
+    for region in ("anode", "cathode", "electrolyte", "interconnect", "phiEAnode", "phiECathode", "phiAnion"):
+        boundary_path = case / "constant" / region / "polyMesh/boundary"
+        mesh_boundary = read(boundary_path, errors)
+        patches = re.findall(r"(?m)^[ \t]*([A-Za-z_][A-Za-z0-9_]*)[ \t]*\n[ \t]*\{", mesh_boundary)
+        field_directory = case / "0" / region
+        if not field_directory.is_dir():
+            errors.append(f"generated initial-field directory is missing: 0/{region}")
+            continue
+        for field in sorted(field_directory.iterdir()):
+            if not field.is_file():
+                continue
+            field_text = read(field, errors)
+            has_wildcard = re.search(r'(?m)^[ \t]*"\.\*"[ \t]*\n[ \t]*\{', field_text) is not None
+            for patch in patches:
+                if not has_wildcard and not has_dictionary_block(field_text, patch):
+                    errors.append(
+                        f"initial field {field.relative_to(case)} is missing boundary entry '{patch}'"
+                    )
 
 
 def main() -> int:
