@@ -1,0 +1,92 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by the original author
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      combustionProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+combustionModel electroChemicalReaction;
+
+dissolved       false;
+
+saturation
+{
+    type ArdenBuck;
+}
+
+activationOverpotentialModel
+{
+    type    ButlerVolmer;
+
+    zoneName  cathodeCL;
+
+    // Hydrogen is generated as a gas phase in the cathode two-phase channel.
+    phaseChange     true;
+
+    regions
+    {
+        fluid
+        {
+            name    cathode;
+        }
+        electron
+        {
+            name    phiECathode;
+        }
+        anion
+        {
+            name    phiAnion;
+        }
+        dissolved
+        {
+            name    dissolved;
+        }
+    }
+
+    species
+    {
+        H2
+        {
+            ksi     0;
+            cRef    26.3;
+        }
+    }
+
+    phiNames
+    (
+        electron    phi
+        anion       phi
+    );
+
+    j0              1.0e8;
+    relax           0.5;
+    alpha           0.5;
+    gamma           0;
+
+    nernstModel
+    {
+        type        standard;
+
+        pRef        101325;
+
+        RxnList
+        (
+            // Cathode: 2 H2O + 2 e- -> H2 + 2 OH-.
+            // OH- is represented by the effective anion-potential region.
+            H2      1
+            H2O    -1
+            e      -2
+        );
+    }
+}
+// ************************************************************************* //

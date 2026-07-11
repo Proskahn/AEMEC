@@ -25,7 +25,9 @@ Class
     Foam::electric.C
 
 Description
-    The 'electric' region considers electron and ion/proton transfer in electrochemical devices.
+    The 'electric' region considers electron and ionic-carrier transfer in
+    electrochemical devices.  A case may use the carrier as an effective
+    anion potential (for example, OH- transport in an AEM electrolyzer).
     Temperature and thermal properties will be mapped from and mapped to the main domain.
     Fuel cell and electrolyzer can operate under galvanostatic or potentostatic mode, which means
     the current density or voltage is prescribed, respectively.
@@ -106,9 +108,9 @@ private:
         Switch control_;
 
         //- Dissolved water
-        //- In PEM fuel cell/electrolyzer, water can dissolve from one side
-        //- to the other. This process is usually affected by the proton transfer.
-        //- Refer to the region of CCM (carbon coated membrane)
+        //- Optional dissolved-water model for PEM/Nafion-style cases.  AEM
+        //- cases should disable this unless an anion-compatible water model
+        //- has been configured.
         Switch dissolveOnOff_;
         autoPtr<dissolvedModel> dissolved_;
 

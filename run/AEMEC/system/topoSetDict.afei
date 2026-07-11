@@ -18,84 +18,84 @@ FoamFile
 actions
 (
     {
-        name    air;
+        name    anode;
         type    cellZoneSet;
         action  new;
         source  setToCellZone;
         sourceInfo
         {
-            set cchannel;
+            set anodeChannel;
         }
     }
     {
-        name    air;
+        name    anode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set cathode;
+            set anodeGDL;
         }
     }
     {
-        name    air;
+        name    anode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set cmpl;
+            set anodeMPL;
         }
     }
     {
-        name    air;
+        name    anode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set ccl;
+            set anodeCL;
         }
     }
 
     {
-        name    fuel;
+        name    cathode;
         type    cellZoneSet;
         action  new;
         source  setToCellZone;
         sourceInfo
         {
-            set achannel;
+            set cathodeChannel;
         }
     }
     {
-        name    fuel;
+        name    cathode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set anode;
+            set cathodeGDL;
         }
     }
     {
-        name    fuel;
+        name    cathode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set ampl;
+            set cathodeMPL;
         }
     }
     {
-        name    fuel;
+        name    cathode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set acl;
+            set cathodeCL;
         }
     }
 

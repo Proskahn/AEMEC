@@ -57,7 +57,8 @@ void Foam::activationOverpotentialModels::Constant<Thermo>::correct()
 
     //- Get sub regions
     //- Refer to regionType
-    //- Including: fluid, electron (BPP + GDL + CL), ion (CLs + membrane)
+    //- Including: fluid, electron (BPP + GDL + CL), anion/legacy-ion carrier
+    //- (CLs + membrane)
     const regionType& fluidPhase = this->region
     (
         word(this->regions_.subDict("fluid").lookup("name"))
@@ -66,12 +67,12 @@ void Foam::activationOverpotentialModels::Constant<Thermo>::correct()
     (
         word(this->regions_.subDict("electron").lookup("name"))
     );
-    const regionType& ionPhase = this->region
+    const regionType& anionPhase = this->region
     (
-        word(this->regions_.subDict("ion").lookup("name"))
+        word(this->regions_.subDict(this->regions_.found("anion") ? "anion" : "ion").lookup("name"))
     );
 
-    //- Source/sink terms for electron and ion fields
+    //- Source/sink terms for electron and anion fields
     //- See names in regions/electronIon/electronIon.C
     scalarField& SE = const_cast<volScalarField&>
     (
@@ -79,7 +80,7 @@ void Foam::activationOverpotentialModels::Constant<Thermo>::correct()
     );
     scalarField& SI = const_cast<volScalarField&>
     (
-        ionPhase.template lookupObject<volScalarField>("J")
+        anionPhase.template lookupObject<volScalarField>("J")
     );
 
     //- Current density
@@ -103,7 +104,7 @@ void Foam::activationOverpotentialModels::Constant<Thermo>::correct()
         //- get cell IDs
         label fluidId = cells[cellI];
         label electronId = electronPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
-        label ionId = ionPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
+        label anionId = anionPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
 
         //- Buttler-volmer relation
         j[fluidId] = jj_.value();
@@ -111,7 +112,7 @@ void Foam::activationOverpotentialModels::Constant<Thermo>::correct()
         //- anode side: SE = Rj, SI = -Rj
         //- cathode side: SE = -Rj, SI = Rj
         SE[electronId] = -sign*j[fluidId];
-        SI[ionId] = -SE[electronId];
+        SI[anionId] = -SE[electronId];
 
         Rj += fluidPhase.V()[fluidId] * j[fluidId];
     }

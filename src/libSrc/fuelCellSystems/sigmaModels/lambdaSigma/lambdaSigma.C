@@ -103,10 +103,19 @@ void Foam::sigmaModels::lambdaSigma::correct
 
             if(catalyst_)
             {
-                scalar porNaf(sigmaDictionary_.lookupOrDefault<scalar>("porNaf", 1.0));
+                // porNaf is retained as a compatibility fallback for older
+                // PEM cases.  New AEM cases should use porIonomer.
+                scalar porIonomer
+                (
+                    sigmaDictionary_.lookupOrDefault<scalar>
+                    (
+                        "porIonomer",
+                        sigmaDictionary_.lookupOrDefault<scalar>("porNaf", 1.0)
+                    )
+                );
                 scalar por(sigmaDictionary_.lookupOrDefault<scalar>("porosity", 0.0));
 
-                sigmaField[cellI] *= pow((scalar(1) - por)*porNaf, 1.5);
+                sigmaField[cellI] *= pow((scalar(1) - por)*porIonomer, 1.5);
             }
         }
     }

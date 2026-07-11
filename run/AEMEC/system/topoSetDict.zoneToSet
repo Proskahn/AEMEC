@@ -18,24 +18,24 @@ FoamFile
 actions
 (
     {
-        name    cchannel;
+        name    anodeChannel;
         type    cellSet;
         action  new;
         source  zoneToCell;
         sourceInfo
         {
-            zone cchannel;
+            zone anodeChannel;
         }
     }
 
     {
-        name    achannel;
+        name    cathodeChannel;
         type    cellSet;
         action  new;
         source  zoneToCell;
         sourceInfo
         {
-            zone achannel;
+            zone cathodeChannel;
         }
     }
 
@@ -61,63 +61,63 @@ actions
         }
     }
     {
-        name    cathode;
+        name    anodeGDL;
         type    cellSet;
         action  new;
         source  zoneToCell;
         sourceInfo
         {
-            zone cathode;
+            zone anodeGDL;
         }
     }
     {
-        name    anode;
+        name    cathodeGDL;
         type    cellSet;
         action  new;
         source  zoneToCell;
         sourceInfo
         {
-            zone anode;
+            zone cathodeGDL;
         }
     }
     {
-        name    cmpl;
+        name    anodeMPL;
         type    cellSet;
         action  new;
         source  zoneToCell;
         sourceInfo
         {
-            zone cmpl;
+            zone anodeMPL;
         }
     }
     {
-        name    ampl;
+        name    cathodeMPL;
         type    cellSet;
         action  new;
         source  zoneToCell;
         sourceInfo
         {
-            zone ampl;
+            zone cathodeMPL;
         }
     }
     {
-        name    ccl;
+        name    anodeCL;
         type    cellSet;
         action  new;
         source  zoneToCell;
         sourceInfo
         {
-            zone ccl;
+            zone anodeCL;
         }
     }
     {
-        name    acl;
+        name    cathodeCL;
         type    cellSet;
         action  new;
         source  zoneToCell;
         sourceInfo
         {
-            zone acl;
+            zone cathodeCL;
         }
     }
 );

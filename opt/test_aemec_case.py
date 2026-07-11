@@ -22,14 +22,39 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def copy_controls(case: Path) -> None:
-    (case / "constant/phiEC").mkdir(parents=True, exist_ok=True)
+    (case / "constant/phiEAnode").mkdir(parents=True, exist_ok=True)
     (case / "system").mkdir(exist_ok=True)
-    shutil.copy2(ROOT / "run/AEMEC/constant/phiEC/regionProperties", case / "constant/phiEC/regionProperties")
+    shutil.copy2(
+        ROOT / "run/AEMEC/constant/phiEAnode/regionProperties",
+        case / "constant/phiEAnode/regionProperties",
+    )
     for name in ("controlDict.run", "controlDict"):
         shutil.copy2(ROOT / "run/AEMEC/system" / name, case / "system" / name)
 
 
 class AemecCaseTests(unittest.TestCase):
+    def test_case_uses_the_cathode_fed_aem_region_contract(self) -> None:
+        case = ROOT / "run/AEMEC"
+        regions = (case / "constant/regionProperties").read_text(encoding="utf-8")
+        cathode = (case / "constant/cathode/regionProperties").read_text(encoding="utf-8")
+        anode = (case / "constant/anode/regionProperties").read_text(encoding="utf-8")
+        crossover = (case / "constant/phiAnion/regionProperties").read_text(encoding="utf-8")
+        cathode_reaction = (case / "constant/cathode/combustionProperties").read_text(encoding="utf-8")
+        anode_reaction = (case / "constant/anode/combustionProperties.oxygen").read_text(encoding="utf-8")
+        cathode_water_velocity = (case / "0.orig/cathode/U.water").read_text(encoding="utf-8")
+        anode_water_velocity = (case / "0.orig/anode/U.water").read_text(encoding="utf-8")
+
+        self.assertIn("fluid (anode cathode)", regions)
+        self.assertIn("electric (phiECathode phiEAnode phiAnion)", regions)
+        self.assertIn("phases (hydrogen water)", cathode)
+        self.assertIn("phases (oxygen water)", anode)
+        self.assertIn("sourceZone      cathodeCL", crossover)
+        self.assertIn("sinkZone        anodeCL", crossover)
+        self.assertIn("H2O    -1", cathode_reaction)
+        self.assertIn("H2O     1", anode_reaction)
+        self.assertIn("uniform (0.01 0 0)", cathode_water_velocity)
+        self.assertIn("uniform (0 0 0)", anode_water_velocity)
+
     def test_thickness_rewrite_preserves_other_layers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             mesh = Path(directory) / "blockMeshDict"
@@ -92,7 +117,7 @@ End
             shutil.copy2(ROOT / "run/AEMEC/system/blockMeshDict", source / "system/blockMeshDict")
             (source / "mesh.py").write_text(
                 """from pathlib import Path
-for region in ('', 'air', 'fuel', 'electrolyte', 'interconnect', 'phiEA', 'phiEC', 'phiI'):
+for region in ('', 'anode', 'cathode', 'electrolyte', 'interconnect', 'phiECathode', 'phiEAnode', 'phiAnion'):
     base = Path('constant') if not region else Path('constant') / region
     target = base / 'polyMesh/points'
     target.parent.mkdir(parents=True, exist_ok=True)

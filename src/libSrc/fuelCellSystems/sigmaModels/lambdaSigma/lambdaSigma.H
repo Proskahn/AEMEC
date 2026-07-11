@@ -25,7 +25,9 @@ Class
     Foam::sigmaModels::lambdaSigma
 
 Description
-    Electric conductivity of material in a function of lambda (water content).
+    Hydration-dependent effective ionic conductivity.  A case may use this
+    as an anion-conducting approximation, provided its correlation is
+    calibrated for the selected ionomer.
 
 SourceFiles
     lambdaSigma.C

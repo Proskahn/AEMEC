@@ -1,116 +1,52 @@
-# __PEM water electrolyzer cell application__
+# Cathode-fed AEM electrolyzer case
 
-This is a test case for proton exchange membrane / polymer water electrolyzer cell.
+This case uses terminology and reaction direction for a cathode-fed anion
+exchange membrane (AEM) electrolyzer.
 
-Chemical reaction:
+```text
+liquid water → cathode / hydrogen side → OH- through membrane → anode / oxygen side
+```
 
-- Anode side:
-<img src="https://latex.codecogs.com/svg.latex?\Large&space;\textrm{H}_{2}\textrm{O}\to\textrm{2H}^{+}+\textrm{0.5O}_{2}+\textrm{2e}^{-}" title="\Large \textrm{H}_{2}\textrm{O}\to\textrm{2H}^{+}+\textrm{0.5O}_{2}+\textrm{2e}^{-}" />
-- Cathode side:
-<img src="https://latex.codecogs.com/svg.latex?\Large&space;\textrm{2H}^{+}+\textrm{2e}^{-}\to\textrm{H}_{2}" title="\Large \textrm{2H}^{+}+\textrm{2e}^{-}\to\textrm{H}_{2}" />
-- Overall Reaction:
-<img src="https://latex.codecogs.com/svg.latex?\Large&space;\textrm{H}_{2}\textrm{O}\to\textrm{H}_{2}+\textrm{0.5O}_{2}" title="\Large \textrm{H}_{2}\textrm{O}\to\textrm{H}_{2}+\textrm{0.5O}_{2}" />
+| Physical role | Fluid region | Electron region | Catalyst-layer zone |
+| --- | --- | --- | --- |
+| Cathode: H2 generation | `cathode` | `phiECathode` | `cathodeCL` |
+| Anode: O2 generation | `anode` | `phiEAnode` | `anodeCL` |
+| Anion carrier | — | `phiAnion` | cathodeCL + electrolyte + anodeCL |
 
-The water may exist in vapor and liquid in PEM water electrolyzer cells
+Both fluid regions are two-phase:
 
-## Operating conditions
+- `cathode` is a water/hydrogen region and receives liquid water at
+  `cathodeInlet` with `U.water = (0.01 0 0) m/s`.
+- `anode` is a water/oxygen region. Its inlet velocity is zero in this
+  cathode-fed configuration; oxygen and water leave through `anodeOutlet`.
 
-    ```none
-    Temperature:            313 K, 40 oC
-    Pressure:               1 bar/1 bar (anode/cathode)
-    supply:                 liquid water
-    Active area             0.8 cm2
+The reaction dictionaries use the AEM-electrolyzer source signs:
 
-    Mean current density    8000 A/m2
-    ```
+```text
+cathodeCL:  2 H2O + 2 e- → H2 + 2 OH-
+anodeCL:    2 OH- → 1/2 O2 + H2O + 2 e-
+```
 
-## Membrane-thickness optimization
+`phiAnion` is an effective anion-conducting potential region. It uses the
+solver's generic ionic-potential formulation with an `anion` dictionary key;
+it does **not** solve an OH- concentration field. Calibrate the membrane
+conductivity and add explicit hydroxide/water transport before using results
+for quantitative design decisions. The inherited Nafion dissolved-water model
+is disabled for this case.
 
-The black-box, two-objective optimization driver is split into focused guides:
-[AEMEC/OpenFOAM adapter details](../../opt/docs/aemec-openfoam.md) and the
-[optimization runbook](../../opt/docs/runbook.md). It regenerates the block
-mesh and runs this case once per membrane-thickness proposal, checks the
-voltage at 1 A/cm2 and the modeled anode-side crossover rate, and writes a
-Pareto-front CSV and plot after the requested number of completed evaluations.
+Hydrogen crossover is defined from `cathodeCL` to `anodeCL`. Validate the
+diffusion/drag parameters and mass balance at a reference thickness before
+running an optimization.
 
-To run the case:
+## Run
 
-- In serial
+```bash
+make mesh
+make srun
+```
 
-    ```bash
+For MPI, set `NPROCS`, then run `make decompose`, `make parallel`, and
+`make run`.
 
-    # Generate the meshes with 'blockMesh'
-    make mesh
-    # or Generate the meshes with 'salome'
-    # make salomeMesh
-
-    # Run in serial
-    make srun
-
-    ```
-
-- In parallel
-
-    ```bash
-
-    # Generate the meshes with 'blockMesh'
-    make mesh
-    # or Generate the meshes with 'salome'
-    # make salomeMesh
-
-    # Edit values of 'nx' and 'ny' in constant/cellProperties
-
-    export NPROCS=nx*ny # (value of 'nx' times 'ny')
-
-    # Generate the cellID
-    # For manual decomposition
-    make decompose
-
-    # Decomposition for multiple regions
-    make parallel
-
-    # Run in parallel
-    make run  #( the value of 'nx' times 'ny' needs to be changed in 'Makefile')
-    # or
-    # mpirun -np nx*ny fuelCell0Foam -parallel -fileHandler collated | tee log.run
-
-    ```
-
-To view the result:
-
-- In serial
-
-  - Residual plot
-
-    ```bash
-    make plot
-    #or
-    gnuplot ResidualPlot
-
-    ```
-
-  - Simulation results
-
-    ```bash
-    make view
-    paraview
-
-    ```
-
-- In parallel
-
-  - Residual plot
-
-    ```bash
-    make plot
-    or
-    gnuplot ResidualPlot
-    ```
-
-  - Simulation results
-
-    ```bash
-    make reconstruct
-    make view
-    paraview
-    ```
+All legacy meshes and result directories are incompatible with these renamed
+regions. Regenerate the mesh after rebuilding the solver.

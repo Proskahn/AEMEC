@@ -29,30 +29,14 @@ boundaryField
     {
         type         zeroGradient;
     }
-    airInlet
+    anodeInlet
     {
         type         fixedValue;
         //value        uniform 0.0692;
         value        uniform 1e-15;    //disallow outward diffusion at inlet
                                        // value 0 causes harmonic averaging FPE
     }
-    airOutlet
-    {
-        type         zeroGradient;
-    }
-    cathodeSides
-    {
-        type         zeroGradient;
-    }
-    cflSides
-    {
-        type         zeroGradient;
-    }
-    electrolyteSides
-    {
-        type         zeroGradient;
-    }
-    aflSides
+    anodeOutlet
     {
         type         zeroGradient;
     }
@@ -60,14 +44,30 @@ boundaryField
     {
         type         zeroGradient;
     }
-    fuelInlet
+    anodeGDLSides
+    {
+        type         zeroGradient;
+    }
+    electrolyteSides
+    {
+        type         zeroGradient;
+    }
+    cathodeGDLSides
+    {
+        type         zeroGradient;
+    }
+    cathodeSides
+    {
+        type         zeroGradient;
+    }
+    cathodeInlet
     {
         type         fixedValue;
         //value        uniform 0.432;
         value        uniform 1e-15;    //disallow outward diffusion at inlet
                                        // value 0 causes harmonic averaging FPE
     }
-    fuelOutlet
+    cathodeOutlet
     {
         type         zeroGradient;
     }
@@ -80,22 +80,22 @@ boundaryField
         type         zeroGradient;
     }
 
-    airInletSides
+    anodeInletSides
     {
         type            zeroGradient;
     }
 
-    airOutletSides
+    anodeOutletSides
     {
         type            zeroGradient;
     }
 
-    fuelInletSides
+    cathodeInletSides
     {
         type            zeroGradient;
     }
 
-    fuelOutletSides
+    cathodeOutletSides
     {
         type            zeroGradient;
     }

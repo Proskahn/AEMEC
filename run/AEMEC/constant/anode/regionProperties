@@ -1,0 +1,264 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by the original author
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      phaseProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+type          interfaceCompositionPhaseChangeTwoPhaseSystem;
+//type          basicTwoPhaseSystem;
+
+phases (oxygen water);
+
+LTS
+{
+    maxCo               0.5;
+    maxAlphaCo          5;
+
+    rDeltaTSmoothingCoeff 0.05;
+    rDeltaTDampingCoeff 0.5;
+    nAlphaSpreadIter    0;
+    nAlphaSweepIter     0;
+    maxDeltaT           1;
+}
+
+oxygen{
+    type            reactingPhaseModel;
+    diameterModel   isothermal;
+    isothermalCoeffs
+    {
+        d0              5e-4;
+        p0              1e5;
+    }
+
+    residualAlpha   1e-6;
+}
+
+water
+{
+    type            purePhaseModel;
+    diameterModel constant;
+    constantCoeffs
+    {
+        d               1e-4;
+    }
+
+    residualAlpha   1e-6;
+}
+
+blending
+{
+    default
+    {
+        type            linear;
+        minFullyContinuousAlpha.oxygen 0.7;
+        minPartlyContinuousAlpha.oxygen 0.3;
+        minFullyContinuousAlpha.water 0.7;
+        minPartlyContinuousAlpha.water 0.3;
+    }
+
+    heatTransfer
+    {
+        type            linear;
+        minFullyContinuousAlpha.oxygen 1;
+        minPartlyContinuousAlpha.oxygen 0;
+        minFullyContinuousAlpha.water 1;
+        minPartlyContinuousAlpha.water 0;
+    }
+
+    massTransfer
+    {
+        $heatTransfer;
+    }
+}
+
+surfaceTension
+(
+    (oxygen and water)
+    {
+        type            constant;
+        sigma           0.07;
+    }
+);
+
+aspectRatio
+(
+    (oxygen in water)
+    {
+        type            constant;
+        E0              1.0;
+    }
+
+    (water in oxygen)
+    {
+        type            constant;
+        E0              1.0;
+    }
+);
+
+drag
+(
+    (oxygen in water)
+    {
+        type            SchillerNaumann;
+        residualRe      1e-3;
+        swarmCorrection
+        {
+            type        none;
+        }
+    }
+
+    (water in oxygen)
+    {
+        type            SchillerNaumann;
+        residualRe      1e-3;
+        swarmCorrection
+        {
+            type        none;
+        }
+    }
+);
+
+virtualMass
+(
+//     (oxygen in water)
+//     {
+//         type            constantCoefficient;
+//         Cvm             0.5;
+//     }
+//
+//     (water in oxygen)
+//     {
+//         type            constantCoefficient;
+//         Cvm             0.5;
+//     }
+);
+
+interfaceComposition
+(
+    (oxygen in water)
+    {
+        type saturated;
+        species ( H2O );
+        Le 1.0;
+        saturationPressure
+        {
+            type ArdenBuck;
+        }
+    }
+
+//     (water in oxygen)
+//     {
+//         type Henry;
+//         species ( H2O );
+//         k ( 1.492e-2 );
+//         Le 1.0;
+//     }
+);
+
+heatTransfer
+(
+    (oxygen in water)
+    {
+        type spherical;
+        residualAlpha 1e-4;
+    }
+
+    (water in oxygen)
+    {
+        type RanzMarshall;
+        residualAlpha 1e-4;
+    }
+);
+
+
+heatTransfer.oxygen
+(
+    (oxygen in water)
+    {
+        type spherical;
+        residualAlpha 1e-4;
+    }
+
+    (water in oxygen)
+    {
+        type RanzMarshall;
+        residualAlpha 1e-4;
+    }
+);
+
+heatTransfer.water
+(
+    (oxygen in water)
+    {
+        type RanzMarshall;
+        residualAlpha 1e-4;
+    }
+
+    (water in oxygen)
+    {
+        type spherical;
+        residualAlpha 1e-4;
+    }
+);
+
+massTransfer.oxygen
+(
+    (oxygen in water)
+    {
+        type spherical;
+        Le 1.0;
+    }
+
+    (water in oxygen)
+    {
+        type Frossling;
+        Le 1.0;
+    }
+);
+
+massTransfer.water
+(
+    (oxygen in water)
+    {
+        type Frossling;
+        Le 1.0;
+    }
+
+    (water in oxygen)
+    {
+        type spherical;
+        Le 1.0;
+    }
+);
+
+phaseTransfer
+(
+);
+
+lift
+(
+);
+
+wallLubrication
+(
+);
+
+turbulentDispersion
+(
+);
+
+// Minimum allowable pressure
+pMin            10000;
+
+// ************************************************************************* //

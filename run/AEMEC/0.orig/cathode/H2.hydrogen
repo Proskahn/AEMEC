@@ -1,0 +1,75 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by the original author
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+    class           volScalarField;
+    object          yH2;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+dimensions      [0 0 0 0 0 0 0];
+
+// Begin water-fed operation with little gas-phase hydrogen; hydrogen is
+// generated electrochemically in cathodeCL.
+internalField   uniform 0.01;
+
+
+boundaryField
+{
+    cathodeInlet
+    {
+        type            fixedValue;
+        value           $internalField;
+    }
+
+    cathodeOutlet
+    {
+        type            inletOutlet;
+        phi             phi.hydrogen;
+        inletValue      $internalField;
+        value           $internalField;
+    }
+
+    cathodeSides
+    {
+        type            zeroGradient;
+    }
+
+    cathodeInletSides
+    {
+        type            zeroGradient;
+    }
+
+    cathodeOutletSides
+    {
+        type            zeroGradient;
+    }
+
+    cathodeGDLSides
+    {
+        type            zeroGradient;
+    }
+
+    cathode_to_interconnect
+    {
+        type            zeroGradient;
+    }
+
+    cathode_to_electrolyte
+    {
+        type            zeroGradient;
+    }
+}
+
+
+// ************************************************************************* //

@@ -50,7 +50,7 @@ patches
 (
 
     {
-        name phiE_to_phiI0;
+        name phiE_to_phiAnion0;
 
         // Dictionary to construct new patch from
         patchInfo
@@ -62,11 +62,11 @@ patches
         constructFrom set;
 
         // If constructFrom = set : name of faceSet
-        set phiE_to_phiI0;
+        set phiE_to_phiAnion0;
     }
-    
+
     {
-        name phiE_to_phiI1;
+        name phiE_to_phiAnion1;
 
         // Dictionary to construct new patch from
         patchInfo
@@ -78,7 +78,7 @@ patches
         constructFrom set;
 
         // If constructFrom = set : name of faceSet
-        set phiE_to_phiI1;
+        set phiE_to_phiAnion1;
     }
 );
 

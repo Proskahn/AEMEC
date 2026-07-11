@@ -24,7 +24,10 @@ from typing import Iterable, Sequence
 from optimization_lib import ObjectiveResult, OptimizationError
 
 
-OBJECTIVE_SCHEMA_VERSION = 2
+# Version 3 records the cathode-to-anode crossover definition used by the
+# renamed cathode-fed AEM case.  It must not resume legacy fuel-cell-labelled
+# studies whose crossover direction was the reverse.
+OBJECTIVE_SCHEMA_VERSION = 3
 DEFAULT_TARGET_CURRENT_DENSITY_A_M2 = 10_000.0
 DEFAULT_CURRENT_RELATIVE_TOLERANCE = 0.05
 DEFAULT_TARGET_HOLD_DURATION_S = 30.0
@@ -307,7 +310,8 @@ def _replace_control_scalar(path: Path, keyword: str, value: float, required: bo
 def configure_target_hold(case_path: Path, config: AemecEvaluationConfig) -> TargetHold:
     """Configure either a direct-target fast run or the original ramped run."""
     config.validate()
-    region_path = case_path / "constant/phiEC/regionProperties"
+    # Galvanostatic control is applied at the physical oxygen/anode collector.
+    region_path = case_path / "constant/phiEAnode/regionProperties"
     text = region_path.read_text(encoding="utf-8")
     gs_start, gs_end = _named_block_span(text, "galvanostatic")
     ibar_start_rel, ibar_end_rel = _named_block_span(text[gs_start:gs_end], "ibar")
@@ -545,7 +549,15 @@ def run_command(command: Sequence[str], cwd: Path, log_path: Path, timeout_s: fl
 
 class AemecOpenFoamEvaluator:
     """Evaluate a membrane thickness in a fresh OpenFOAM scratch case."""
-    required_mesh_regions = ("air", "fuel", "electrolyte", "interconnect", "phiEA", "phiEC", "phiI")
+    required_mesh_regions = (
+        "anode",
+        "cathode",
+        "electrolyte",
+        "interconnect",
+        "phiECathode",
+        "phiEAnode",
+        "phiAnion",
+    )
 
     def __init__(self, source_case: Path, work_case: Path, logs_dir: Path, mesh_command: Sequence[str], solver_command: Sequence[str], config: AemecEvaluationConfig, timeout_s: float | None) -> None:
         self.source_case, self.work_case, self.logs_dir = source_case.resolve(), work_case.resolve(), logs_dir.resolve()

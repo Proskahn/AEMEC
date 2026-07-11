@@ -236,7 +236,8 @@ void Foam::regionTypes::electric::solve()
     if (phi_.needReference())
     {
         //- Update the potential field.
-        //- Electro-Neutral, the total electron+proton flux should be zero
+        //- Electro-neutrality: the total electron plus ionic-carrier flux is
+        //- zero.  The carrier can be an anion in an AEM case.
         const scalarField& source = j_;
         const scalarField& volume = this->V();
         scalarField sum = source*volume;

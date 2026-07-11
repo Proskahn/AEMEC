@@ -75,14 +75,15 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
 
     //- Get sub regions
     //- Refer to regionType
-    //- Including: fluid, electron (BPP + GDL + CL), ion (CLs + membrane)
+    //- Including: fluid, electron (BPP + GDL + CL), and anion/legacy-ion
+    //- carrier (CLs + membrane).
     const regionType& fluidPhase = eta_->region
     (
         word(eta_->regions().subDict("fluid").lookup("name"))
     );
-    const regionType& ionPhase = eta_->region
+    const regionType& anionPhase = eta_->region
     (
-        word(eta_->regions().subDict("ion").lookup("name"))
+        word(eta_->regions().subDict(eta_->regions().found("anion") ? "anion" : "ion").lookup("name"))
     );
 
      // Get the phase System
@@ -129,57 +130,59 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
         eta_->j()*Wi*specieStoichCoeff/dimF
     );
 
-    // TODO: A better way to handle the dissolved water transfer.
-
-    //- Dissolved water model
-    dissolvedModel& dW = const_cast<dissolvedModel&>
-    (
-        ionPhase.template
-        lookupObject<dissolvedModel>(dissolvedModel::modelName)
-    );
-
-    //- Water activity and water source/sink
-    scalarField& act = const_cast<volScalarField&>(dW.act());
-    scalarField& dmdt = const_cast<volScalarField&>(dW.dmdt());
-
-    //- Water mole fraction
-    const scalarField& xH2O = phase.X(water);
-
-    //- Activity
-    scalarField act0 =
-        xH2O
-      * this->thermo_.p()
-      / saturation_->pSat(thermo_.T()).ref()
-      + 2.*(scalar(1) - phase.primitiveField());
+    // A PEM/Nafion-style dissolved-water model is optional.  AEM cases may
+    // intentionally omit it and apply the reaction water source directly to
+    // their two-phase fluid model.
+    const bool useDissolvedWater =
+        dissolved_
+     && anionPhase.foundObject<dissolvedModel>(dissolvedModel::modelName);
+    scalarField* dissolvedWaterRate = nullptr;
 
     //- Only consider catalyst zone
     label znId = fluidPhase.cellZones().findZoneID(eta_->zoneName());
     const labelList& cells = fluidPhase.cellZones()[znId];
 
-    //- Update water activity
-    forAll(cells, cellI)
+    if (useDissolvedWater)
     {
-        //- get cell IDs
-        label fluidId = cells[cellI];
-        label ionId = ionPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
+        dissolvedModel& dW = const_cast<dissolvedModel&>
+        (
+            anionPhase.template
+            lookupObject<dissolvedModel>(dissolvedModel::modelName)
+        );
 
-        //- Water activity: act = p(H2O)/pSat + 2*sat
-        act[ionId] = act0[fluidId];
+        scalarField& act = const_cast<volScalarField&>(dW.act());
+        scalarField& dmdt = const_cast<volScalarField&>(dW.dmdt());
+        const scalarField& xH2O = phase.X(water);
+        const scalarField act0 =
+            xH2O
+          * this->thermo_.p()
+          / saturation_->pSat(thermo_.T()).ref()
+          + 2.*(scalar(1) - phase.primitiveField());
+
+        forAll(cells, cellI)
+        {
+            const label fluidId = cells[cellI];
+            const label anionId =
+                anionPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
+            act[anionId] = act0[fluidId];
+        }
+
+        dW.update(eta_->zoneName());
+        dissolvedWaterRate = &dmdt;
     }
-
-    //- Update the source/sink term dmdt
-    dW.update(eta_->zoneName());
 
     //- Update the water production in phase model
     forAll(cells, cellI)
     {
         //- get cell IDs
         label fluidId = cells[cellI];
-        label ionId = ionPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
+        label anionId = anionPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
 
-        if (dissolved_)
+        scalar dissolvedMassRate = 0.0;
+        if (dissolvedWaterRate)
         {
-            dmdt[ionId] += wSpecie[fluidId]/Wi.value();
+            (*dissolvedWaterRate)[anionId] += wSpecie[fluidId]/Wi.value();
+            dissolvedMassRate = (*dissolvedWaterRate)[anionId]*Wi.value();
         }
 
         if (phaseSys.isSinglePhase() || !eta_->phaseChange())
@@ -188,7 +191,7 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
             volScalarField& iDmdtWater = const_cast<volScalarField&>
                 (phase.iDmdt(water));
 
-            iDmdtWater[fluidId] = wSpecie[fluidId] - dmdt[ionId]*Wi.value();
+            iDmdtWater[fluidId] = wSpecie[fluidId] - dissolvedMassRate;
         }
         else
         {
@@ -203,7 +206,7 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
             scalarField& iDmdtWater = const_cast<volScalarField&>
                 (phaseSys.phases()[name1].iDmdt(water));
 
-            iDmdtWater[fluidId] = wSpecie[fluidId] - dmdt[ionId]*Wi.value();
+            iDmdtWater[fluidId] = wSpecie[fluidId] - dissolvedMassRate;
         }
     }
 }

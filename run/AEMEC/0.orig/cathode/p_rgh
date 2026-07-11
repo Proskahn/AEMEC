@@ -1,0 +1,85 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by the original author
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
+    class           volScalarField;
+    object          p;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+dimensions      [1 -1 -2 0 0 0 0];
+
+internalField   uniform 101325;
+
+boundaryField
+{
+
+    cathodeInlet
+    {
+        type               zeroGradient;
+        value              $internalField;
+    }
+
+    cathodeOutlet
+    {
+        type               prghPressure;
+        p                  $internalField;
+        p0                 $internalField;
+        value              $internalField;
+    }
+
+    cathodeSides
+    {
+        type               zeroGradient;
+        value              $internalField;
+    }
+
+    cathodeInletSides
+    {
+        type               zeroGradient;
+        value              $internalField;
+    }
+
+    cathodeOutletSides
+    {
+        type               zeroGradient;
+        value              $internalField;
+    }
+
+    cathodeGDLSides
+    {
+        type               zeroGradient;
+        value              $internalField;
+    }
+
+    cathode_to_interconnect
+    {
+        type               zeroGradient;
+        value              $internalField;
+    }
+
+    cathode_to_electrolyte //anodeGDL
+    {
+        type               zeroGradient;
+        value              $internalField;
+    }
+}
+
+
+// ************************************************************************* //

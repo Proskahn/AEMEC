@@ -16,9 +16,9 @@ FoamFile
 
 regions
 (
-    fluid (air fuel)
+    fluid (anode cathode)
     solid (electrolyte interconnect)
-    electric (phiEA phiEC phiI)
+    electric (phiECathode phiEAnode phiAnion)
 );
 
 // ************************************************************************* //

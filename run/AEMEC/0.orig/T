@@ -30,26 +30,26 @@ boundaryField
     {
         type            zeroGradient;
     }
-    airInlet
+    anodeInlet
     {
         type            fixedValue;
         value           $internalField;
     }
-    airOutlet
+    anodeOutlet
     {
         type            zeroGradient;
         inletValue      $internalField;
         value           $internalField;
     }
-    airSides
+    anodeSides
     {
         type            zeroGradient;
     }
-    cathodeSides
+    anodeSides
     {
         type            zeroGradient;
     }
-    cflSides
+    anodeGDLSides
     {
         type            zeroGradient;
     }
@@ -57,26 +57,26 @@ boundaryField
     {
         type            zeroGradient;
     }
-    aflSides
-    {
-        type            zeroGradient;
-    } 
-    anodeSides
+    cathodeGDLSides
     {
         type            zeroGradient;
     }
-    fuelInlet
+    cathodeSides
+    {
+        type            zeroGradient;
+    }
+    cathodeInlet
     {
         type            fixedValue;
         value           $internalField;
     }
-    fuelOutlet
+    cathodeOutlet
     {
         type		zeroGradient;
         inletValue      $internalField;
         value           $internalField;
     }
-    fuelSides
+    cathodeSides
     {
         type            zeroGradient;
     }
@@ -90,22 +90,22 @@ boundaryField
         type            zeroGradient;
     }
 
-    airInletSides
+    anodeInletSides
     {
         type            zeroGradient;
     }
 
-    airOutletSides
+    anodeOutletSides
     {
         type            zeroGradient;
     }
 
-    fuelInletSides
+    cathodeInletSides
     {
         type            zeroGradient;
     }
 
-    fuelOutletSides
+    cathodeOutletSides
     {
         type            zeroGradient;
     }

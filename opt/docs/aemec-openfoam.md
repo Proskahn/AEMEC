@@ -29,9 +29,9 @@ configured `sinkZone`.
 `--run-mode fast` is the default. It applies the target from the first outer
 iteration, uses 250 outer coupling iterations by default, and writes fields
 only at the final iteration. This reduces solver-loop work versus the legacy
-roughly 801-iteration ramp, while retaining the air-region local-time-stepping
+roughly 801-iteration ramp, while retaining the fluid-region local-time-stepping
 configuration. `--iteration-clock-step` controls only the current-table and
-outer-loop clock; it is not the air-region physical/local pseudo-time step.
+outer-loop clock; it is not the fluid-region physical/local pseudo-time step.
 
 Use `--run-mode ramp` when validating the shortcut or when fast mode does not
 meet the stability checks. It retains the source current steps before 1 A/cm2,

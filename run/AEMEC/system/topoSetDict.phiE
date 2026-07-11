@@ -18,7 +18,7 @@ FoamFile
 actions
 (
     {
-        name    phiEC;
+        name    phiEAnode;
         type    cellZoneSet;
         action  new;
         source  setToCellZone;
@@ -28,37 +28,37 @@ actions
         }
     }
     {
-        name    phiEC;
+        name    phiEAnode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set cathode;
+            set anodeGDL;
         }
     }
     {
-        name    phiEC;
+        name    phiEAnode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set cmpl;
+            set anodeMPL;
         }
     }
     {
-        name    phiEC;
+        name    phiEAnode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set ccl;
+            set anodeCL;
         }
     }
     {
-        name    phiEC;
+        name    phiEAnode;
         type    cellZoneSet;
         action  delete;
         source  boxToCell;
@@ -69,7 +69,7 @@ actions
     }
 
     {
-        name    phiEA;
+        name    phiECathode;
         type    cellZoneSet;
         action  new;
         source  setToCellZone;
@@ -79,37 +79,37 @@ actions
         }
     }
     {
-        name    phiEA;
+        name    phiECathode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set anode;
+            set cathodeGDL;
         }
     }
     {
-        name    phiEA;
+        name    phiECathode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set ampl;
+            set cathodeMPL;
         }
     }
     {
-        name    phiEA;
+        name    phiECathode;
         type    cellZoneSet;
         action  add;
         source  setToCellZone;
         sourceInfo
         {
-            set acl;
+            set cathodeCL;
         }
     }
     {
-        name    phiEA;
+        name    phiECathode;
         type    cellZoneSet;
         action  delete;
         source  boxToCell;
@@ -136,7 +136,7 @@ actions
         source  zoneToCell;
         sourceInfo
         {
-            zone  phiEC;
+            zone  phiEAnode;
         }
     }
     {
@@ -146,7 +146,7 @@ actions
         source  zoneToCell;
         sourceInfo
         {
-            zone  phiEA;
+            zone  phiECathode;
         }
     }
 );

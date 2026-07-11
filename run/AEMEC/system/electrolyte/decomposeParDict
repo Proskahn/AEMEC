@@ -16,7 +16,7 @@ FoamFile
 
 numberOfSubdomains 4;		//numberOfSubdomains= nx*ny*nz
 
-method              manual;	
+method              manual;
 
 simpleCoeffs
 {
@@ -33,7 +33,7 @@ hierarchicalCoeffs
 
 metisCoeffs
 {
-    processorWeights 
+    processorWeights
     (
         1
         1
@@ -47,7 +47,7 @@ manualCoeffs
 
 distributed     no;
 
-roots           
+roots
 (
 );
 

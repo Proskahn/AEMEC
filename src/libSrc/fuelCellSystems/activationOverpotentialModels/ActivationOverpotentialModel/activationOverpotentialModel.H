@@ -99,7 +99,7 @@ protected:
 
         // phi names for electric field
         // electron: phi
-        // ion: phi
+        // anion (or legacy ion): phi
         HashTable<word> phiNames_;
 
         // Properties

@@ -1,0 +1,70 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by the original author
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+    class           dictionary;
+    object          cellProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//- Add information here
+
+sigma
+{
+    bpp
+    {
+        sigmaModel      constantSigma;
+
+        constantSigmaCoeffs
+        {
+            cellZone    bpp;
+            sigma       20000;
+        }
+    }
+
+    cathodeCL
+    {
+        sigmaModel      porousSigma;
+
+        porousSigmaCoeffs
+        {
+            cellZone        cathodeCL;
+            catalyst        no;
+            porosity        0.3;
+            sigma           5000;
+        }
+    }
+
+    cathodeMPL
+    {
+        sigmaModel      porousSigma;
+
+        porousSigmaCoeffs
+        {
+            cellZone        cathodeMPL;
+            catalyst        no;
+            porosity        0.4;
+            sigma           8000;
+        }
+    }
+
+    cathodeGDL
+    {
+        sigmaModel      porousSigma;
+
+        porousSigmaCoeffs
+        {
+            cellZone        cathodeGDL;
+            catalyst        no;
+            porosity        0.7;
+            sigma           8000;
+        }
+    }
+}

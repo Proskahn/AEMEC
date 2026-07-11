@@ -1,0 +1,64 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by the original author
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+actions
+(
+    {
+        name    cathodeGDL;
+        type    cellZoneSet;
+        action  new;
+        source  masterRegionToCell;
+        sourceInfo
+        {
+            name cathodeGDL;
+        }
+    }
+
+    {
+        name    cathodeMPL;
+        type    cellZoneSet;
+        action  new;
+        source  masterRegionToCell;
+        sourceInfo
+        {
+            name cathodeMPL;
+        }
+    }
+
+    {
+        name    cathodeCL;
+        type    cellZoneSet;
+        action  new;
+        source  masterRegionToCell;
+        sourceInfo
+        {
+            name cathodeCL;
+        }
+    }
+
+    {
+        name    bpp;
+        type    cellZoneSet;
+        action  new;
+        source  masterRegionToCell;
+        sourceInfo
+        {
+            name interconnect;
+        }
+    }
+);
+// ************************************************************************* //

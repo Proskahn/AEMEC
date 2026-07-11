@@ -56,7 +56,8 @@ void Foam::activationOverpotentialModels::ChangJaffe<Thermo>::correct()
 
     //- Get sub regions
     //- Refer to regionType
-    //- Including: fluid, electron (BPP + GDL + CL), ion (CLs + membrane)
+    //- Including: fluid, electron (BPP + GDL + CL), anion/legacy-ion carrier
+    //- (CLs + membrane)
     const regionType& fluidPhase = this->region
     (
         word(this->regions_.subDict("fluid").lookup("name"))
@@ -65,19 +66,19 @@ void Foam::activationOverpotentialModels::ChangJaffe<Thermo>::correct()
     (
         word(this->regions_.subDict("electron").lookup("name"))
     );
-    const regionType& ionPhase = this->region
+    const regionType& anionPhase = this->region
     (
-        word(this->regions_.subDict("ion").lookup("name"))
+        word(this->regions_.subDict(this->regions_.found("anion") ? "anion" : "ion").lookup("name"))
     );
 
-    //- Source/sink terms for electron and ion fields
+    //- Source/sink terms for electron and anion fields
     scalarField& SE = const_cast<volScalarField&>
     (
         electronPhase.template lookupObject<volScalarField>(this->jName)
     );
     scalarField& SI = const_cast<volScalarField&>
     (
-        ionPhase.template lookupObject<volScalarField>(this->jName)
+        anionPhase.template lookupObject<volScalarField>(this->jName)
     );
 
     //- Potential fields
@@ -86,7 +87,7 @@ void Foam::activationOverpotentialModels::ChangJaffe<Thermo>::correct()
         (
             this->phiName
         );
-    const scalarField& phiI = ionPhase.template
+    const scalarField& phiAnion = anionPhase.template
         lookupObject<volScalarField>
         (
             this->phiName
@@ -149,13 +150,13 @@ void Foam::activationOverpotentialModels::ChangJaffe<Thermo>::correct()
         //- get cell IDs
         label fluidId = cells[cellI];
         label electronId = electronPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
-        label ionId = ionPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
+        label anionId = anionPhase.cellMap()[fluidPhase.cellMapIO()[fluidId]];
 
         //- activation overpotential
         eta[fluidId] = 
         (
             eta[fluidId]*(scalar(1) - relax)
-          + (phiE[electronId] - phiI[ionId] - nernst[fluidId])
+          + (phiE[electronId] - phiAnion[anionId] - nernst[fluidId])
           * relax
         );
 
@@ -174,7 +175,7 @@ void Foam::activationOverpotentialModels::ChangJaffe<Thermo>::correct()
         //- anode side: SE = Rj, SI = -Rj
         //- cathode side: SE = -Rj, SI = Rj
         SE[electronId] = -sign*j[fluidId];
-        SI[ionId] = -SE[electronId];
+        SI[anionId] = -SE[electronId];
 
         Rj += fluidPhase.V()[fluidId] * j[fluidId];
     }
