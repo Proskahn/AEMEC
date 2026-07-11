@@ -55,6 +55,20 @@ class Sample:
     def current_density_a_cm2(self) -> float:
         return self.current_density_a_m2 / 1.0e4
 
+    @property
+    def target_current_error_a_m2(self) -> float | None:
+        if self.target_current_density_a_m2 is None:
+            return None
+        return self.current_density_a_m2 - self.target_current_density_a_m2
+
+    @property
+    def target_current_error_relative(self) -> float | None:
+        if self.target_current_density_a_m2 in (None, 0.0):
+            return None
+        return abs(
+            self.target_current_error_a_m2 / self.target_current_density_a_m2
+        )
+
 
 def parse_log(log_path: Path, active_area_cm2: float) -> list[Sample]:
     """Return boundary-current samples, or legacy ``ibar`` samples as fallback.
@@ -141,8 +155,39 @@ def last_sample_per_target_current(
 
     return sorted(
         by_target.values(),
-        key=lambda sample: abs(sample.current_density_a_m2),
+        key=lambda sample: abs(sample.target_current_density_a_m2 or 0.0),
     )
+
+
+def split_target_convergence(
+    samples: list[Sample],
+    relative_tolerance: float,
+    zero_target_absolute_tolerance_a_m2: float,
+) -> tuple[list[Sample], list[Sample]]:
+    """Split samples by agreement between actual and commanded current.
+
+    A point is only a polarization-curve point once the post-solve boundary
+    current has reached the current requested by the galvanostatic controller.
+    Untargeted legacy samples are retained because no comparison is possible.
+    """
+    on_target: list[Sample] = []
+    off_target: list[Sample] = []
+
+    for sample in samples:
+        target = sample.target_current_density_a_m2
+        if target is None:
+            on_target.append(sample)
+            continue
+
+        error = abs(sample.current_density_a_m2 - target)
+        tolerance = (
+            zero_target_absolute_tolerance_a_m2
+            if target == 0.0
+            else abs(target) * relative_tolerance
+        )
+        (on_target if error <= tolerance else off_target).append(sample)
+
+    return on_target, off_target
 
 
 def last_sample_per_hold(
@@ -173,6 +218,8 @@ def write_csv(samples: list[Sample], output_path: Path) -> None:
                 "current_density_a_m2",
                 "current_density_a_cm2",
                 "target_current_density_a_m2",
+                "target_current_error_a_m2",
+                "target_current_error_relative",
                 "source",
             ]
         )
@@ -187,6 +234,12 @@ def write_csv(samples: list[Sample], output_path: Path) -> None:
                     ""
                     if sample.target_current_density_a_m2 is None
                     else sample.target_current_density_a_m2,
+                    ""
+                    if sample.target_current_error_a_m2 is None
+                    else sample.target_current_error_a_m2,
+                    ""
+                    if sample.target_current_error_relative is None
+                    else sample.target_current_error_relative,
                     sample.source,
                 ]
             )
@@ -247,6 +300,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Plot every parsed post-solve sample instead of one per scan point.",
     )
     parser.add_argument(
+        "--include-off-target",
+        action="store_true",
+        help="Include points whose actual current has not reached its target.",
+    )
+    parser.add_argument(
         "--scan-mode",
         choices=("current", "voltage"),
         default="current",
@@ -275,6 +333,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=3,
         help="Decimal places used when grouping galvanostatic targets in A/m2.",
     )
+    parser.add_argument(
+        "--target-relative-tolerance",
+        type=float,
+        default=0.05,
+        help="Maximum relative actual-vs-target current error (default: 0.05).",
+    )
+    parser.add_argument(
+        "--zero-target-absolute-tolerance-a-m2",
+        type=float,
+        default=100.0,
+        help="Maximum |current density| for a zero-current point (default: 100 A/m2).",
+    )
     return parser
 
 
@@ -297,6 +367,10 @@ def main() -> None:
         raise SystemExit("--active-area-cm2 must be greater than zero")
     if args.current_precision < 0:
         raise SystemExit("--current-precision cannot be negative")
+    if not 0 <= args.target_relative_tolerance < 1:
+        raise SystemExit("--target-relative-tolerance must be in [0, 1)")
+    if args.zero_target_absolute_tolerance_a_m2 < 0:
+        raise SystemExit("--zero-target-absolute-tolerance-a-m2 cannot be negative")
 
     if args.all_samples:
         curve_samples = samples
@@ -310,6 +384,19 @@ def main() -> None:
     else:
         curve_samples = last_sample_per_voltage(samples, args.voltage_precision)
 
+    accepted_samples, rejected_samples = split_target_convergence(
+        curve_samples,
+        args.target_relative_tolerance,
+        args.zero_target_absolute_tolerance_a_m2,
+    )
+    if rejected_samples and not args.include_off_target:
+        curve_samples = accepted_samples
+    if not curve_samples:
+        raise SystemExit(
+            "No on-target samples remain. Increase the scan hold duration or use "
+            "--include-off-target to inspect the raw controller response."
+        )
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     write_csv(curve_samples, csv_path)
@@ -317,6 +404,11 @@ def main() -> None:
 
     print(f"Parsed samples: {len(samples)}")
     print(f"Plotted samples: {len(curve_samples)}")
+    if rejected_samples:
+        print(
+            f"Off-target samples: {len(rejected_samples)} "
+            f"({'included' if args.include_off_target else 'excluded'})"
+        )
     print(f"Wrote plot: {output_path}")
     print(f"Wrote data: {csv_path}")
 
