@@ -76,11 +76,18 @@ def check_static(case: Path, errors: list[str]) -> None:
             if not has_dictionary_block(text, patch):
                 errors.append(f"{relative_path} is missing boundary entry '{patch}'")
 
-    for field_name in ("cH2", "lambda", "phi"):
+    for field_name in ("cH2", "phi"):
         relative_path = f"0.orig/phiAnion/{field_name}"
         text = read(case / relative_path, errors)
         if not has_entry(text, "object", field_name):
             errors.append(f"{relative_path} must declare 'object {field_name};'")
+
+    anion_properties = read(case / "constant/phiAnion/regionProperties", errors)
+    if "lambdaSigma" in anion_properties or "lambdaName" in anion_properties:
+        errors.append("constant/phiAnion/regionProperties must not use the PEM hydration-based lambdaSigma model")
+    for zone, conductivity in (("anodeCL", "1.10"), ("cathodeCL", "1.10"), ("membrane", "11.4")):
+        if not has_dictionary_block(anion_properties, zone) or f"sigma               {conductivity};" not in anion_properties:
+            errors.append(f"constant/phiAnion/regionProperties is missing effective conductivity {conductivity} for '{zone}'")
 
     for field in sorted((case / "0.orig").rglob("*")):
         if not field.is_file():

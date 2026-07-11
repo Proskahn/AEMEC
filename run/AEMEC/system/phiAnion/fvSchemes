@@ -30,7 +30,6 @@ gradSchemes
 divSchemes
 {
     default         none;
-    div(D,lambda)	Gauss upwind;
     div(phiH2Drag,cH2) Gauss upwind;
 }
 
@@ -38,7 +37,6 @@ laplacianSchemes
 {
     default                none;
     laplacian(sigma,phi)        Gauss harmonic corrected;
-    laplacian(diff,lambda)     Gauss linear corrected;
     laplacian(DH2Eff,cH2)      Gauss linear corrected;
 }
 

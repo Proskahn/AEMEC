@@ -27,14 +27,6 @@ solvers
         maxIter          100;
     }
 
-    lambda
-    {
-        solver           PBiCGStab;
-        preconditioner   DILU;
-        tolerance        1e-11;
-        relTol           0;
-    }
-
     cH2
     {
         solver           PBiCGStab;
@@ -63,7 +55,6 @@ PISO
 
 relaxationFactors
 {
-//    lambda               0.8;
 //    phi                 0.8;
 }
 

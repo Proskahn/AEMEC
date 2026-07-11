@@ -31,8 +31,11 @@ anodeCL:    2 OH- → 1/2 O2 + H2O + 2 e-
 solver's generic ionic-potential formulation with an `anion` dictionary key;
 it does **not** solve an OH- concentration field. Calibrate the membrane
 conductivity and add explicit hydroxide/water transport before using results
-for quantitative design decisions. The inherited Nafion dissolved-water model
-is disabled for this case.
+for quantitative design decisions. Its initial effective conductivities are
+11.4 for the membrane and 1.10 for each porous catalyst layer; they reproduce
+the former initialization at 313.15 K and are not an AEM-material calibration.
+The inherited Nafion dissolved-water and hydration (`lambda`) models are
+disabled for this case.
 
 Hydrogen crossover is defined from `cathodeCL` to `anodeCL`. Validate the
 diffusion/drag parameters and mass balance at a reference thickness before
