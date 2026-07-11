@@ -42,7 +42,10 @@ def read(path: Path, errors: list[str]) -> str:
 
 
 def has_dictionary_block(text: str, name: str) -> bool:
-    return re.search(rf"(?m)^\s*{re.escape(name)}\s*\{{", text) is not None
+    return re.search(
+        rf"(?m)^[ \t]*{re.escape(name)}(?:[ \t]*//[^\n]*)?[ \t]*(?:\n[ \t]*)?\{{",
+        text,
+    ) is not None
 
 
 def has_entry(text: str, keyword: str, value: str) -> bool:
