@@ -76,6 +76,12 @@ def check_static(case: Path, errors: list[str]) -> None:
             if not has_dictionary_block(text, patch):
                 errors.append(f"{relative_path} is missing boundary entry '{patch}'")
 
+    for field_name in ("cH2", "lambda", "phi"):
+        relative_path = f"0.orig/phiAnion/{field_name}"
+        text = read(case / relative_path, errors)
+        if not has_entry(text, "object", field_name):
+            errors.append(f"{relative_path} must declare 'object {field_name};'")
+
     for field in sorted((case / "0.orig").rglob("*")):
         if not field.is_file():
             continue
