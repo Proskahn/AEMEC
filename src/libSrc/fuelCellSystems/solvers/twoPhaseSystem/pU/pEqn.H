@@ -324,10 +324,15 @@ while (pimple_.correct())
                     phiHbyA2 + alpharAUf2*mSfGradp
                 );
 
+                const surfaceScalarField dragDenominator
+                (
+                    max(1 - phiKd1*phiKd2, scalar(1e-8))
+                );
+
                 surfaceScalarField phir
                 (
                     ((phi1s + phiKd1*phi2s) - (phi2s + phiKd2*phi1s))
-                   /(1 - phiKd1*phiKd2)
+                   /dragDenominator
                 );
 
                 phi1 = phi_ + alphaf2*phir;
@@ -368,9 +373,14 @@ while (pimple_.correct())
                     alpha1*(Us1 + rAUKd1*U2) + alpha2*(Us2 + rAUKd2*U1)
                 );
 
+                const volScalarField dragDenominator
+                (
+                    max(1 - rAUKd1*rAUKd2, scalar(1e-8))
+                );
+
                 const volVectorField Ur
                 (
-                    ((1 - rAUKd2)*Us1 - (1 - rAUKd1)*Us2)/(1 - rAUKd1*rAUKd2)
+                    ((1 - rAUKd2)*Us1 - (1 - rAUKd1)*Us2)/dragDenominator
                 );
 
                 U1 = U + alpha2*Ur;

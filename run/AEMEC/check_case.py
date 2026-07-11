@@ -97,6 +97,11 @@ def check_static(case: Path, errors: list[str]) -> None:
         if not has_dictionary_block(anion_properties, zone) or f"sigma               {conductivity};" not in anion_properties:
             errors.append(f"constant/phiAnion/regionProperties is missing effective conductivity {conductivity} for '{zone}'")
 
+    for relative_path in ("constant/anode/combustionProperties.oxygen", "constant/cathode/combustionProperties"):
+        text = read(case / relative_path, errors)
+        if "jMax            5.0e8;" not in text or "exponentLimit   50;" not in text:
+            errors.append(f"{relative_path} must define the proof-of-concept Butler-Volmer current bound")
+
     for field in sorted((case / "0.orig").rglob("*")):
         if not field.is_file():
             continue
@@ -157,6 +162,18 @@ def check_generated_mesh(case: Path, errors: list[str]) -> None:
                     errors.append(
                         f"initial field {field.relative_to(case)} is missing boundary entry '{patch}'"
                     )
+
+    for gas, liquid, region in (("oxygen", "water", "anode"), ("hydrogen", "water", "cathode")):
+        gas_field = read(case / f"0/{region}/alpha.{gas}", errors)
+        liquid_field = read(case / f"0/{region}/alpha.{liquid}", errors)
+        if "internalField   uniform 1e-4;" not in gas_field:
+            errors.append(
+                f"generated 0/{region}/alpha.{gas} is stale; run 'make mesh' to apply the nonzero gas seed"
+            )
+        if "internalField   uniform 0.9999;" not in liquid_field:
+            errors.append(
+                f"generated 0/{region}/alpha.{liquid} is stale; run 'make mesh' to apply the complementary liquid fraction"
+            )
 
 
 def main() -> int:

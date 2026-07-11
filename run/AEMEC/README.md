@@ -37,6 +37,11 @@ the former initialization at 313.15 K and are not an AEM-material calibration.
 The inherited Nafion dissolved-water and hydration (`lambda`) models are
 disabled for this case.
 
+For the proof-of-concept run, both Butler–Volmer dictionaries use a numerical
+`jMax = 5e8 A/m3` ceiling and a bounded exponential argument. These settings
+prevent an uncalibrated initial potential from destabilizing the flow solver;
+replace them with validated kinetic parameters before quantitative use.
+
 Hydrogen crossover is defined from `cathodeCL` to `anodeCL`. Validate the
 diffusion/drag parameters and mass balance at a reference thickness before
 running an optimization.

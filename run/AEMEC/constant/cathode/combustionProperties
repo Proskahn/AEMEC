@@ -69,6 +69,10 @@ activationOverpotentialModel
     );
 
     j0              1.0e8;
+    // Numerical bound for this proof-of-concept case [A/m3].  It prevents an
+    // uncalibrated initial overpotential from overflowing the flow solve.
+    jMax            5.0e8;
+    exponentLimit   50;
     relax           0.5;
     alpha           0.5;
     gamma           0;

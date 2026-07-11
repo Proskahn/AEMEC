@@ -142,6 +142,12 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
 
     //- The total current: volume averaged
     scalar Rj(0.0);
+    const scalar exponentLimit = this->dict_.lookupOrDefault<scalar>
+    (
+        "exponentLimit",
+        50.0
+    );
+    const scalar jMax = this->dict_.lookupOrDefault<scalar>("jMax", GREAT);
 
     forAll(cells, cellI)
     {
@@ -159,31 +165,45 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
         );
 
         //- Buttler-volmer relation
-        j[fluidId] = Foam::max
+        const scalar forwardExponent = Foam::max
         (
+            -exponentLimit,
+            Foam::min
+            (
+                exponentLimit,
+                n*this->alpha_
+               *constant::physicoChemical::F.value()
+               *eta[fluidId]
+               /constant::physicoChemical::R.value()
+               /T[fluidId]
+            )
+        );
+        const scalar reverseExponent = Foam::max
+        (
+            -exponentLimit,
+            Foam::min
+            (
+                exponentLimit,
+               -n*(scalar(1) - this->alpha_)
+               *constant::physicoChemical::F.value()
+               *eta[fluidId]
+               /constant::physicoChemical::R.value()
+               /T[fluidId]
+            )
+        );
+
+        const scalar jUnbounded =
             this->j0_.value()*
             coeff[fluidId]*
             Foam::pow(s[fluidId], this->gamma_)*
             (
-                Foam::exp
-                (
-                    n*this->alpha_
-                   *constant::physicoChemical::F.value()
-                   *eta[fluidId]
-                   /constant::physicoChemical::R.value()
-                   /T[fluidId]
-                )
-              - Foam::exp
-                (
-                   -n*(scalar(1) - this->alpha_)
-                   *constant::physicoChemical::F.value()
-                   *eta[fluidId]
-                   /constant::physicoChemical::R.value()
-                   /T[fluidId]
-                )
-            )
-            ,
-            scalar(0)
+                Foam::exp(forwardExponent) - Foam::exp(reverseExponent)
+            );
+
+        j[fluidId] = Foam::min
+        (
+            jMax,
+            Foam::max(jUnbounded, scalar(0))
         );
 
         //- anode side: SE = Rj, SI = -Rj
