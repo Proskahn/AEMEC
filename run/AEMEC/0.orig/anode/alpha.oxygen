@@ -18,21 +18,23 @@ FoamFile
 
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 0;
+// Keep a trace gas phase so two-phase mixture properties remain defined at
+// startup; electrolysis-generated oxygen subsequently evolves from this seed.
+internalField   uniform 1e-4;
 
 boundaryField
 {
     anodeInlet
     {
         type            fixedValue;
-        value           uniform 0;
+        value           uniform 1e-4;
     }
     anodeOutlet
     {
         type            inletOutlet;
         phi             phi.oxygen;
-        inletValue      uniform 0;
-        value           uniform 0;
+        inletValue      uniform 1e-4;
+        value           uniform 1e-4;
     }
     anodeSides
     {

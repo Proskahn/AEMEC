@@ -76,6 +76,14 @@ def check_static(case: Path, errors: list[str]) -> None:
             if not has_dictionary_block(text, patch):
                 errors.append(f"{relative_path} is missing boundary entry '{patch}'")
 
+    for gas, liquid, region in (("oxygen", "water", "anode"), ("hydrogen", "water", "cathode")):
+        gas_field = read(case / f"0.orig/{region}/alpha.{gas}", errors)
+        liquid_field = read(case / f"0.orig/{region}/alpha.{liquid}", errors)
+        if "internalField   uniform 1e-4;" not in gas_field:
+            errors.append(f"0.orig/{region}/alpha.{gas} must start with a nonzero 1e-4 gas fraction")
+        if "internalField   uniform 0.9999;" not in liquid_field:
+            errors.append(f"0.orig/{region}/alpha.{liquid} must complement the gas fraction at startup")
+
     for field_name in ("cH2", "phi"):
         relative_path = f"0.orig/phiAnion/{field_name}"
         text = read(case / relative_path, errors)

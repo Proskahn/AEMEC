@@ -18,34 +18,34 @@ FoamFile
 
 dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 1;
+internalField   uniform 0.9999;
 
 boundaryField
 {
     anodeInlet
     {
         type            calculated;
-        value           uniform 0.9;
+        value           uniform 0.9999;
     }
     anodeOutlet
     {
         type            calculated;
-        value           uniform 0.9;
+        value           uniform 0.9999;
     }
     anodeSides
     {
         type            calculated;
-        value           uniform 0.3;
+        value           uniform 0.9999;
     }
     anode_to_interconnect
     {
         type            calculated;
-        value           uniform 0.9;
+        value           uniform 0.9999;
     }
     anode_to_electrolyte
     {
         type            calculated;
-        value           uniform 0.3;
+        value           uniform 0.9999;
     }
 }
 
