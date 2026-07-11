@@ -25,8 +25,9 @@ galvanostatic
     region      phiEC;
     patchName   interconnect0;
 
-    // Prescribed mean current density [A/m2].  Each value is held for 10 s;
-    // the resulting collector voltage is calculated by the solver.
+    // Prescribed mean current density [A/m2].  Electrolysis current is
+    // negative on the phiEC collector with this model's sign convention.
+    // Each value is held for 10 s; the collector voltage is calculated.
     ibar
     {
         type    table;
@@ -34,20 +35,20 @@ galvanostatic
         (
             (0       0)
             (10      0)
-            (10.001  3000)
-            (20      3000)
-            (20.001  6000)
-            (30      6000)
-            (30.001  9000)
-            (40      9000)
-            (40.001  12000)
-            (50      12000)
-            (50.001  15000)
-            (60      15000)
-            (60.001  19000)
-            (70      19000)
-            (70.001  23000)
-            (80      23000)
+            (10.001  -3000)
+            (20      -3000)
+            (20.001  -6000)
+            (30      -6000)
+            (30.001  -9000)
+            (40      -9000)
+            (40.001  -12000)
+            (50      -12000)
+            (50.001  -15000)
+            (60      -15000)
+            (60.001  -19000)
+            (70      -19000)
+            (70.001  -23000)
+            (80      -23000)
         );
     }
 }
