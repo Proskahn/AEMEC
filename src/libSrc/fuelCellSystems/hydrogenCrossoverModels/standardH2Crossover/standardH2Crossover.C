@@ -324,24 +324,18 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::updateInterfaceConcentr
     }
 
     const phaseModel& gas = fluidRegion.lookupObject<phaseModel>(alphaName);
-    const label hydrogenI = gas.thermo().composition().species()[hydrogenSpecies_];
-    if (hydrogenI == -1)
-    {
-        FatalErrorInFunction
-            << "Gas phase " << gasPhaseName << " in region " << fluidRegionName
-            << " does not contain crossover species " << hydrogenSpecies_
-            << exit(FatalError);
-    }
-
+    // phaseModel::X validates the requested component.  Its thermo() facade
+    // is rhoThermo here and does not expose composition() directly.
     const scalarField& XH2 = gas.X(hydrogenSpecies_);
     const volScalarField& p = gas.thermo().p();
     const Map<label>& fluidCells = fluidRegion.cellMap();
+    const regionType& membraneRegion = refCast<const regionType>(mesh_);
     const labelList& cells = mesh_.cellZones()[zoneId];
 
     forAll(cells, i)
     {
         const label membraneCell = cells[i];
-        const label masterCell = mesh_.cellMapIO()[membraneCell];
+        const label masterCell = membraneRegion.cellMapIO()[membraneCell];
 
         if (!fluidCells.found(masterCell))
         {
