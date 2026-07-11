@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Plot an AEMEC polarization curve from an openFuelCell log.
+"""Extract and plot an AEMEC polarization curve from an openFuelCell log.
 
-The script supports potentiostatic and galvanostatic stepped scans. It plots
-voltage against current density and keeps the last reported sample from each
-hold, which is normally the closest sample to the converged value.
+The preferred source is the solver's ``Controlled boundary current`` record:
+it contains both the post-solve cell voltage and the actual patch current
+density. For a galvanostatic stepped scan, the final record for each
+``galvanostatic target`` is retained. Potentiostatic scans are grouped by
+their commanded voltage instead.
 """
 
 from __future__ import annotations
@@ -21,15 +23,22 @@ import matplotlib.pyplot as plt
 
 DEFAULT_ACTIVE_AREA_CM2 = 0.8
 
-TIME_RE = re.compile(r"^Time\s*=\s*([-+0-9.eE]+)")
+FLOAT_PATTERN = r"[-+0-9.eE]+"
+TIME_RE = re.compile(rf"^Time\s*=\s*({FLOAT_PATTERN})")
+GALVANOSTATIC_TARGET_RE = re.compile(
+    rf"\bgalvanostatic\s+target:\s*({FLOAT_PATTERN})\s*A/m2\b",
+    re.IGNORECASE,
+)
 IBAR_RE = re.compile(
-    r"\bibar:\s*([-+0-9.eE]+)\s+voltage:\s*([-+0-9.eE]+)"
+    rf"\bibar:\s*({FLOAT_PATTERN})\s+voltage:\s*({FLOAT_PATTERN})"
 )
 BOUNDARY_CURRENT_RE = re.compile(
-    r"Controlled boundary current \(A\).*?"
-    r"signed\s*=\s*([-+0-9.eE]+).*?"
-    r"magnitude\s*=\s*([-+0-9.eE]+).*?"
-    r"voltage\s*=\s*([-+0-9.eE]+)"
+    rf"Controlled\s+boundary\s+current\s+\(A\).*?"
+    rf"signed\s*=\s*({FLOAT_PATTERN}).*?"
+    rf"magnitude\s*=\s*({FLOAT_PATTERN}).*?"
+    rf"current\s+density\s*=\s*({FLOAT_PATTERN})\s*A/m2.*?"
+    rf"voltage\s*=\s*({FLOAT_PATTERN})",
+    re.IGNORECASE,
 )
 
 
@@ -39,6 +48,7 @@ class Sample:
     voltage_v: float
     current_a: float | None
     current_density_a_m2: float
+    target_current_density_a_m2: float | None
     source: str
 
     @property
@@ -47,9 +57,16 @@ class Sample:
 
 
 def parse_log(log_path: Path, active_area_cm2: float) -> list[Sample]:
+    """Return boundary-current samples, or legacy ``ibar`` samples as fallback.
+
+    ``ibar`` is a controller diagnostic and can precede the post-solve patch
+    current. It is only used when a log has no boundary-current records.
+    """
     active_area_m2 = active_area_cm2 * 1.0e-4
-    samples: list[Sample] = []
+    boundary_samples: list[Sample] = []
+    ibar_samples: list[Sample] = []
     current_time: float | None = None
+    target_current_density_a_m2: float | None = None
 
     with log_path.open("r", encoding="utf-8", errors="replace") as log_file:
         for line in log_file:
@@ -58,17 +75,23 @@ def parse_log(log_path: Path, active_area_cm2: float) -> list[Sample]:
                 current_time = float(time_match.group(1))
                 continue
 
+            target_match = GALVANOSTATIC_TARGET_RE.search(line)
+            if target_match:
+                target_current_density_a_m2 = float(target_match.group(1))
+                continue
+
             ibar_match = IBAR_RE.search(line)
             if ibar_match:
                 ibar = float(ibar_match.group(1))
                 voltage = float(ibar_match.group(2))
-                samples.append(
+                ibar_samples.append(
                     Sample(
                         time=current_time,
                         voltage_v=voltage,
                         current_a=ibar * active_area_m2,
                         current_density_a_m2=ibar,
-                        source="ibar",
+                        target_current_density_a_m2=target_current_density_a_m2,
+                        source="ibar-fallback",
                     )
                 )
                 continue
@@ -76,18 +99,20 @@ def parse_log(log_path: Path, active_area_cm2: float) -> list[Sample]:
             boundary_match = BOUNDARY_CURRENT_RE.search(line)
             if boundary_match:
                 signed_current = float(boundary_match.group(1))
-                voltage = float(boundary_match.group(3))
-                samples.append(
+                current_density = float(boundary_match.group(3))
+                voltage = float(boundary_match.group(4))
+                boundary_samples.append(
                     Sample(
                         time=current_time,
                         voltage_v=voltage,
                         current_a=signed_current,
-                        current_density_a_m2=signed_current / active_area_m2,
-                        source="boundary",
+                        current_density_a_m2=current_density,
+                        target_current_density_a_m2=target_current_density_a_m2,
+                        source="boundary-current-density",
                     )
                 )
 
-    return samples
+    return boundary_samples or ibar_samples
 
 
 def last_sample_per_voltage(
@@ -99,6 +124,25 @@ def last_sample_per_voltage(
         by_voltage[key] = sample
 
     return sorted(by_voltage.values(), key=lambda sample: sample.voltage_v)
+
+
+def last_sample_per_target_current(
+    samples: list[Sample], current_precision: int
+) -> list[Sample]:
+    """Keep the last post-solve sample for each galvanostatic setpoint."""
+    if any(sample.target_current_density_a_m2 is None for sample in samples):
+        raise ValueError("No galvanostatic target values found")
+
+    by_target: OrderedDict[float, Sample] = OrderedDict()
+    for sample in samples:
+        assert sample.target_current_density_a_m2 is not None
+        key = round(sample.target_current_density_a_m2, current_precision)
+        by_target[key] = sample
+
+    return sorted(
+        by_target.values(),
+        key=lambda sample: abs(sample.current_density_a_m2),
+    )
 
 
 def last_sample_per_hold(
@@ -128,6 +172,7 @@ def write_csv(samples: list[Sample], output_path: Path) -> None:
                 "current_a",
                 "current_density_a_m2",
                 "current_density_a_cm2",
+                "target_current_density_a_m2",
                 "source",
             ]
         )
@@ -139,6 +184,9 @@ def write_csv(samples: list[Sample], output_path: Path) -> None:
                     "" if sample.current_a is None else sample.current_a,
                     sample.current_density_a_m2,
                     sample.current_density_a_cm2,
+                    ""
+                    if sample.target_current_density_a_m2 is None
+                    else sample.target_current_density_a_m2,
                     sample.source,
                 ]
             )
@@ -167,7 +215,7 @@ def plot_curve(samples: list[Sample], output_path: Path, use_signed: bool) -> No
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Plot a polarization curve from run/AEMEC/log.run."
+        description="Extract a polarization curve from run/AEMEC/log.run."
     )
     parser.add_argument(
         "--log",
@@ -191,24 +239,24 @@ def build_parser() -> argparse.ArgumentParser:
         "--active-area-cm2",
         type=float,
         default=DEFAULT_ACTIVE_AREA_CM2,
-        help="Active area used to convert current to current density.",
+        help="Fallback area for legacy ibar-only logs (default: 0.8 cm2).",
     )
     parser.add_argument(
         "--all-samples",
         action="store_true",
-        help="Plot every parsed sample instead of the settled sample per hold.",
+        help="Plot every parsed post-solve sample instead of one per scan point.",
     )
     parser.add_argument(
         "--scan-mode",
         choices=("current", "voltage"),
         default="current",
-        help="Controlled quantity used for grouping stepped holds (default: current).",
+        help="Controlled quantity used for grouping stepped scan points (default: current).",
     )
     parser.add_argument(
         "--hold-duration",
         type=float,
         default=10.0,
-        help="Current-hold duration in seconds (default: 10).",
+        help="Fallback hold duration when target records are absent (default: 10 s).",
     )
     parser.add_argument(
         "--signed",
@@ -220,6 +268,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=3,
         help="Decimal places used when grouping voltage holds.",
+    )
+    parser.add_argument(
+        "--current-precision",
+        type=int,
+        default=3,
+        help="Decimal places used when grouping galvanostatic targets in A/m2.",
     )
     return parser
 
@@ -239,11 +293,20 @@ def main() -> None:
 
     if args.hold_duration <= 0:
         raise SystemExit("--hold-duration must be greater than zero")
+    if args.active_area_cm2 <= 0:
+        raise SystemExit("--active-area-cm2 must be greater than zero")
+    if args.current_precision < 0:
+        raise SystemExit("--current-precision cannot be negative")
 
     if args.all_samples:
         curve_samples = samples
     elif args.scan_mode == "current":
-        curve_samples = last_sample_per_hold(samples, args.hold_duration)
+        try:
+            curve_samples = last_sample_per_target_current(
+                samples, args.current_precision
+            )
+        except ValueError:
+            curve_samples = last_sample_per_hold(samples, args.hold_duration)
     else:
         curve_samples = last_sample_per_voltage(samples, args.voltage_precision)
 
