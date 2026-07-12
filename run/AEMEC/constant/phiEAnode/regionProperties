@@ -24,7 +24,7 @@ galvanostatic
     active      true;
     region      phiEAnode;
     patchName   interconnect0;
-    maxVoltageStep 0.005;  // Maximum controller movement per outer iteration [V]
+    maxVoltageStep 0.01;   // Maximum controller movement per outer iteration [V]
     minVoltage  1.0;       // Physical safety bounds [V]
     maxVoltage  2.5;
 
@@ -61,8 +61,8 @@ galvanostatic
     polarizationCurve
     {
         active                      true;
-        targets                     (-6000 -8000 -10000 -12500 -15000);
-        minimumHoldDuration         30;
+        targets                     (-6000 -9000 -12000 -15000);
+        minimumHoldDuration         15;
         targetCurrentTolerance      0.05;
         currentScale                100;
         voltageTolerance            0.002;

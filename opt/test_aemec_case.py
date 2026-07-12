@@ -87,12 +87,21 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("anodeInterface", crossover)
         self.assertIn("UMembrane       (0 0 0);", crossover)
         self.assertIn("polarizationCurve", anode_controller)
-        self.assertIn("minimumHoldDuration         30;", anode_controller)
+        self.assertIn("targets                     (-6000 -9000 -12000 -15000);", anode_controller)
+        self.assertIn("minimumHoldDuration         15;", anode_controller)
+        self.assertIn("maxVoltageStep 0.01;", anode_controller)
         self.assertIn("stabilitySamples            5;", anode_controller)
         self.assertIn("electrolyte_to_anode", electrolyte_temperature)
         self.assertIn("electrolyte_to_cathode", electrolyte_temperature)
         self.assertIn("interconnect_to_anode", interconnect_temperature)
         self.assertIn("interconnect_to_cathode", interconnect_temperature)
+
+    def test_polarization_controller_requests_clean_stop_after_last_point(self) -> None:
+        controller_source = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/regions/electric/electric.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn("time().stopAt(Time::saWriteNow);", controller_source)
 
     def test_thickness_rewrite_preserves_other_layers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

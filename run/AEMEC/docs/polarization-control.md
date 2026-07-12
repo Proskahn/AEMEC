@@ -41,13 +41,17 @@ The stable controller is configured in
 
 | Parameter | Meaning | AEMEC starting value |
 | --- | --- | --- |
-| `targets` | Signed collector current-density targets, A/m2 | `(-6000 -8000 -10000 -12500 -15000)` |
-| `minimumHoldDuration` | Minimum time before a point can be accepted, s | `30` |
+| `targets` | Signed collector current-density targets, A/m2 | `(-6000 -9000 -12000 -15000)` |
+| `minimumHoldDuration` | Minimum time before a point can be accepted, s | `15` |
 | `targetCurrentTolerance` | Relative current-target error | `0.05` |
 | `currentScale` | A/m2 scale used near zero target | `100` |
 | `voltageTolerance` | Consecutive-sample voltage tolerance, V | `0.002` |
 | `currentStabilityTolerance` | Consecutive-sample current variation relative to scale | `0.02` |
 | `stabilitySamples` | Consecutive stable samples required | `5` |
+
+For this proof-of-concept scan, `maxVoltageStep` is `0.01 V` per outer
+iteration. This reduces controller ramp time while retaining the existing
+5%-target and stability checks.
 
 The controller rejects a point when the voltage is at `minVoltage` or
 `maxVoltage`, or when applying the correction would clip the voltage. It keeps
@@ -75,9 +79,11 @@ make mesh
 make srun
 ```
 
-The supplied `controlDict.run` allows 600 s. Adjust `endTime` upward if an
-accepted point has not yet been reached; the controller will not advance an
-unsettled target.
+The supplied `controlDict.run` uses a 120 s safety ceiling. Once the last
+target is accepted, the controller requests `Time::saWriteNow`, so
+`openFuelCell` completes the current multi-region step, writes all regions,
+and exits normally. Increase `endTime` only if the final point has not been
+accepted by 120 s; the controller will not advance an unsettled target.
 
 The extractor now plots only controller records marked `accepted: true`:
 

@@ -139,7 +139,8 @@ def check_static(case: Path, errors: list[str]) -> None:
         errors.append("constant/phiEAnode/regionProperties must define polarizationCurve")
     for entry in (
         "active                      true;",
-        "minimumHoldDuration         30;",
+        "targets                     (-6000 -9000 -12000 -15000);",
+        "minimumHoldDuration         15;",
         "targetCurrentTolerance      0.05;",
         "voltageTolerance            0.002;",
         "currentStabilityTolerance   0.02;",
@@ -148,6 +149,18 @@ def check_static(case: Path, errors: list[str]) -> None:
         if entry not in anode_controller:
             errors.append(
                 f"constant/phiEAnode/regionProperties is missing stable polarization entry '{entry}'"
+            )
+
+    if "maxVoltageStep 0.01;" not in anode_controller:
+        errors.append(
+            "constant/phiEAnode/regionProperties must use maxVoltageStep 0.01 for the POC scan"
+        )
+
+    control_run = read(case / "system/controlDict.run", errors)
+    for entry in ("endTime         120;", "writeInterval   120;"):
+        if entry not in control_run:
+            errors.append(
+                f"system/controlDict.run is missing proof-of-concept scan setting '{entry}'"
             )
 
     for relative_path in ("constant/anode/combustionProperties.oxygen", "constant/cathode/combustionProperties"):

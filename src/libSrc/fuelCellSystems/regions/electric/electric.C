@@ -408,7 +408,13 @@ void Foam::regionTypes::electric::updateGalvanostaticControl
         {
             polarizationComplete_ = true;
             Info<< "Polarization curve complete: accepted "
-                << polarizationTargets_.size() << " target points" << endl;
+                << polarizationTargets_.size()
+                << " target points; stopping after this time step" << endl;
+
+            // Let openFuelCell finish this complete multi-region time step.
+            // Its ordinary runTime.write() then writes every region together
+            // before Time::run() exits the outer loop.
+            time().stopAt(Time::saWriteNow);
         }
     }
 }
