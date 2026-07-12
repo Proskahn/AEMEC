@@ -329,7 +329,13 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::updateInterfaceConcentr
     const scalarField& XH2 = gas.X(hydrogenSpecies_);
     const volScalarField& p = gas.thermo().p();
     const Map<label>& fluidCells = fluidRegion.cellMap();
-    const regionType& membraneRegion = refCast<const regionType>(mesh_);
+    // The crossover mesh is the registered electric region (for example
+    // phiAnion). Looking it up by name avoids refCast on fvMesh, whose
+    // multiple OpenFOAM type registries make its diagnostic type() ambiguous.
+    const regionType& membraneRegion = mesh_.time().lookupObject<regionType>
+    (
+        mesh_.name()
+    );
     const labelList& cells = mesh_.cellZones()[zoneId];
 
     forAll(cells, i)
