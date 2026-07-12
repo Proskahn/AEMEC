@@ -137,36 +137,62 @@ def check_static(case: Path, errors: list[str]) -> None:
     anode_controller = read(case / "constant/phiEAnode/regionProperties", errors)
     if not has_dictionary_block(anode_controller, "polarizationCurve"):
         errors.append("constant/phiEAnode/regionProperties must define polarizationCurve")
-    for entry in (
-        "active                      true;",
-        "targets                     (-6000 -9000 -12000 -15000);",
-        "minimumHoldDuration         15;",
-        "targetCurrentTolerance      0.05;",
-        "voltageTolerance            0.002;",
-        "currentStabilityTolerance   0.02;",
-        "stabilitySamples            5;",
-    ):
-        if entry not in anode_controller:
-            errors.append(
-                f"constant/phiEAnode/regionProperties is missing stable polarization entry '{entry}'"
-            )
+    control_mode = re.search(
+        r"(?s)\bgalvanostatic\s*\{\s*active\s+(true|false)\s*;",
+        anode_controller,
+    )
+    if not control_mode:
+        errors.append("constant/phiEAnode/regionProperties must declare galvanostatic.active")
+    elif control_mode.group(1) == "true":
+        for entry in (
+            "targets                     (-6000 -9000 -12000 -15000);",
+            "minimumHoldDuration         15;",
+            "targetCurrentTolerance      0.05;",
+            "voltageTolerance            0.002;",
+            "currentStabilityTolerance   0.02;",
+            "stabilitySamples            5;",
+        ):
+            if entry not in anode_controller:
+                errors.append(
+                    f"constant/phiEAnode/regionProperties is missing stable polarization entry '{entry}'"
+                )
 
-    if "maxVoltageStep 0.01;" not in anode_controller:
-        errors.append(
-            "constant/phiEAnode/regionProperties must use maxVoltageStep 0.01 for the POC scan"
-        )
+        if "maxVoltageStep 0.01;" not in anode_controller:
+            errors.append(
+                "constant/phiEAnode/regionProperties must use maxVoltageStep 0.01 for the POC scan"
+            )
+    else:
+        if "type    constant;" not in anode_controller or not re.search(
+            r"(?m)^\s*value\s+[-+0-9.eE]+\s*;", anode_controller
+        ):
+            errors.append(
+                "fixed-voltage diagnostic must define a constant collector voltage"
+            )
 
     control_run = read(case / "system/controlDict.run", errors)
-    for entry in ("endTime         120;", "writeInterval   120;"):
-        if entry not in control_run:
-            errors.append(
-                f"system/controlDict.run is missing proof-of-concept scan setting '{entry}'"
-            )
+    is_diagnostic = control_mode is not None and control_mode.group(1) == "false"
+    if is_diagnostic:
+        end_match = re.search(r"(?m)^\s*endTime\s+([-+0-9.eE]+)\s*;", control_run)
+        write_match = re.search(r"(?m)^\s*writeInterval\s+([-+0-9.eE]+)\s*;", control_run)
+        if not end_match or not write_match or float(end_match.group(1)) <= 0.0:
+            errors.append("fixed-voltage diagnostic must define positive endTime and writeInterval")
+        elif float(end_match.group(1)) != float(write_match.group(1)):
+            errors.append("fixed-voltage diagnostic must write the final endTime state")
+    else:
+        for entry in ("endTime         120;", "writeInterval   120;"):
+            if entry not in control_run:
+                errors.append(
+                    f"system/controlDict.run is missing expected run setting '{entry}'"
+                )
 
     for relative_path in ("constant/anode/combustionProperties.oxygen", "constant/cathode/combustionProperties"):
         text = read(case / relative_path, errors)
         if "jMax            5.0e8;" not in text or "exponentLimit   50;" not in text:
             errors.append(f"{relative_path} must define the proof-of-concept Butler-Volmer current bound")
+        if is_diagnostic and "electrochemicalDiagnostics true;" not in text:
+            errors.append(f"{relative_path} must enable electrochemicalDiagnostics in a fixed-voltage diagnostic")
+    if is_diagnostic and "electricDiagnostics true;" not in anion_properties:
+        errors.append("constant/phiAnion/regionProperties must enable electricDiagnostics in a fixed-voltage diagnostic")
 
     for field in sorted((case / "0.orig").rglob("*")):
         if not field.is_file():

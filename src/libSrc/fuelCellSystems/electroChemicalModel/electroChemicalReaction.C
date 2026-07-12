@@ -31,6 +31,7 @@ License
 #include "hydrogenCrossoverModel.H"
 
 #include "constants.H"
+#include "PstreamReduceOps.H"
 
 const Foam::dimensionedScalar Rgas = Foam::constant::physicoChemical::R;
 const Foam::dimensionedScalar dimF = Foam::constant::physicoChemical::F;
@@ -142,6 +143,139 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
     //- Only consider catalyst zone
     label znId = fluidPhase.cellZones().findZoneID(eta_->zoneName());
     const labelList& cells = fluidPhase.cellZones()[znId];
+
+    if
+    (
+        this->template lookupOrDefault<Switch>
+        ("electrochemicalDiagnostics", false)
+    )
+    {
+        const scalarField& reactionCurrent = eta_->j();
+        const scalarField& activationOverpotential = eta_->eta();
+        const scalarField& nernstPotential = eta_->nernst()();
+        const scalarField& temperature = thermo_.T();
+        const scalarField& waterMoleFraction = phase.X(water);
+        const scalarField& gasVolumeFraction = phase;
+
+        const label hydrogenSpecieI =
+            thermo_.composition().species()["H2"];
+        const scalarField* hydrogenMoleFraction = nullptr;
+        if (hydrogenSpecieI != -1)
+        {
+            hydrogenMoleFraction = &phase.X("H2");
+        }
+
+        scalar catalystVolume = 0.0;
+        scalar integratedCurrent = 0.0;
+        scalar etaWeightedSum = 0.0;
+        scalar nernstWeightedSum = 0.0;
+        scalar temperatureWeightedSum = 0.0;
+        scalar waterWeightedSum = 0.0;
+        scalar hydrogenWeightedSum = 0.0;
+        scalar gasFractionWeightedSum = 0.0;
+        scalar etaMin = GREAT;
+        scalar etaMax = -GREAT;
+        scalar nernstMin = GREAT;
+        scalar nernstMax = -GREAT;
+        scalar temperatureMin = GREAT;
+        scalar temperatureMax = -GREAT;
+        scalar waterMin = GREAT;
+        scalar waterMax = -GREAT;
+        scalar hydrogenMin = GREAT;
+        scalar hydrogenMax = -GREAT;
+        scalar gasFractionMin = GREAT;
+        scalar gasFractionMax = -GREAT;
+
+        forAll(cells, cellI)
+        {
+            const label fluidId = cells[cellI];
+            const scalar volume = fluidPhase.V()[fluidId];
+
+            catalystVolume += volume;
+            integratedCurrent += reactionCurrent[fluidId]*volume;
+            etaWeightedSum += activationOverpotential[fluidId]*volume;
+            nernstWeightedSum += nernstPotential[fluidId]*volume;
+            temperatureWeightedSum += temperature[fluidId]*volume;
+            waterWeightedSum += waterMoleFraction[fluidId]*volume;
+            gasFractionWeightedSum += gasVolumeFraction[fluidId]*volume;
+            etaMin = min(etaMin, activationOverpotential[fluidId]);
+            etaMax = max(etaMax, activationOverpotential[fluidId]);
+            nernstMin = min(nernstMin, nernstPotential[fluidId]);
+            nernstMax = max(nernstMax, nernstPotential[fluidId]);
+            temperatureMin = min(temperatureMin, temperature[fluidId]);
+            temperatureMax = max(temperatureMax, temperature[fluidId]);
+            waterMin = min(waterMin, waterMoleFraction[fluidId]);
+            waterMax = max(waterMax, waterMoleFraction[fluidId]);
+            gasFractionMin = min(gasFractionMin, gasVolumeFraction[fluidId]);
+            gasFractionMax = max(gasFractionMax, gasVolumeFraction[fluidId]);
+
+            if (hydrogenMoleFraction)
+            {
+                hydrogenWeightedSum += (*hydrogenMoleFraction)[fluidId]*volume;
+                hydrogenMin = min(hydrogenMin, (*hydrogenMoleFraction)[fluidId]);
+                hydrogenMax = max(hydrogenMax, (*hydrogenMoleFraction)[fluidId]);
+            }
+        }
+
+        reduce(catalystVolume, sumOp<scalar>());
+        reduce(integratedCurrent, sumOp<scalar>());
+        reduce(etaWeightedSum, sumOp<scalar>());
+        reduce(nernstWeightedSum, sumOp<scalar>());
+        reduce(temperatureWeightedSum, sumOp<scalar>());
+        reduce(waterWeightedSum, sumOp<scalar>());
+        reduce(hydrogenWeightedSum, sumOp<scalar>());
+        reduce(gasFractionWeightedSum, sumOp<scalar>());
+        reduce(etaMin, minOp<scalar>());
+        reduce(etaMax, maxOp<scalar>());
+        reduce(nernstMin, minOp<scalar>());
+        reduce(nernstMax, maxOp<scalar>());
+        reduce(temperatureMin, minOp<scalar>());
+        reduce(temperatureMax, maxOp<scalar>());
+        reduce(waterMin, minOp<scalar>());
+        reduce(waterMax, maxOp<scalar>());
+        reduce(hydrogenMin, minOp<scalar>());
+        reduce(hydrogenMax, maxOp<scalar>());
+        reduce(gasFractionMin, minOp<scalar>());
+        reduce(gasFractionMax, maxOp<scalar>());
+
+        const scalar electronCount = mag(eta_->nernst().rxnList()["e"]);
+        const scalar hydrogenStoich = eta_->nernst().rxnList().found("H2")
+          ? eta_->nernst().rxnList()["H2"]
+          : 0.0;
+        const scalar hydrogenFaradaicRate =
+            integratedCurrent*hydrogenStoich/(electronCount*dimF.value());
+        const scalar safeVolume = max(catalystVolume, VSMALL);
+
+        Info<< "AEMEC reaction diagnostic: fluidRegion=" << this->mesh().name()
+            << ", phase=" << phase.name()
+            << ", zone=" << eta_->zoneName()
+            << ", reactionCurrent=" << integratedCurrent << " A"
+            << ", H2FaradaicRate=" << hydrogenFaradaicRate << " mol/s"
+            << ", j0=" << eta_->j0().value() << " A/m3"
+            << ", eta[min,mean,max]=(" << etaMin << ","
+            << etaWeightedSum/safeVolume << "," << etaMax << ") V"
+            << ", nernst[min,mean,max]=(" << nernstMin << ","
+            << nernstWeightedSum/safeVolume << "," << nernstMax << ") V"
+            << ", T[min,mean,max]=(" << temperatureMin << ","
+            << temperatureWeightedSum/safeVolume << "," << temperatureMax << ") K"
+            << ", XH2O[min,mean,max]=(" << waterMin << ","
+            << waterWeightedSum/safeVolume << "," << waterMax << ")"
+            << ", XH2[min,mean,max]=(";
+
+        if (hydrogenMoleFraction)
+        {
+            Info<< hydrogenMin << "," << hydrogenWeightedSum/safeVolume
+                << "," << hydrogenMax;
+        }
+        else
+        {
+            Info<< "not-present";
+        }
+
+        Info<< "), alphaGas[min,mean,max]=(" << gasFractionMin << ","
+            << gasFractionWeightedSum/safeVolume << "," << gasFractionMax
+            << ")" << endl;
+    }
 
     if (useDissolvedWater)
     {

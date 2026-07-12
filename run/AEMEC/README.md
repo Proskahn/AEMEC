@@ -81,3 +81,6 @@ For MPI, set `NPROCS`, then run `make decompose`, `make parallel`, and
 
 All legacy meshes and result directories are incompatible with these renamed
 regions. Regenerate the mesh after rebuilding the solver.
+
+For a fixed-voltage diagnostic that preserves the normal polarization case,
+see [the diagnostic guide](docs/fixed-voltage-diagnostic.md).

@@ -457,6 +457,17 @@ void Foam::regionTypes::electric::solve()
     i_ = -sigmaField_ * fvc::grad(phi_);
     i_.correctBoundaryConditions();
 
+    if (dict_.lookupOrDefault<Switch>("electricDiagnostics", false))
+    {
+        Info<< "AEMEC electric diagnostic: region=" << name()
+            << ", sigma[min,mean,max]=(" << min(sigmaField_).value() << ","
+            << sigmaField_.weightedAverage(this->V()).value() << ","
+            << max(sigmaField_).value() << ")"
+            << ", J[min,mean,max]=(" << min(j_).value() << ","
+            << j_.weightedAverage(this->V()).value() << ","
+            << max(j_).value() << ") A/m3" << endl;
+    }
+
     if (control_)
     {
         const label patchID = this->boundaryMesh().findPatchID(patchName_);

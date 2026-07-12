@@ -587,6 +587,10 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
     const scalar cathodeGasRate =
         zoneIntegral(h2CathodeDmdt_, sourceZoneName_);
     const scalar anodeGasRate = zoneIntegral(h2AnodeDmdt_, sinkZoneName_);
+    const scalar cathodeAnionReactionCurrent =
+        zoneIntegral(j, sourceZoneName_);
+    const scalar membraneFaradaicSource =
+        zoneIntegral(h2Dmdt_, sourceZoneName_);
 
     Info<< "Hydrogen crossover objective: anode gas source rate = "
         << anodeGasRate << " mol/s" << endl;
@@ -595,8 +599,10 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
         << anodeGasRate << " mol/s, imbalance = "
         << cathodeGasRate + anodeGasRate << " mol/s" << endl;
 
-    Info<< "Hydrogen crossover: generated in " << sourceZoneName_
-        << " = " << zoneIntegral(h2Dmdt_, sourceZoneName_) << " mol/s";
+    Info<< "Hydrogen crossover membrane diagnostic: anion reaction current in "
+        << sourceZoneName_ << " = " << cathodeAnionReactionCurrent << " A"
+        << ", derived Faradaic H2 source = " << membraneFaradaicSource
+        << " mol/s";
 
     if (sinkCoeff_.value() > 0.0 && sinkZoneName_ != word::null)
     {

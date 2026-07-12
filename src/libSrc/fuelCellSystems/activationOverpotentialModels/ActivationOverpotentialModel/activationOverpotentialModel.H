@@ -215,6 +215,12 @@ public:
             return j0_;
         }
 
+        //- Activation overpotential [V]
+        const volScalarField& eta() const
+        {
+            return eta_;
+        }
+
         //- Current density
         //- A/cm3
         const volScalarField& j() const
