@@ -126,6 +126,22 @@ def check_static(case: Path, errors: list[str]) -> None:
     if "uniform (0.01 0 0)" not in anode_water_velocity:
         errors.append("0.orig/anode/U.water must provide the aqueous-KOH feed at (0.01 0 0) m/s")
 
+    anode_controller = read(case / "constant/phiEAnode/regionProperties", errors)
+    if not has_dictionary_block(anode_controller, "polarizationCurve"):
+        errors.append("constant/phiEAnode/regionProperties must define polarizationCurve")
+    for entry in (
+        "active                      true;",
+        "minimumHoldDuration         30;",
+        "targetCurrentTolerance      0.05;",
+        "voltageTolerance            0.002;",
+        "currentStabilityTolerance   0.02;",
+        "stabilitySamples            5;",
+    ):
+        if entry not in anode_controller:
+            errors.append(
+                f"constant/phiEAnode/regionProperties is missing stable polarization entry '{entry}'"
+            )
+
     for relative_path in ("constant/anode/combustionProperties.oxygen", "constant/cathode/combustionProperties"):
         text = read(case / relative_path, errors)
         if "jMax            5.0e8;" not in text or "exponentLimit   50;" not in text:

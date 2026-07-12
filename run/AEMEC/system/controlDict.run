@@ -22,13 +22,15 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         80;
+// Allow a stable-point polarization scan to hold each target until it has
+// converged. The controller will not advance an unsettled target.
+endTime         600;
 
 deltaT          0.1;
 
 writeControl    runTime;
 
-writeInterval   10;
+writeInterval   600;
 
 purgeWrite      0;
 

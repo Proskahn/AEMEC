@@ -57,6 +57,14 @@ for the assumptions, dictionary contract, and remaining limitations. Validate
 diffusion/drag parameters and the printed conservation line at a reference
 thickness before running an optimization.
 
+The default `phiEAnode` configuration is a stable-point polarization scan,
+not a fixed-time voltage/current ramp. It advances each current target only
+after the post-solve collector current is on target and current/voltage are
+stable. Points at either voltage bound are flagged and not accepted. See
+[polarization control](docs/polarization-control.md). The optimizer disables
+this multi-target mode in its isolated trial case and retains one direct target
+hold per CFD evaluation.
+
 ## Run
 
 ```bash

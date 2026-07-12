@@ -24,10 +24,9 @@ from typing import Iterable, Sequence
 from optimization_lib import ObjectiveResult, OptimizationError
 
 
-# Version 4 records the conservative cathode-to-anode H2 gas-source objective.
-# It must not resume earlier studies that used a membrane-release diagnostic
-# rather than the coupled anode gas source.
-OBJECTIVE_SCHEMA_VERSION = 4
+# Version 5 records the post-solve boundary-current feedback controller. It
+# must not resume studies made with the old pre-solve reaction-source feedback.
+OBJECTIVE_SCHEMA_VERSION = 5
 DEFAULT_TARGET_CURRENT_DENSITY_A_M2 = 10_000.0
 DEFAULT_CURRENT_RELATIVE_TOLERANCE = 0.05
 DEFAULT_TARGET_HOLD_DURATION_S = 30.0
@@ -307,12 +306,35 @@ def _replace_control_scalar(path: Path, keyword: str, value: float, required: bo
         path.write_text(rewritten, encoding="utf-8")
 
 
+def _set_polarization_curve_active(text: str, active: bool) -> str:
+    """Disable the multi-target stable scan in an optimizer scratch case.
+
+    Optimization owns one direct current target per CFD evaluation; it retains
+    its separate final-window stability validation below.
+    """
+    if not re.search(r"\bpolarizationCurve\b\s*\{", text):
+        return text
+    start, end = _named_block_span(text, "polarizationCurve")
+    block = text[start:end]
+    replacement = "true" if active else "false"
+    rewritten, count = re.subn(
+        r"(?m)^(\s*active\s+)(?:true|false)(\s*;)",
+        lambda match: match.group(1) + replacement + match.group(2),
+        block,
+        count=1,
+    )
+    if count != 1:
+        raise OptimizationError("Cannot update polarizationCurve active switch")
+    return text[:start] + rewritten + text[end:]
+
+
 def configure_target_hold(case_path: Path, config: AemecEvaluationConfig) -> TargetHold:
     """Configure either a direct-target fast run or the original ramped run."""
     config.validate()
     # Galvanostatic control is applied at the physical oxygen/anode collector.
     region_path = case_path / "constant/phiEAnode/regionProperties"
     text = region_path.read_text(encoding="utf-8")
+    text = _set_polarization_curve_active(text, False)
     gs_start, gs_end = _named_block_span(text, "galvanostatic")
     ibar_start_rel, ibar_end_rel = _named_block_span(text[gs_start:gs_end], "ibar")
     ibar_start, ibar_end = gs_start + ibar_start_rel, gs_start + ibar_end_rel

@@ -60,6 +60,7 @@ class AemecCaseTests(unittest.TestCase):
         anode_water_velocity = (case / "0.orig/anode/U.water").read_text(encoding="utf-8")
         anode_thermo = (case / "constant/anode/thermophysicalProperties.oxygen").read_text(encoding="utf-8")
         anode_hydrogen = (case / "0.orig/anode/H2.oxygen").read_text(encoding="utf-8")
+        anode_controller = (case / "constant/phiEAnode/regionProperties").read_text(encoding="utf-8")
         electrolyte_temperature = (case / "0.orig/electrolyte/T").read_text(encoding="utf-8")
         interconnect_temperature = (case / "0.orig/interconnect/T").read_text(encoding="utf-8")
 
@@ -85,6 +86,9 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("cathodeInterface", crossover)
         self.assertIn("anodeInterface", crossover)
         self.assertIn("UMembrane       (0 0 0);", crossover)
+        self.assertIn("polarizationCurve", anode_controller)
+        self.assertIn("minimumHoldDuration         30;", anode_controller)
+        self.assertIn("stabilitySamples            5;", anode_controller)
         self.assertIn("electrolyte_to_anode", electrolyte_temperature)
         self.assertIn("electrolyte_to_cathode", electrolyte_temperature)
         self.assertIn("interconnect_to_anode", interconnect_temperature)
@@ -107,8 +111,13 @@ class AemecCaseTests(unittest.TestCase):
             self.assertEqual(hold.outer_iterations, 250)
             self.assertEqual(hold.delta_t_s, 1.0)
             controls = (case / "system/controlDict.run").read_text(encoding="utf-8")
+            controller = (case / "constant/phiEAnode/regionProperties").read_text(encoding="utf-8")
             self.assertRegex(controls, r"endTime\s+250\s*;")
             self.assertRegex(controls, r"writeInterval\s+250\s*;")
+            self.assertRegex(
+                controller,
+                r"polarizationCurve\s*\{[\s\S]*?active\s+false\s*;",
+            )
 
     def test_parser_uses_post_solve_boundary_current_and_final_window(self) -> None:
         config = AemecEvaluationConfig(stability_samples=3)

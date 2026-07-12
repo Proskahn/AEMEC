@@ -46,6 +46,7 @@ SourceFiles
 #include "dimensionedScalar.H"
 #include "volFields.H"
 #include "wordList.H"
+#include "List.H"
 #include "HashTable.H"
 #include "Function1.H"
 
@@ -102,6 +103,25 @@ private:
         scalar minVoltage_;
         scalar maxVoltage_;
 
+        //- Optional stable-point polarization curve controller.  Unlike the
+        //  legacy time table, it advances a target only after convergence.
+        Switch polarizationActive_;
+        List<scalar> polarizationTargets_;
+        scalar minimumHoldDuration_;
+        scalar targetCurrentTolerance_;
+        scalar currentScale_;
+        scalar voltageTolerance_;
+        scalar currentStabilityTolerance_;
+        label requiredStabilitySamples_;
+        label targetIndex_;
+        label stabilitySamples_;
+        scalar holdStartTime_;
+        scalar previousMeasuredCurrentDensity_;
+        scalar previousAppliedVoltage_;
+        scalar previousTargetCurrentDensity_;
+        bool havePreviousControlSample_;
+        bool polarizationComplete_;
+
         //- Active side?
         //- Reference side: voltage = 0.0
         //- Active side: voltage: fixed or calculated
@@ -140,6 +160,15 @@ private:
         //- Voltage
         //- Make semse when galvanostatic_ is false
         autoPtr<Function1<scalar>> voltage_;
+
+        scalar targetCurrentDensity() const;
+
+        void updateGalvanostaticControl
+        (
+            const label patchID,
+            const scalar measuredCurrentDensity,
+            const scalar appliedVoltage
+        );
 
 public:
         TypeName("electric");

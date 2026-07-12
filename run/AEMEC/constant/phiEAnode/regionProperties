@@ -28,9 +28,9 @@ galvanostatic
     minVoltage  1.0;       // Physical safety bounds [V]
     maxVoltage  2.5;
 
-    // Prescribed mean current density [A/m2].  This is the physical anode
-    // collector. Electrolysis current is negative in this solver convention.
-    // Each value is held for 10 s; the collector voltage is calculated.
+    // Legacy time table used by single-target optimizer runs. The optimizer
+    // disables polarizationCurve and rewrites this table to one direct hold.
+    // Electrolysis current is negative in this solver convention.
     ibar
     {
         type    table;
@@ -53,6 +53,21 @@ galvanostatic
             (70.001  -15000)
             (80      -15000)
         );
+    }
+
+    // A true polarization scan: do not advance a target simply because time
+    // elapsed. The next target is selected only after the post-solve boundary
+    // current is on target and both current and voltage are stable.
+    polarizationCurve
+    {
+        active                      true;
+        targets                     (-6000 -8000 -10000 -12500 -15000);
+        minimumHoldDuration         30;
+        targetCurrentTolerance      0.05;
+        currentScale                100;
+        voltageTolerance            0.002;
+        currentStabilityTolerance   0.02;
+        stabilitySamples            5;
     }
 }
 

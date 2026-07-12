@@ -148,6 +148,8 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
         50.0
     );
     const scalar jMax = this->dict_.template lookupOrDefault<scalar>("jMax", GREAT);
+    label lowerCurrentClippedCells(0);
+    label upperCurrentClippedCells(0);
 
     forAll(cells, cellI)
     {
@@ -200,6 +202,15 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
                 Foam::exp(forwardExponent) - Foam::exp(reverseExponent)
             );
 
+        if (jUnbounded < 0.0)
+        {
+            ++lowerCurrentClippedCells;
+        }
+        if (jUnbounded > jMax)
+        {
+            ++upperCurrentClippedCells;
+        }
+
         j[fluidId] = Foam::min
         (
             jMax,
@@ -215,9 +226,15 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
     }
 
     reduce(Rj, sumOp<scalar>());
+    reduce(lowerCurrentClippedCells, sumOp<label>());
+    reduce(upperCurrentClippedCells, sumOp<label>());
 
     Info << "Total current (A) at " << this->zoneName_
          << ": " << Rj << endl;
+    Info << "ButlerVolmer current limits at " << this->zoneName_
+         << ": lowerClippedCells=" << lowerCurrentClippedCells
+         << ", upperClippedCells=" << upperCurrentClippedCells
+         << ", jMax=" << jMax << " A/m3" << endl;
 }
 
 // ************************************************************************* //

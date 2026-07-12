@@ -54,6 +54,49 @@ Controlled boundary current (A) at x: signed = -1.6, magnitude = 1.6, current de
             header = csv_path.read_text(encoding="utf-8").splitlines()[0]
             self.assertIn("target_current_density_a_m2", header)
 
+    def test_stable_point_controller_is_preferred_over_boundary_records(self) -> None:
+        log = """
+Time = 30
+Controlled boundary current (A) at x: signed = -0.45, magnitude = 0.45, current density = -5625 A/m2, voltage = 1.2
+galvanostatic target: -6000 A/m2, requested target: 6000 A/m2, signed target: -6000 A/m2, measured current density: -5625 A/m2, current error: 375 A/m2, current relative error: 0.0625, voltage: 1.2, raw dV: 0.00375, limited dV: 0.00375, voltageStepClipped: false, voltageClipped: false, voltageAtLimit: false, currentClipped: false, hold start: 0, hold end: 30, stability samples: 0/5, accepted: false, polarizationComplete: false
+Time = 31
+Controlled boundary current (A) at x: signed = -0.48, magnitude = 0.48, current density = -6000 A/m2, voltage = 1.22
+galvanostatic target: -6000 A/m2, requested target: 6000 A/m2, signed target: -6000 A/m2, measured current density: -6000 A/m2, current error: 0 A/m2, current relative error: 0, voltage: 1.22, raw dV: 0, limited dV: 0, voltageStepClipped: false, voltageClipped: false, voltageAtLimit: false, currentClipped: false, hold start: 0, hold end: 30, stability samples: 5/5, accepted: true, polarizationComplete: false
+"""
+
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = Path(directory) / "log.run"
+            log_path.write_text(log, encoding="utf-8")
+            samples = parse_log(log_path, active_area_cm2=0.8)
+
+        self.assertEqual(len(samples), 2)
+        self.assertEqual(samples[0].source, "stable-point-controller")
+        self.assertFalse(samples[0].accepted)
+        self.assertTrue(samples[1].accepted)
+        curve = last_sample_per_target_current(
+            [sample for sample in samples if sample.accepted], current_precision=3
+        )
+        self.assertEqual(curve[0].time, 31.0)
+
+    def test_legacy_off_target_samples_are_rejected(self) -> None:
+        log = """
+Time = 1
+galvanostatic target: 0 A/m2
+Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = -10000 A/m2, voltage = 1.0
+Time = 2
+galvanostatic target: -6000 A/m2
+Controlled boundary current (A) at x: signed = -0.4584, magnitude = 0.4584, current density = -5730 A/m2, voltage = 1.02
+"""
+
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = Path(directory) / "log.run"
+            log_path.write_text(log, encoding="utf-8")
+            samples = parse_log(log_path, active_area_cm2=0.8)
+
+        accepted, rejected = split_target_convergence(samples, 0.05, 100.0)
+        self.assertEqual([sample.time for sample in accepted], [2.0])
+        self.assertEqual([sample.time for sample in rejected], [1.0])
+
     def test_ibar_is_used_only_when_boundary_current_is_absent(self) -> None:
         log = """
 Time = 1
