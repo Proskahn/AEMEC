@@ -90,6 +90,14 @@ def check_static(case: Path, errors: list[str]) -> None:
         if not has_entry(text, "object", field_name):
             errors.append(f"{relative_path} must declare 'object {field_name};'")
 
+    anion_schemes = read(case / "system/phiAnion/fvSchemes", errors)
+    for entry in ("div(phiH2Drag,cH2)", "div(phiH2Conv,cH2)"):
+        if entry not in anion_schemes:
+            errors.append(
+                "system/phiAnion/fvSchemes is missing the hydrogen-transport "
+                f"convection scheme '{entry}'"
+            )
+
     anion_properties = read(case / "constant/phiAnion/regionProperties", errors)
     if "lambdaSigma" in anion_properties or "lambdaName" in anion_properties:
         errors.append("constant/phiAnion/regionProperties must not use the PEM hydration-based lambdaSigma model")

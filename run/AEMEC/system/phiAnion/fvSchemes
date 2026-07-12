@@ -29,8 +29,9 @@ gradSchemes
 
 divSchemes
 {
-    default         none;
-    div(phiH2Drag,cH2) Gauss upwind;
+    default              none;
+    div(phiH2Drag,cH2)   Gauss upwind;
+    div(phiH2Conv,cH2)   Gauss upwind;
 }
 
 laplacianSchemes
