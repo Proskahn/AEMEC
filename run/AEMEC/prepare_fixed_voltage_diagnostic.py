@@ -209,7 +209,7 @@ def main() -> None:
             encoding="utf-8",
         )
     for path in (
-        output / "constant/cathode/combustionProperties",
+        output / "constant/cathode/combustionProperties.gas",
         output / "constant/anode/combustionProperties.gas",
     ):
         path.write_text(enable_diagnostics(path.read_text(encoding="utf-8")), encoding="utf-8")

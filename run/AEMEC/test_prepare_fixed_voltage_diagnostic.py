@@ -35,7 +35,7 @@ class FixedVoltageDiagnosticTests(unittest.TestCase):
             self.assertRegex(controller, r"galvanostatic\s*\{\s*active\s+false\s*;")
             self.assertIn("value   1.5;", controller)
             self.assertIn("electrochemicalDiagnostics true;", (
-                output / "constant/cathode/combustionProperties"
+                output / "constant/cathode/combustionProperties.gas"
             ).read_text(encoding="utf-8"))
             self.assertIn("electricDiagnostics true;", (
                 output / "constant/phiAnion/regionProperties"

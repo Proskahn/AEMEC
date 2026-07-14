@@ -498,6 +498,7 @@ def check_static(case: Path, errors: list[str]) -> None:
         "0.orig/cathode/T.gas",
         "0.orig/cathode/U.gas",
         "0.orig/cathode/alpha.gas",
+        "constant/cathode/combustionProperties.gas",
         "constant/cathode/diffusivityModel.gas",
         "constant/cathode/thermophysicalProperties.gas",
         "constant/cathode/turbulenceProperties.gas",
@@ -683,7 +684,10 @@ def check_static(case: Path, errors: list[str]) -> None:
 
     is_diagnostic = voltage_type == "constant"
 
-    for relative_path in ("constant/anode/combustionProperties.gas", "constant/cathode/combustionProperties"):
+    for relative_path in (
+        "constant/anode/combustionProperties.gas",
+        "constant/cathode/combustionProperties.gas",
+    ):
         text = read(case / relative_path, errors)
         if "jMax            5.0e8;" not in text or "exponentLimit   50;" not in text:
             errors.append(f"{relative_path} must define the proof-of-concept Butler-Volmer current bound")

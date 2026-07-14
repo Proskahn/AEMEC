@@ -50,7 +50,9 @@ class AemecCaseTests(unittest.TestCase):
         cathode = (case / "constant/cathode/regionProperties").read_text(encoding="utf-8")
         anode = (case / "constant/anode/regionProperties").read_text(encoding="utf-8")
         crossover = (case / "constant/phiAnion/regionProperties").read_text(encoding="utf-8")
-        cathode_reaction = (case / "constant/cathode/combustionProperties").read_text(encoding="utf-8")
+        cathode_reaction = (
+            case / "constant/cathode/combustionProperties.gas"
+        ).read_text(encoding="utf-8")
         anode_reaction = (case / "constant/anode/combustionProperties.gas").read_text(encoding="utf-8")
         cathode_diffusivity = (case / "constant/cathode/diffusivityModel.gas").read_text(encoding="utf-8")
         anode_diffusivity = (case / "constant/anode/diffusivityModel.gas").read_text(encoding="utf-8")
