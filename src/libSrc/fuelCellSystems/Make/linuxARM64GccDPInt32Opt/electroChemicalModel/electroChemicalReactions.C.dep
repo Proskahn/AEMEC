@@ -907,6 +907,8 @@ $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fixedValueFvsPatchField.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fixedValueFvsPatchField.C \
 lnInclude/dissolvedModel.H \
 lnInclude/dissolvedModelI.H \
+lnInclude/hydrogenCrossoverModel.H \
+lnInclude/hydrogenCrossoverModelI.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/constants.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/fundamentalConstants.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/universalConstants.H \
