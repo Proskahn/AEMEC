@@ -72,6 +72,16 @@ def matching_brace(text: str, opening: int) -> int:
     raise ValueError("unterminated dictionary block")
 
 
+def dictionary_block(text: str, name: str) -> str:
+    clean = without_comments(text)
+    match = re.search(rf"\b{re.escape(name)}\b\s*\{{", clean)
+    if not match:
+        raise ValueError(f"missing dictionary block '{name}'")
+    opening = clean.find("{", match.start())
+    closing = matching_brace(clean, opening)
+    return clean[opening + 1 : closing]
+
+
 def parse_boundary_field(text: str) -> list[tuple[str, dict[str, str]]]:
     clean = without_comments(text)
     match = re.search(r"\bboundaryField\s*\{", clean)
@@ -593,29 +603,85 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(
                 "constant/phiEAnode/regionProperties must use maxVoltageStep 0.01 for the POC scan"
             )
-    else:
-        if "type    constant;" not in anode_controller or not re.search(
-            r"(?m)^\s*value\s+[-+0-9.eE]+\s*;", anode_controller
-        ):
+
+    voltage_type: str | None = None
+    voltage_pairs: list[tuple[float, float]] = []
+    if control_mode is not None and control_mode.group(1) == "false":
+        try:
+            voltage_block = dictionary_block(anode_controller, "voltage")
+        except ValueError as error:
+            errors.append(f"constant/phiEAnode/regionProperties: {error}")
+            voltage_block = ""
+        type_match = re.search(r"(?m)^\s*type\s+(\w+)\s*;", voltage_block)
+        voltage_type = type_match.group(1) if type_match else None
+        if voltage_type == "constant":
+            if not re.search(
+                r"(?m)^\s*value\s+[-+0-9.eE]+\s*;", voltage_block
+            ):
+                errors.append(
+                    "fixed-voltage diagnostic must define a constant collector voltage"
+                )
+        elif voltage_type == "table":
+            voltage_pairs = [
+                (float(time_value), float(voltage_value))
+                for time_value, voltage_value in re.findall(
+                    r"\(\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)\s*\)",
+                    voltage_block,
+                )
+            ]
+            if len(voltage_pairs) < 2:
+                errors.append(
+                    "potentiostatic polarization scan must define at least two voltage-table entries"
+                )
+            elif any(
+                second[0] <= first[0]
+                for first, second in zip(voltage_pairs, voltage_pairs[1:])
+            ):
+                errors.append(
+                    "potentiostatic polarization voltage-table times must increase strictly"
+                )
+            limits = re.search(
+                r"(?s)\bminVoltage\s+([-+0-9.eE]+)\s*;.*?"
+                r"\bmaxVoltage\s+([-+0-9.eE]+)\s*;",
+                without_comments(anode_controller),
+            )
+            if limits and any(
+                not float(limits.group(1)) <= voltage <= float(limits.group(2))
+                for _, voltage in voltage_pairs
+            ):
+                errors.append(
+                    "potentiostatic polarization voltages must stay within minVoltage/maxVoltage"
+                )
+            try:
+                curve_block = dictionary_block(
+                    anode_controller, "polarizationCurve"
+                )
+            except ValueError:
+                curve_block = ""
+            if curve_block and not has_entry(curve_block, "active", "false"):
+                errors.append(
+                    "potentiostatic polarization scan must disable polarizationCurve feedback"
+                )
+        elif voltage_block:
             errors.append(
-                "fixed-voltage diagnostic must define a constant collector voltage"
+                "galvanostatic.active=false requires voltage type constant or table"
             )
 
     control_run = read(case / "system/controlDict.run", errors)
-    is_diagnostic = control_mode is not None and control_mode.group(1) == "false"
-    if is_diagnostic:
-        end_match = re.search(r"(?m)^\s*endTime\s+([-+0-9.eE]+)\s*;", control_run)
-        write_match = re.search(r"(?m)^\s*writeInterval\s+([-+0-9.eE]+)\s*;", control_run)
-        if not end_match or not write_match or float(end_match.group(1)) <= 0.0:
-            errors.append("fixed-voltage diagnostic must define positive endTime and writeInterval")
-        elif float(end_match.group(1)) != float(write_match.group(1)):
-            errors.append("fixed-voltage diagnostic must write the final endTime state")
-    else:
-        for entry in ("endTime         120;", "writeInterval   120;"):
-            if entry not in control_run:
-                errors.append(
-                    f"system/controlDict.run is missing expected run setting '{entry}'"
-                )
+    end_match = re.search(r"(?m)^\s*endTime\s+([-+0-9.eE]+)\s*;", control_run)
+    write_match = re.search(r"(?m)^\s*writeInterval\s+([-+0-9.eE]+)\s*;", control_run)
+    if not end_match or not write_match or float(end_match.group(1)) <= 0.0:
+        errors.append("system/controlDict.run must define positive endTime and writeInterval")
+    elif float(end_match.group(1)) != float(write_match.group(1)):
+        errors.append("system/controlDict.run must write the final endTime state")
+    elif voltage_type == "table" and voltage_pairs and abs(
+        voltage_pairs[-1][0] - float(end_match.group(1))
+    ) > 1e-9:
+        errors.append(
+            "potentiostatic voltage table must end at system/controlDict.run endTime"
+        )
+
+    is_diagnostic = voltage_type == "constant"
 
     for relative_path in ("constant/anode/combustionProperties.gas", "constant/cathode/combustionProperties"):
         text = read(case / relative_path, errors)

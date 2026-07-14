@@ -103,6 +103,15 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("anodeInterface", crossover)
         self.assertIn("UMembrane       (0 0 0);", crossover)
         self.assertIn("polarizationCurve", anode_controller)
+        self.assertRegex(
+            anode_controller,
+            r"galvanostatic\s*\{\s*active\s+false\s*;",
+        )
+        self.assertRegex(
+            anode_controller,
+            r"voltage\s*\{\s*type\s+table\s*;",
+        )
+        self.assertIn("(90      2.3)", anode_controller)
         self.assertIn("targets                     (-6000 -9000 -12000 -15000);", anode_controller)
         self.assertIn("minimumHoldDuration         15;", anode_controller)
         self.assertIn("maxVoltageStep 0.01;", anode_controller)
@@ -146,6 +155,10 @@ class AemecCaseTests(unittest.TestCase):
             self.assertRegex(
                 controller,
                 r"polarizationCurve\s*\{[\s\S]*?active\s+false\s*;",
+            )
+            self.assertRegex(
+                controller,
+                r"galvanostatic\s*\{\s*active\s+true\s*;",
             )
 
     def test_parser_uses_post_solve_boundary_current_and_final_window(self) -> None:

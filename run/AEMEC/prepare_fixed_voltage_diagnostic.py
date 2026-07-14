@@ -55,24 +55,40 @@ def configure_electrode(text: str, voltage: float) -> str:
     curve = set_first_switch(block[curve_start:curve_end], False)
     block = block[:curve_start] + curve + block[curve_end:]
 
-    voltage_block = (
-        "\n    // Fixed-voltage diagnostic; galvanostatic feedback is disabled.\n"
-        "    voltage\n"
+    voltage_definition = (
+        "voltage\n"
         "    {\n"
+        "        // Fixed-voltage diagnostic; feedback is disabled.\n"
         "        type    constant;\n"
         f"        value   {voltage:g};\n"
-        "    }\n"
+        "    }"
     )
-    rewritten, count = re.subn(
-        r"\n(\s*ibar\s*\{)",
-        voltage_block + r"\n\1",
+    block = re.sub(
+        r"\n\s*// Default polarization scan:[^\n]*\n"
+        r"\s*// measure the resulting area-averaged current density\.\n",
+        "\n",
         block,
         count=1,
     )
-    if count != 1:
-        raise ValueError("Cannot insert the fixed-voltage function")
+    if re.search(r"\bvoltage\b\s*\{", block):
+        voltage_start, voltage_end = named_block(block, "voltage")
+        block = (
+            block[:voltage_start]
+            + voltage_definition
+            + block[voltage_end:]
+        )
+    else:
+        rewritten, count = re.subn(
+            r"\n(\s*ibar\s*\{)",
+            "\n    " + voltage_definition + r"\n\n\1",
+            block,
+            count=1,
+        )
+        if count != 1:
+            raise ValueError("Cannot insert the fixed-voltage function")
+        block = rewritten
 
-    return text[:start] + rewritten + text[end:]
+    return text[:start] + block + text[end:]
 
 
 def configure_control_dict(text: str, end_time: float) -> str:

@@ -1,6 +1,19 @@
 # Polarization-curve control
 
-## What was wrong with the old scan
+## Default: one-run voltage sweep
+
+The default case uses potentiostatic control (`galvanostatic.active false`) to
+avoid feedback tuning. A `voltage` table holds `1.3, 1.5, 1.7, 1.9, 2.1,` and
+`2.3 V` for 15 seconds each. The current at the end of each plateau supplies
+one polarization point. The `ibar` table and `polarizationCurve.targets` remain
+in the dictionary for optional galvanostatic and optimizer runs, but neither is
+active during the default voltage sweep.
+
+This mode is intentionally time-based. Before accepting the resulting curve,
+check that the collector current and residuals have settled near the end of
+each hold. Increase the hold duration if they have not.
+
+## Why the former current scan did not produce a curve
 
 The former controller updated its voltage in `electric::correct()` using the
 integral of the volumetric reaction-source field `J`. That happens before the
@@ -22,7 +35,7 @@ a controller current limit. The kinetic model separately bounds its local
 volumetric source at `jMax = 5e8 A/m3`; it now reports lower- and upper-clipped
 cell counts every update.
 
-## Corrected sequence
+## Optional convergence-based galvanostatic sequence
 
 Each outer iteration now performs:
 
@@ -36,7 +49,7 @@ retain active target and previously applied collector voltage
 → advance to the next target only after acceptance
 ```
 
-The stable controller is configured in
+The optional stable current controller is configured in
 `constant/phiEAnode/regionProperties` under `galvanostatic.polarizationCurve`:
 
 | Parameter | Meaning | AEMEC starting value |
@@ -68,29 +81,30 @@ clipping.
 
 ## Running and plotting
 
-After rebuilding the solver, run the case long enough for the stable holds:
+Run the default voltage sweep:
 
 ```bash
-cd /root/work/AEMEC
-./src/Allwmake
+cd /Users/zhuang/AEMEC
 cd run/AEMEC
 make clear
 make mesh
 make srun
 ```
 
-The supplied `controlDict.run` uses a 120 s safety ceiling. Once the last
-target is accepted, the controller requests `Time::saWriteNow`, so
-`openFuelCell` completes the current multi-region step, writes all regions,
-and exits normally. Increase `endTime` only if the final point has not been
-accepted by 120 s; the controller will not advance an unsettled target.
+The supplied `controlDict.run` ends at 90 s, matching the final voltage-table
+entry. Increase both the plateau times and `endTime` if 15 s is insufficient
+for convergence.
 
-The extractor now plots only controller records marked `accepted: true`:
+From the repository root, group the logged boundary-current records by voltage:
 
 ```bash
-python3 visualization/polarized_curve.py --log run/AEMEC/log.run
+python3 visualization/polarized_curve.py \
+    --log run/AEMEC/log.run \
+    --scan-mode voltage \
+    --hold-duration 15
 ```
 
-Use `--all-samples` only to inspect controller transients. For old logs that
-do not contain the new controller record, the script retains only samples that
-meet the same 5% target-current check by default.
+For an optional galvanostatic run, set `galvanostatic.active true`, enable
+`polarizationCurve`, and choose reachable current targets. In that mode the
+extractor plots only controller records marked `accepted: true`; use
+`--all-samples` only to inspect rejected transients.

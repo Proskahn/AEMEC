@@ -58,19 +58,28 @@ for the assumptions, dictionary contract, and remaining limitations. Validate
 diffusion/drag parameters and the printed conservation line at a reference
 thickness before running an optimization.
 
-The default `phiEAnode` configuration is a stable-point polarization scan,
-not a fixed-time voltage/current ramp. It advances each current target only
-after the post-solve collector current is on target and current/voltage are
-stable. Points at either voltage bound are flagged and not accepted. See
-[polarization control](docs/polarization-control.md). The optimizer disables
-this multi-target mode in its isolated trial case and retains one direct target
-hold per CFD evaluation.
+The default `phiEAnode` configuration is a one-run potentiostatic polarization
+scan. It holds `1.3, 1.5, 1.7, 1.9, 2.1, 2.3 V` for 15 s each and records the
+resulting collector current density. The optional convergence-based
+galvanostatic controller remains available for known reachable current targets,
+and the optimizer explicitly enables that mode for each isolated trial. See
+[polarization control](docs/polarization-control.md).
 
 ## Run
 
 ```bash
 make mesh
 make srun
+```
+
+Then, from the repository root, extract the final sample from every voltage
+hold:
+
+```bash
+python3 visualization/polarized_curve.py \
+    --log run/AEMEC/log.run \
+    --scan-mode voltage \
+    --hold-duration 15
 ```
 
 After changing C++ source, rebuild once with `./src/Allwmake` before these
@@ -84,5 +93,5 @@ Legacy meshes remain incompatible with the renamed regions, and existing
 result directories are incompatible with the renamed cathode gas phase.
 Regenerate the mesh after rebuilding the solver.
 
-For a fixed-voltage diagnostic that preserves the normal polarization case,
-see [the diagnostic guide](docs/fixed-voltage-diagnostic.md).
+For an isolated single-voltage diagnostic, see
+[the diagnostic guide](docs/fixed-voltage-diagnostic.md).

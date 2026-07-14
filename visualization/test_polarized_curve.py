@@ -7,6 +7,7 @@ from pathlib import Path
 from visualization.polarized_curve import (
     Sample,
     last_sample_per_target_current,
+    last_sample_per_voltage,
     parse_log,
     split_target_convergence,
     write_csv,
@@ -14,6 +15,29 @@ from visualization.polarized_curve import (
 
 
 class PolarizationCurveTests(unittest.TestCase):
+    def test_potentiostatic_scan_keeps_last_sample_at_each_voltage(self) -> None:
+        log = """
+Time = 14.9
+Controlled boundary current (A) at x: signed = -0.1, magnitude = 0.1, current density = -1250 A/m2, voltage = 1.3
+Time = 15
+Controlled boundary current (A) at x: signed = -0.12, magnitude = 0.12, current density = -1500 A/m2, voltage = 1.3
+Time = 29.9
+Controlled boundary current (A) at x: signed = -0.2, magnitude = 0.2, current density = -2500 A/m2, voltage = 1.5
+Time = 30
+Controlled boundary current (A) at x: signed = -0.24, magnitude = 0.24, current density = -3000 A/m2, voltage = 1.5
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = Path(directory) / "log.run"
+            log_path.write_text(log, encoding="utf-8")
+            samples = parse_log(log_path, active_area_cm2=0.8)
+
+        curve = last_sample_per_voltage(samples, voltage_precision=3)
+        self.assertEqual([sample.time for sample in curve], [15.0, 30.0])
+        self.assertEqual(
+            [sample.current_density_a_m2 for sample in curve],
+            [-1500.0, -3000.0],
+        )
+
     def test_boundary_current_density_and_galvanostatic_targets_are_extracted(self) -> None:
         log = """
 Time = 1

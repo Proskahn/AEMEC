@@ -328,12 +328,29 @@ def _set_polarization_curve_active(text: str, active: bool) -> str:
     return text[:start] + rewritten + text[end:]
 
 
+def _set_galvanostatic_active(text: str, active: bool) -> str:
+    """Select current control in an optimizer scratch case."""
+    start, end = _named_block_span(text, "galvanostatic")
+    block = text[start:end]
+    replacement = "true" if active else "false"
+    rewritten, count = re.subn(
+        r"(?m)^(\s*active\s+)(?:true|false)(\s*;)",
+        lambda match: match.group(1) + replacement + match.group(2),
+        block,
+        count=1,
+    )
+    if count != 1:
+        raise OptimizationError("Cannot update galvanostatic active switch")
+    return text[:start] + rewritten + text[end:]
+
+
 def configure_target_hold(case_path: Path, config: AemecEvaluationConfig) -> TargetHold:
     """Configure either a direct-target fast run or the original ramped run."""
     config.validate()
     # Galvanostatic control is applied at the physical oxygen/anode collector.
     region_path = case_path / "constant/phiEAnode/regionProperties"
     text = region_path.read_text(encoding="utf-8")
+    text = _set_galvanostatic_active(text, True)
     text = _set_polarization_curve_active(text, False)
     gs_start, gs_end = _named_block_span(text, "galvanostatic")
     ibar_start_rel, ibar_end_rel = _named_block_span(text[gs_start:gs_end], "ibar")
