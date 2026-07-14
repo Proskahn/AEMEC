@@ -80,9 +80,9 @@ hydrogenCrossover
         anodeInterface
         {
             type                henry;
-            gasPhase            oxygen;
+            gasPhase            gas;
             // Same convention as cathodeInterface. H2 is a trace component
-            // of the anode oxygen phase and rises through conservative
+            // of the anode gas phase and rises through conservative
             // crossover coupling.
             henryCoefficient    7.8e-6;
         }

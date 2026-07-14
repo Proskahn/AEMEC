@@ -12,7 +12,7 @@ FoamFile
     arch        "LSB;label=32;scalar=64";
     class       volScalarField;
     location    "0/anode";
-    object      alpha.oxygen;
+    object      alpha.gas;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -32,7 +32,7 @@ boundaryField
     anodeOutlet
     {
         type            inletOutlet;
-        phi             phi.oxygen;
+        phi             phi.gas;
         inletValue      uniform 1e-4;
         value           uniform 1e-4;
     }

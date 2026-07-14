@@ -5,47 +5,66 @@
     \\  /    A nd           | Copyright held by the original author
      \\/     M anipulation  |
 \*---------------------------------------------------------------------------*/
+
 FoamFile
 {
-    version     2.0;
-    format      ascii;
-    class       volVectorField;
-    location    "0/anode";
-    object      U.oxygen;
+    version         2.0;
+    format          ascii;
+    class           volScalarField;
+    object          yH2O;
 }
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (0 0 0);
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0.04234;
 
 boundaryField
 {
     anodeInlet
     {
         type            fixedValue;
-        value           uniform (0 0 0);
-    }
-    anodeOutlet
-    {
-        type            pressureInletOutletVelocity;
-        phi             phi.oxygen;
         value           $internalField;
     }
+
+    anodeOutlet
+    {
+        type            inletOutlet;
+        phi             phi.gas;
+        inletValue      $internalField;
+        value           $internalField;
+    }
+
     anodeSides
     {
-        type            fixedValue;
-        value           uniform (0 0 0);
+        type            zeroGradient;
     }
+
+    anodeInletSides
+    {
+        type            zeroGradient;
+    }
+
+    anodeOutletSides
+    {
+        type            zeroGradient;
+    }
+
+    anodeGDLSides
+    {
+        type            zeroGradient;
+    }
+
     anode_to_electrolyte
     {
-        type            fixedValue;
-        value           uniform (0 0 0);
+        type            zeroGradient;
     }
+
     anode_to_interconnect
     {
-        type            fixedValue;
-        value           uniform (0 0 0);
+        type            zeroGradient;
     }
 }
 

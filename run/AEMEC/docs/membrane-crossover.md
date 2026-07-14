@@ -9,8 +9,8 @@ optimization decisions.
 
 The solver keeps these quantities distinct:
 
-- `H2.gas` is H2 in the cathode `gas` phase, which also contains H2O vapour.
-- `H2.oxygen` is gas-phase H2 in the anode `oxygen` phase. It begins as a
+- `cathode/H2.gas` is H2 in the cathode `gas` phase, which also contains H2O vapour.
+- `anode/H2.gas` is H2 in the anode `gas` phase. It begins as a
   trace component and receives crossover H2.
 - `cH2` is dissolved H2 in the membrane, in `mol/m3`.
 

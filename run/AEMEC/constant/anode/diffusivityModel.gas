@@ -11,7 +11,7 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "constant";
-    object      diffusivityModel.oxygen;
+    object      diffusivityModel.gas;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -21,7 +21,7 @@ anodeChannel
 
     binaryFSGCoeffs
     {
-        Tname       T.oxygen;
+        Tname       T.gas;
         pName       p;
         speciesA    O2;
         speciesB    H2O;
@@ -34,9 +34,9 @@ anodeGDL
 
     porousFSGCoeffs
     {
-        Tname       T.oxygen;
+        Tname       T.gas;
         pName       p;
-        alphaName   alpha.oxygen;
+        alphaName   alpha.gas;
         speciesA    O2;     // diffusing species
         speciesB    H2O;     // background species
         porosity    0.7;
@@ -52,9 +52,9 @@ anodeMPL
 
     porousFSGCoeffs
     {
-        Tname       T.oxygen;
+        Tname       T.gas;
         pName       p;
-        alphaName   alpha.oxygen;
+        alphaName   alpha.gas;
         speciesA    O2;     // diffusing species
         speciesB    H2O;     // background species
         porosity    0.4;
@@ -70,9 +70,9 @@ anodeCL
 
     porousFSGCoeffs
     {
-        Tname       T.oxygen;
+        Tname       T.gas;
         pName       p;
-        alphaName   alpha.oxygen;
+        alphaName   alpha.gas;
         speciesA    O2;     // diffusing species
         speciesB    H2O;     // background species
         porosity    0.3;

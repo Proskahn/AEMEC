@@ -10,20 +10,26 @@ FoamFile
 {
     version         2.0;
     format          ascii;
+
+    root            "";
+    case            "";
+    instance        "";
+    local           "";
+
     class           volScalarField;
-    object          yO2;
+    object          T;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
-dimensions      [0 0 0 0 0 0 0];
+dimensions      [0 0 0 1 0 0 0];
 
-internalField   uniform 0.95766;
-
+internalField   uniform 313.15;
 
 boundaryField
 {
+
     anodeInlet
     {
         type            fixedValue;
@@ -33,7 +39,7 @@ boundaryField
     anodeOutlet
     {
         type            inletOutlet;
-        phi             phi.oxygen;
+        phi             phi.gas;
         inletValue      $internalField;
         value           $internalField;
     }
@@ -61,11 +67,17 @@ boundaryField
     anode_to_interconnect
     {
         type            zeroGradient;
+//        type            copiedFixedValue;
+//        sourceFieldName T.water;
+//        value           $internalField;
     }
 
-    anode_to_electrolyte
+    anode_to_electrolyte //anodeGDL
     {
         type            zeroGradient;
+//        type            copiedFixedValue;
+//        sourceFieldName T.water;
+//        value           $internalField;
     }
 }
 

@@ -106,7 +106,7 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
     ),
     anodeGasPhase_
     (
-        interfaceWord(dict_, "anodeInterface", "gasPhase", "oxygen")
+        interfaceWord(dict_, "anodeInterface", "gasPhase", "gas")
     ),
     xi_("xi", dimless, dict_),
     cElec_("cElec", dimMoles/dimVol, dict_),

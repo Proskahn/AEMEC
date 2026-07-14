@@ -60,13 +60,23 @@ def check_static(case: Path, errors: list[str]) -> None:
         if region not in region_properties:
             errors.append(f"constant/regionProperties does not declare region '{region}'")
 
-    expected_phases = {"anode": "phases (oxygen water)", "cathode": "phases (gas water)"}
+    expected_phases = {"anode": "phases (gas water)", "cathode": "phases (gas water)"}
     for region, phase_line in expected_phases.items():
         text = read(case / "constant" / region / "regionProperties", errors)
         if phase_line not in text:
             errors.append(f"constant/{region}/regionProperties must contain '{phase_line}'")
 
     for relative_path in (
+        "0.orig/anode/H2.gas",
+        "0.orig/anode/H2O.gas",
+        "0.orig/anode/O2.gas",
+        "0.orig/anode/T.gas",
+        "0.orig/anode/U.gas",
+        "0.orig/anode/alpha.gas",
+        "constant/anode/combustionProperties.gas",
+        "constant/anode/diffusivityModel.gas",
+        "constant/anode/thermophysicalProperties.gas",
+        "constant/anode/turbulenceProperties.gas",
         "0.orig/cathode/H2.gas",
         "0.orig/cathode/H2O.gas",
         "0.orig/cathode/T.gas",
@@ -88,7 +98,7 @@ def check_static(case: Path, errors: list[str]) -> None:
             if not has_dictionary_block(text, patch):
                 errors.append(f"{relative_path} is missing boundary entry '{patch}'")
 
-    for gas, liquid, region in (("oxygen", "water", "anode"), ("gas", "water", "cathode")):
+    for gas, liquid, region in (("gas", "water", "anode"), ("gas", "water", "cathode")):
         gas_field = read(case / f"0.orig/{region}/alpha.{gas}", errors)
         liquid_field = read(case / f"0.orig/{region}/alpha.{liquid}", errors)
         if "internalField   uniform 1e-4;" not in gas_field:
@@ -121,7 +131,6 @@ def check_static(case: Path, errors: list[str]) -> None:
         "cathodeFluidRegion  cathode;",
         "anodeFluidRegion    anode;",
         "hydrogenSpecies     H2;",
-        "gasPhase            gas;",
         "diffusivityModel    porosityTortuosity;",
         "dragModel       constant;",
         "UMembrane       (0 0 0);",
@@ -130,19 +139,23 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(
                 f"constant/phiAnion/regionProperties is missing crossover entry '{entry}'"
             )
+    if anion_properties.count("gasPhase            gas;") != 2:
+        errors.append(
+            "constant/phiAnion/regionProperties must use the gas phase at both crossover interfaces"
+        )
     for interface in ("cathodeInterface", "anodeInterface"):
         if not has_dictionary_block(anion_properties, interface) or "henryCoefficient" not in anion_properties:
             errors.append(
                 f"constant/phiAnion/regionProperties must configure Henry interface '{interface}'"
             )
 
-    anode_thermo = read(case / "constant/anode/thermophysicalProperties.oxygen", errors)
+    anode_thermo = read(case / "constant/anode/thermophysicalProperties.gas", errors)
     if not re.search(r"species\s*\([^)]*\bH2\b", anode_thermo, re.DOTALL):
-        errors.append("constant/anode/thermophysicalProperties.oxygen must include H2")
-    anode_h2 = read(case / "0.orig/anode/H2.oxygen", errors)
+        errors.append("constant/anode/thermophysicalProperties.gas must include H2")
+    anode_h2 = read(case / "0.orig/anode/H2.gas", errors)
     for patch in ("anodeInlet", "anodeOutlet", "anode_to_electrolyte", "anode_to_interconnect"):
         if not has_dictionary_block(anode_h2, patch):
-            errors.append(f"0.orig/anode/H2.oxygen is missing boundary entry '{patch}'")
+            errors.append(f"0.orig/anode/H2.gas is missing boundary entry '{patch}'")
     anode_water_velocity = read(case / "0.orig/anode/U.water", errors)
     if "uniform (0.01 0 0)" not in anode_water_velocity:
         errors.append("0.orig/anode/U.water must provide the aqueous-KOH feed at (0.01 0 0) m/s")
@@ -198,7 +211,7 @@ def check_static(case: Path, errors: list[str]) -> None:
                     f"system/controlDict.run is missing expected run setting '{entry}'"
                 )
 
-    for relative_path in ("constant/anode/combustionProperties.oxygen", "constant/cathode/combustionProperties"):
+    for relative_path in ("constant/anode/combustionProperties.gas", "constant/cathode/combustionProperties"):
         text = read(case / relative_path, errors)
         if "jMax            5.0e8;" not in text or "exponentLimit   50;" not in text:
             errors.append(f"{relative_path} must define the proof-of-concept Butler-Volmer current bound")
@@ -226,7 +239,7 @@ def check_static(case: Path, errors: list[str]) -> None:
                 errors.append(f"system/{region}/topoSetDict does not generate cellZone '{zone}'")
 
     diffusion_zones = {"anode": "anodeChannel", "cathode": "cathodeChannel"}
-    diffusion_files = {"anode": "diffusivityModel.oxygen", "cathode": "diffusivityModel.gas"}
+    diffusion_files = {"anode": "diffusivityModel.gas", "cathode": "diffusivityModel.gas"}
     for region, zone in diffusion_zones.items():
         text = read(case / "constant" / region / diffusion_files[region], errors)
         if not has_dictionary_block(text, zone):
@@ -268,7 +281,7 @@ def check_generated_mesh(case: Path, errors: list[str]) -> None:
                         f"initial field {field.relative_to(case)} is missing boundary entry '{patch}'"
                     )
 
-    for gas, liquid, region in (("oxygen", "water", "anode"), ("gas", "water", "cathode")):
+    for gas, liquid, region in (("gas", "water", "anode"), ("gas", "water", "cathode")):
         gas_field = read(case / f"0/{region}/alpha.{gas}", errors)
         liquid_field = read(case / f"0/{region}/alpha.{liquid}", errors)
         if "internalField   uniform 1e-4;" not in gas_field:
@@ -280,10 +293,10 @@ def check_generated_mesh(case: Path, errors: list[str]) -> None:
                 f"generated 0/{region}/alpha.{liquid} is stale; run 'make mesh' to apply the complementary liquid fraction"
             )
 
-    anode_h2 = read(case / "0/anode/H2.oxygen", errors)
+    anode_h2 = read(case / "0/anode/H2.gas", errors)
     if "internalField   uniform 1e-12;" not in anode_h2:
         errors.append(
-            "generated 0/anode/H2.oxygen is stale; run 'make mesh' to apply the anode H2 crossover field"
+            "generated 0/anode/H2.gas is stale; run 'make mesh' to apply the anode H2 crossover field"
         )
 
 

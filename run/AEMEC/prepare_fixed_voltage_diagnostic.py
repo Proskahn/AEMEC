@@ -194,7 +194,7 @@ def main() -> None:
         )
     for path in (
         output / "constant/cathode/combustionProperties",
-        output / "constant/anode/combustionProperties.oxygen",
+        output / "constant/anode/combustionProperties.gas",
     ):
         path.write_text(enable_diagnostics(path.read_text(encoding="utf-8")), encoding="utf-8")
     anion_properties = output / "constant/phiAnion/regionProperties"

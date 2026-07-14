@@ -17,10 +17,10 @@ FoamFile
 
 defaultFieldValues
 (
-    volScalarFieldValue alpha.oxygen 0.01
+    volScalarFieldValue alpha.gas 0.01
     volScalarFieldValue alpha.water 0.99
 
-//    volVectorFieldValue U.oxygen (0.1 0 0)
+//    volVectorFieldValue U.gas (0.1 0 0)
 //    volVectorFieldValue U.water (0.1 0 0)
 );
 
@@ -31,10 +31,10 @@ regions
         box (-40 -12.0 0) (40 12.0 0.255e-3);
         fieldValues
         (
-            volScalarFieldValue alpha.oxygen 0.7
+            volScalarFieldValue alpha.gas 0.7
             volScalarFieldValue alpha.water 0.3
 
-//    	    volVectorFieldValue U.oxygen (0 0 0)
+//    	    volVectorFieldValue U.gas (0 0 0)
 //    	    volVectorFieldValue U.water (0 0 0)
         );
     }

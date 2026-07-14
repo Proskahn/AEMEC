@@ -18,7 +18,7 @@ FoamFile
 type          interfaceCompositionPhaseChangeTwoPhaseSystem;
 //type          basicTwoPhaseSystem;
 
-phases (oxygen water);
+phases (gas water);
 
 LTS
 {
@@ -32,7 +32,8 @@ LTS
     maxDeltaT           1;
 }
 
-oxygen{
+gas
+{
     type            reactingPhaseModel;
     diameterModel   isothermal;
     isothermalCoeffs
@@ -61,8 +62,8 @@ blending
     default
     {
         type            linear;
-        minFullyContinuousAlpha.oxygen 0.7;
-        minPartlyContinuousAlpha.oxygen 0.3;
+        minFullyContinuousAlpha.gas 0.7;
+        minPartlyContinuousAlpha.gas 0.3;
         minFullyContinuousAlpha.water 0.7;
         minPartlyContinuousAlpha.water 0.3;
     }
@@ -70,8 +71,8 @@ blending
     heatTransfer
     {
         type            linear;
-        minFullyContinuousAlpha.oxygen 1;
-        minPartlyContinuousAlpha.oxygen 0;
+        minFullyContinuousAlpha.gas 1;
+        minPartlyContinuousAlpha.gas 0;
         minFullyContinuousAlpha.water 1;
         minPartlyContinuousAlpha.water 0;
     }
@@ -84,7 +85,7 @@ blending
 
 surfaceTension
 (
-    (oxygen and water)
+    (gas and water)
     {
         type            constant;
         sigma           0.07;
@@ -93,13 +94,13 @@ surfaceTension
 
 aspectRatio
 (
-    (oxygen in water)
+    (gas in water)
     {
         type            constant;
         E0              1.0;
     }
 
-    (water in oxygen)
+    (water in gas)
     {
         type            constant;
         E0              1.0;
@@ -108,7 +109,7 @@ aspectRatio
 
 drag
 (
-    (oxygen in water)
+    (gas in water)
     {
         type            SchillerNaumann;
         residualRe      1e-3;
@@ -118,7 +119,7 @@ drag
         }
     }
 
-    (water in oxygen)
+    (water in gas)
     {
         type            SchillerNaumann;
         residualRe      1e-3;
@@ -131,13 +132,13 @@ drag
 
 virtualMass
 (
-//     (oxygen in water)
+//     (gas in water)
 //     {
 //         type            constantCoefficient;
 //         Cvm             0.5;
 //     }
 //
-//     (water in oxygen)
+//     (water in gas)
 //     {
 //         type            constantCoefficient;
 //         Cvm             0.5;
@@ -146,7 +147,7 @@ virtualMass
 
 interfaceComposition
 (
-    (oxygen in water)
+    (gas in water)
     {
         type saturated;
         species ( H2O );
@@ -157,7 +158,7 @@ interfaceComposition
         }
     }
 
-//     (water in oxygen)
+//     (water in gas)
 //     {
 //         type Henry;
 //         species ( H2O );
@@ -168,13 +169,13 @@ interfaceComposition
 
 heatTransfer
 (
-    (oxygen in water)
+    (gas in water)
     {
         type spherical;
         residualAlpha 1e-4;
     }
 
-    (water in oxygen)
+    (water in gas)
     {
         type RanzMarshall;
         residualAlpha 1e-4;
@@ -182,15 +183,15 @@ heatTransfer
 );
 
 
-heatTransfer.oxygen
+heatTransfer.gas
 (
-    (oxygen in water)
+    (gas in water)
     {
         type spherical;
         residualAlpha 1e-4;
     }
 
-    (water in oxygen)
+    (water in gas)
     {
         type RanzMarshall;
         residualAlpha 1e-4;
@@ -199,28 +200,28 @@ heatTransfer.oxygen
 
 heatTransfer.water
 (
-    (oxygen in water)
+    (gas in water)
     {
         type RanzMarshall;
         residualAlpha 1e-4;
     }
 
-    (water in oxygen)
+    (water in gas)
     {
         type spherical;
         residualAlpha 1e-4;
     }
 );
 
-massTransfer.oxygen
+massTransfer.gas
 (
-    (oxygen in water)
+    (gas in water)
     {
         type spherical;
         Le 1.0;
     }
 
-    (water in oxygen)
+    (water in gas)
     {
         type Frossling;
         Le 1.0;
@@ -229,13 +230,13 @@ massTransfer.oxygen
 
 massTransfer.water
 (
-    (oxygen in water)
+    (gas in water)
     {
         type Frossling;
         Le 1.0;
     }
 
-    (water in oxygen)
+    (water in gas)
     {
         type spherical;
         Le 1.0;

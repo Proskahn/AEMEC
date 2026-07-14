@@ -4,7 +4,7 @@ This case uses terminology and reaction direction for a cathode-fed anion
 exchange membrane (AEM) electrolyzer.
 
 ```text
-liquid water → cathode / H2-product side → OH- through membrane → anode / oxygen side
+liquid water → cathode / H2-product side → OH- through membrane → anode / O2-product side
 ```
 
 | Physical role | Fluid region | Electron region | Catalyst-layer zone |
@@ -18,9 +18,9 @@ Both fluid regions are two-phase:
 - `cathode` is a liquid-water/gas region and receives liquid water at
   `cathodeInlet` with `U.water = (0.01 0 0) m/s`. The phase named `gas`
   contains the H2 and H2O-vapour species.
-- `anode` is a water/oxygen region and also receives liquid aqueous KOH at
-  `anodeInlet` with `U.water = (0.01 0 0) m/s`; oxygen, water, and any
-  crossover H2 leave through `anodeOutlet`.
+- `anode` is a liquid-water/gas region and also receives liquid aqueous KOH at
+  `anodeInlet` with `U.water = (0.01 0 0) m/s`. Its `gas` phase contains O2,
+  H2O vapour, and crossover H2, which leave through `anodeOutlet`.
 
 At this level of the solver, the water phase is the aqueous-KOH carrier.
 There is no independent KOH mass-fraction, electrolyte-density, or solute
@@ -49,7 +49,7 @@ For the proof-of-concept run, both Butler–Volmer dictionaries use a numerical
 prevent an uncalibrated initial potential from destabilizing the flow solver;
 replace them with validated kinetic parameters before quantitative use.
 
-Hydrogen crossover is defined from `cathodeCL` to `anodeCL`; the anode oxygen
+Hydrogen crossover is defined from `cathodeCL` to `anodeCL`; the anode gas
 phase therefore contains a trace `H2` component. The crossover model reports
 separate `JH2Diff`, `JH2Drag`, `JH2Conv`, and `JH2Cross` fields, then removes
 the resulting molar rate from cathode gas H2 and adds the identical rate to
