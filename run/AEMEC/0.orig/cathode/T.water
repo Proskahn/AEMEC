@@ -71,7 +71,7 @@ boundaryField
         value           $internalField;
     }
 
-    cathode_to_electrolyte //anodeGDL
+    cathode_to_electrolyte // cathodeGDL
     {
         type            copiedFixedValue;
         sourceFieldName T.gas;

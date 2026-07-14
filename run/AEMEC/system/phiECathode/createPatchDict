@@ -65,8 +65,8 @@ patches
         set phiE_to_phiAnion0;
     }
 
-	{
-        name interconnect0;
+    {
+        name interconnect1;
 
         // Dictionary to construct new patch from
         patchInfo
@@ -78,7 +78,7 @@ patches
         constructFrom set;
 
         // If constructFrom = set : name of faceSet
-        set interconnect0;
+        set interconnect1;
     }
 );
 

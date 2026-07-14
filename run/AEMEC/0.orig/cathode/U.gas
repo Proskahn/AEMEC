@@ -17,14 +17,14 @@ FoamFile
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (0.01 0 0);
+internalField   uniform (0 0 0);
 
 boundaryField
 {
     cathodeInlet
     {
         type            fixedValue;
-        value           uniform (0.01 0 0);
+        value           $internalField;
     }
     cathodeOutlet
     {
@@ -35,17 +35,17 @@ boundaryField
     cathodeSides
     {
         type            fixedValue;
-        value           uniform (0 0 0);
+        value           $internalField;
     }
     cathode_to_electrolyte
     {
         type            fixedValue;
-        value           uniform (0 0 0);
+        value           $internalField;
     }
     cathode_to_interconnect
     {
         type            fixedValue;
-        value           uniform (0 0 0);
+        value           $internalField;
     }
 }
 

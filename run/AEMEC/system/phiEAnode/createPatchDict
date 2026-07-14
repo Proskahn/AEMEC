@@ -65,7 +65,7 @@ patches
     }
 
     {
-        name interconnect1;
+        name interconnect0;
 
         // Dictionary to construct new patch from
         patchInfo
@@ -77,7 +77,7 @@ patches
         constructFrom set;
 
         // If constructFrom = set : name of faceSet
-        set interconnect1;
+        set interconnect0;
     }
 );
 
