@@ -102,7 +102,7 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
     ),
     cathodeGasPhase_
     (
-        interfaceWord(dict_, "cathodeInterface", "gasPhase", "hydrogen")
+        interfaceWord(dict_, "cathodeInterface", "gasPhase", "gas")
     ),
     anodeGasPhase_
     (

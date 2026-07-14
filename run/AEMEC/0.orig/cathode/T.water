@@ -67,14 +67,14 @@ boundaryField
     cathode_to_interconnect
     {
         type            copiedFixedValue;
-        sourceFieldName T.hydrogen;
+        sourceFieldName T.gas;
         value           $internalField;
     }
 
     cathode_to_electrolyte //anodeGDL
     {
         type            copiedFixedValue;
-        sourceFieldName T.hydrogen;
+        sourceFieldName T.gas;
         value           $internalField;
     }
 }

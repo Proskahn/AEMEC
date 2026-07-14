@@ -72,7 +72,7 @@ hydrogenCrossover
         cathodeInterface
         {
             type                henry;
-            gasPhase            hydrogen;
+            gasPhase            gas;
             // c_H2,dissolved [mol/m3] = H [mol/(m3 Pa)] * p_H2 [Pa].
             henryCoefficient    7.8e-6;
         }

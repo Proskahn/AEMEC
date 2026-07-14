@@ -19,7 +19,7 @@ FoamFile
 ddtSchemes
 {
     default         localEuler;
-    ddt(alpha.hydrogen,thermo:rho.hydrogen,H2O.hydrogen)   steadyState;
+    ddt(alpha.gas,thermo:rho.gas,H2O.gas)   steadyState;
 }
 
 gradSchemes
@@ -65,7 +65,7 @@ snGradSchemes
 fluxRequired
 {
     default         no;
-    p_rgh.hydrogen;
+    p_rgh.gas;
 }
 
 

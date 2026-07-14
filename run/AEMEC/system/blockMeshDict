@@ -75,7 +75,7 @@ blocks
 
     hex (42 43 47 46 50 51 55 54) electrolyte  ( 5 40  5) simpleGrading (1 1 1)
 
-// Physical cathode: hydrogen/water channel and porous layers
+// Physical cathode: gas/water channel and porous layers
     hex (49 50 54 53 57 58 62 61) cathodeCL          (10 40  5) simpleGrading (1 1 1)
     hex (57 58 62 61 65 66 70 69) cathodeMPL         (10 40  5) simpleGrading (1 1 1)
     hex (65 66 70 69 73 74 78 77) cathodeGDL        (10 40  5) simpleGrading (1 1 1)

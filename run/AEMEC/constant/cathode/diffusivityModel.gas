@@ -11,7 +11,7 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "constant";
-    object      diffusivityModel.hydrogen;
+    object      diffusivityModel.gas;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -21,7 +21,7 @@ cathodeChannel
 
     binaryFSGCoeffs
     {
-        Tname       T.hydrogen;
+        Tname       T.gas;
         pName       p;
         speciesA    H2;
         speciesB    H2O;
@@ -34,9 +34,9 @@ cathodeGDL
 
     porousFSGCoeffs
     {
-        Tname       T.hydrogen;
+        Tname       T.gas;
         pName       p;
-        alphaName   alpha.hydrogen;
+        alphaName   alpha.gas;
         speciesA    H2;     // diffusing species
         speciesB    H2O;     // background species
         porosity    0.7;
@@ -52,9 +52,9 @@ cathodeMPL
 
     porousFSGCoeffs
     {
-        Tname       T.hydrogen;
+        Tname       T.gas;
         pName       p;
-        alphaName   alpha.hydrogen;
+        alphaName   alpha.gas;
         speciesA    H2;     // diffusing species
         speciesB    H2O;     // background species
         porosity    0.4;
@@ -70,9 +70,9 @@ cathodeCL
 
     porousFSGCoeffs
     {
-        Tname       T.hydrogen;
+        Tname       T.gas;
         pName       p;
-        alphaName   alpha.hydrogen;
+        alphaName   alpha.gas;
         speciesA    H2;     // diffusing species
         speciesB    H2O;     // background species
         porosity    0.3;

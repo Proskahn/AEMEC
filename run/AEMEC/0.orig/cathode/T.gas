@@ -39,7 +39,7 @@ boundaryField
     cathodeOutlet
     {
         type            inletOutlet;
-        phi             phi.hydrogen;
+        phi             phi.gas;
         inletValue      $internalField;
         value           $internalField;
     }

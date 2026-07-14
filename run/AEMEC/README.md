@@ -4,7 +4,7 @@ This case uses terminology and reaction direction for a cathode-fed anion
 exchange membrane (AEM) electrolyzer.
 
 ```text
-liquid water → cathode / hydrogen side → OH- through membrane → anode / oxygen side
+liquid water → cathode / H2-product side → OH- through membrane → anode / oxygen side
 ```
 
 | Physical role | Fluid region | Electron region | Catalyst-layer zone |
@@ -15,8 +15,9 @@ liquid water → cathode / hydrogen side → OH- through membrane → anode / ox
 
 Both fluid regions are two-phase:
 
-- `cathode` is a water/hydrogen region and receives liquid water at
-  `cathodeInlet` with `U.water = (0.01 0 0) m/s`.
+- `cathode` is a liquid-water/gas region and receives liquid water at
+  `cathodeInlet` with `U.water = (0.01 0 0) m/s`. The phase named `gas`
+  contains the H2 and H2O-vapour species.
 - `anode` is a water/oxygen region and also receives liquid aqueous KOH at
   `anodeInlet` with `U.water = (0.01 0 0) m/s`; oxygen, water, and any
   crossover H2 leave through `anodeOutlet`.
@@ -79,8 +80,9 @@ each trial remeshes and runs the case with its selected membrane thickness.
 For MPI, set `NPROCS`, then run `make decompose`, `make parallel`, and
 `make run`.
 
-All legacy meshes and result directories are incompatible with these renamed
-regions. Regenerate the mesh after rebuilding the solver.
+Legacy meshes remain incompatible with the renamed regions, and existing
+result directories are incompatible with the renamed cathode gas phase.
+Regenerate the mesh after rebuilding the solver.
 
 For a fixed-voltage diagnostic that preserves the normal polarization case,
 see [the diagnostic guide](docs/fixed-voltage-diagnostic.md).
