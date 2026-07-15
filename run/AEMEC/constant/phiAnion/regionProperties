@@ -140,7 +140,7 @@ sigma
         constantSigmaCoeffs
         {
             cellZone            anodeCL;
-            sigma               1.10;
+            sigma               1.10;  // S/m
         }
     }
 
@@ -151,7 +151,7 @@ sigma
         constantSigmaCoeffs
         {
             cellZone            cathodeCL;
-            sigma               1.10;
+            sigma               1.10;  // S/m
         }
     }
 
@@ -161,7 +161,7 @@ sigma
         constantSigmaCoeffs
         {
             cellZone            membrane;
-            sigma               11.4;
+            sigma               11.4;  // S/m
         }
     }
 }

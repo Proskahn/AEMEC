@@ -104,6 +104,10 @@ public:
 
     // Member Functions
 
+        //- Bound and normalize composition and update composition models
+        //  without converting the existing energy field to temperature
+        virtual void correctComposition();
+
         //- Correct the thermodynamics
         virtual void correctThermo();
 

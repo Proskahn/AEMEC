@@ -161,6 +161,10 @@ void Foam::phaseModel::correctKinematics()
 {}
 
 
+void Foam::phaseModel::correctComposition()
+{}
+
+
 void Foam::phaseModel::correctThermo()
 {}
 

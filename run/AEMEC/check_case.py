@@ -477,6 +477,7 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(f"constant/regionProperties does not declare region '{region}'")
 
     expected_phases = {"anode": "phases (gas water)", "cathode": "phases (gas water)"}
+    expected_residual_energy = {"anode": "0.05", "cathode": "0.5"}
     for region, phase_line in expected_phases.items():
         text = read(case / "constant" / region / "regionProperties", errors)
         if phase_line not in text:
@@ -491,11 +492,22 @@ def check_static(case: Path, errors: list[str]) -> None:
         except ValueError:
             gas_properties = ""
         if gas_properties and not has_entry(
-            gas_properties, "residualAlphaEnergy", "0.05"
+            gas_properties,
+            "residualAlphaEnergy",
+            expected_residual_energy[region],
         ):
             errors.append(
                 f"constant/{region}/regionProperties must set gas "
-                "residualAlphaEnergy to 0.05"
+                "residualAlphaEnergy to " + expected_residual_energy[region]
+            )
+        gas_thermo = read(
+            case / "constant" / region / "thermophysicalProperties.gas",
+            errors,
+        )
+        if not has_entry(gas_thermo, "pressureWorkAlphaLimit", "0.05"):
+            errors.append(
+                f"constant/{region}/thermophysicalProperties.gas must set "
+                "pressureWorkAlphaLimit to 0.05"
             )
         solution = read(case / "system" / region / "fvSolution", errors)
         if not has_entry(solution, "iDmdt", "0.5"):

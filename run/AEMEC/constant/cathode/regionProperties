@@ -48,7 +48,12 @@ gas
     }
 
     residualAlpha   1e-6;
-    residualAlphaEnergy 0.05;
+
+    // Below alpha.gas=0.5 the dispersed-gas temperature has too little
+    // physical heat capacity to define an independent cell temperature.
+    // The residual transient capacity holds its previous sensible energy;
+    // it cancels algebraically at steady state and does not add heat.
+    residualAlphaEnergy 0.5;
 }
 
 water

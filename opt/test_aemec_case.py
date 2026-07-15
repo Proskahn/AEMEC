@@ -64,6 +64,7 @@ class AemecCaseTests(unittest.TestCase):
         cathode_water_vapour = (case / "0.orig/cathode/H2O.gas").read_text(encoding="utf-8")
         anode_water_velocity = (case / "0.orig/anode/U.water").read_text(encoding="utf-8")
         anode_thermo = (case / "constant/anode/thermophysicalProperties.gas").read_text(encoding="utf-8")
+        cathode_thermo = (case / "constant/cathode/thermophysicalProperties.gas").read_text(encoding="utf-8")
         anode_hydrogen = (case / "0.orig/anode/H2.gas").read_text(encoding="utf-8")
         anode_controller = (case / "constant/phiEAnode/regionProperties").read_text(encoding="utf-8")
         anode_collector = (case / "system/phiEAnode/createPatchDict").read_text(encoding="utf-8")
@@ -80,8 +81,11 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("phases (gas water)", anode)
         self.assertIn("continuous water;", cathode)
         self.assertIn("continuous water;", anode)
-        self.assertIn("residualAlphaEnergy 0.05;", cathode)
+        self.assertIn("residualAlphaEnergy 0.5;", cathode)
         self.assertIn("residualAlphaEnergy 0.05;", anode)
+        self.assertIn("it cancels algebraically at steady state", cathode)
+        self.assertIn("pressureWorkAlphaLimit 0.05;", anode_thermo)
+        self.assertIn("pressureWorkAlphaLimit 0.05;", cathode_thermo)
         self.assertRegex(anode_solution, r"\biDmdt\s+0\.5\s*;")
         self.assertRegex(cathode_solution, r"\biDmdt\s+0\.5\s*;")
         self.assertIn("sourceZone      cathodeCL", crossover)
@@ -175,6 +179,16 @@ class AemecCaseTests(unittest.TestCase):
             r"for\s*\([^)]*nCells\(\)[^)]*\)\s*\{[^}]*setReference",
         )
 
+        constant_sigma = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/sigmaModels/constantSigma/constantSigma.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "dimCurrent*dimCurrent*dimTime/(dimEnergy*dimLength)",
+            constant_sigma,
+        )
+        self.assertNotIn("dimless/dimLength", constant_sigma)
+
     def test_two_phase_energy_keeps_composition_and_thermo_consistent(self) -> None:
         source = ROOT / "src/libSrc/fuelCellSystems"
         species_equations = (
@@ -195,14 +209,37 @@ class AemecCaseTests(unittest.TestCase):
             source / "phaseModel/AnisothermalPhaseModel/AnisothermalPhaseModel.C"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("phase1_.correctThermo();", species_equations)
+        self.assertNotIn("phase1_.correctThermo();", species_equations)
+        self.assertNotIn("phase2_.correctThermo();", species_equations)
+        self.assertIn("phase1_.correctComposition();", species_equations)
+        self.assertIn("phase2_.correctComposition();", species_equations)
         self.assertIn("thermo1.he(thermo1.p(), T1)", species_equations)
+        self.assertLess(
+            species_equations.index("phase1_.correctComposition();"),
+            species_equations.index("thermo1.he(thermo1.p(), T1)"),
+        )
+        self.assertLess(
+            species_equations.index("thermo1.he(thermo1.p(), T1)"),
+            species_equations.index("thermo1.correct();"),
+        )
+        self.assertNotIn("phase1_.correctElectrochemistry();", species_equations)
+        self.assertNotIn("phase2_.correctElectrochemistry();", species_equations)
+        self.assertIn(
+            "leave the two sides of the same Faradaic reaction",
+            species_equations,
+        )
         self.assertIn("thermo.correct();", energy_equation)
+        self.assertIn("correctComposition();", multicomponent)
         self.assertLess(
             multicomponent.index("//- Normalize"),
             multicomponent.index("BasePhaseModel::correctThermo();"),
         )
         self.assertIn("K/Cpv*he - fvm::Sp(K/Cpv, he)", heat_transfer)
+        local_energy = anisothermal[
+            anisothermal.index("::heEqn()") : anisothermal.index("::heQdot()")
+        ]
+        self.assertIn("tEEqn.ref() += filterPressureWork", local_energy)
+        self.assertIn("this->thermo().p()*fvc::ddt(alpha)", local_energy)
         explicit_capacity = "fvc::ddt(residualAlphaEnergy*rho, he)"
         implicit_capacity = "fvm::ddt(residualAlphaEnergy*rho, he)"
         self.assertIn(explicit_capacity, anisothermal)

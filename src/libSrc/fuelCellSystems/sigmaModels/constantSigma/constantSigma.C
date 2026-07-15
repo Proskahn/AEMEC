@@ -53,7 +53,13 @@ Foam::sigmaModels::constantSigma::constantSigma
 )
 :
     sigmaModel(mesh, sigmaDictionary),
-    sigma_("sigma", dimless/dimLength, sigmaDictionary_)
+    // Electrical conductivity [S/m] = [A^2 s^3 kg^-1 m^-3].
+    sigma_
+    (
+        "sigma",
+        dimCurrent*dimCurrent*dimTime/(dimEnergy*dimLength),
+        sigmaDictionary_
+    )
 {}
 
 

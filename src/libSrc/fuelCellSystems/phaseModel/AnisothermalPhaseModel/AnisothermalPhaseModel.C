@@ -180,6 +180,26 @@ Foam::AnisothermalPhaseModel<BasePhaseModel>::heEqn()
         )
     );
 
+    // Add pressure work to the equation actually solved for the local phase.
+    // Keeping this term only in heQdot() leaves sensibleInternalEnergy
+    // incomplete because the two-phase EEqn does not consume heQdot().
+    if (he.name() == this->thermo_->phasePropertyName("e"))
+    {
+        tEEqn.ref() += filterPressureWork
+        (
+            fvc::div
+            (
+                fvc::absolute(alphaPhi, alpha, U),
+                this->thermo().p()
+            )
+          + this->thermo().p()*fvc::ddt(alpha)
+        );
+    }
+    else if (this->thermo_->dpdt())
+    {
+        tEEqn.ref() -= filterPressureWork(alpha*this->fluid().dpdt());
+    }
+
     return tEEqn;
 }
 

@@ -34,10 +34,17 @@
         // sensible-energy field still represents the old composition.  Keep
         // the pre-reaction temperature and recompute sensible energy for the
         // new composition before entering the energy equation.  This is the
-        // sensible enthalpy carried by the electrochemical species sources.
+        // sensible energy carried by the electrochemical species sources.
+        // Do not correct the electrochemistry again here: the water source is
+        // updated by reaction::correct(), whereas the other species sources
+        // are assembled by R(Y).  Updating only the former after the species
+        // equations would leave the two sides of the same Faradaic reaction
+        // at different current iterations.  The coupled electrochemistry is
+        // corrected before the next fluid solve, where dmdt() synchronizes
+        // all species sources before they are consumed.
         rhoThermo& thermo1 = phase1_.thermoRef();
         const volScalarField T1("TBeforeSpeciesEnergy.gas1", thermo1.T());
-        phase1_.correctThermo();
+        phase1_.correctComposition();
         thermo1.he() = thermo1.he(thermo1.p(), T1).ref();
         thermo1.he().correctBoundaryConditions();
         thermo1.correct();
@@ -69,7 +76,7 @@
         }
         rhoThermo& thermo2 = phase2_.thermoRef();
         const volScalarField T2("TBeforeSpeciesEnergy.gas2", thermo2.T());
-        phase2_.correctThermo();
+        phase2_.correctComposition();
         thermo2.he() = thermo2.he(thermo2.p(), T2).ref();
         thermo2.he().correctBoundaryConditions();
         thermo2.correct();

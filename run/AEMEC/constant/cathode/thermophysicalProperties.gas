@@ -26,6 +26,11 @@ thermoType
     energy          sensibleInternalEnergy;
 }
 
+// Suppress pressure work where the dispersed gas has insufficient thermal
+// capacity for a meaningful independent temperature.  The filter ramps from
+// zero at alpha.gas=0.05 to its full value at alpha.gas=0.10.
+pressureWorkAlphaLimit 0.05;
+
 inertSpecie H2O;
 
 species

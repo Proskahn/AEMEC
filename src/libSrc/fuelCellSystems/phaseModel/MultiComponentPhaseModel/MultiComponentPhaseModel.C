@@ -173,7 +173,7 @@ Foam::MultiComponentPhaseModel<BasePhaseModel>::~MultiComponentPhaseModel()
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class BasePhaseModel>
-void Foam::MultiComponentPhaseModel<BasePhaseModel>::correctThermo()
+void Foam::MultiComponentPhaseModel<BasePhaseModel>::correctComposition()
 {
     volScalarField Yt
     (
@@ -228,6 +228,13 @@ void Foam::MultiComponentPhaseModel<BasePhaseModel>::correctThermo()
     }
 
     diffModels_->correct(X_, diffSp_, inertIndex_);
+}
+
+
+template<class BasePhaseModel>
+void Foam::MultiComponentPhaseModel<BasePhaseModel>::correctThermo()
+{
+    correctComposition();
 
     // Reaction and thermodynamic models must see a bounded, normalized
     // composition.  Calling the base correction first can evaluate mixture

@@ -194,6 +194,9 @@ public:
         //- Correct the kinematics
         virtual void correctKinematics();
 
+        //- Correct composition-dependent fields without evaluating thermo
+        virtual void correctComposition();
+
         //- Correct the thermodynamics
         virtual void correctThermo();
 
