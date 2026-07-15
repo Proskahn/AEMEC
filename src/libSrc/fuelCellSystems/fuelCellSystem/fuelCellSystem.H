@@ -69,6 +69,12 @@ class fuelCellSystem
         //- Reference to the mesh
         const fvMesh& mesh_;
 
+        //- Solve the global conjugate-energy equation
+        Switch solveEnergy_;
+
+        //- Temperature imposed when solveEnergy is disabled
+        dimensionedScalar isothermalTemperature_;
+
         //- temperature
         volScalarField T_;
 
@@ -121,7 +127,20 @@ public:
 
         void mapFromCell();
 
+        //- Re-impose the configured temperature in isothermal mode
+        void enforceIsothermalTemperature();
+
         // Access
+            bool solveEnergy() const
+            {
+                return solveEnergy_;
+            }
+
+            const dimensionedScalar& isothermalTemperature() const
+            {
+                return isothermalTemperature_;
+            }
+
             const volScalarField& T() const
             {
                 return T_;

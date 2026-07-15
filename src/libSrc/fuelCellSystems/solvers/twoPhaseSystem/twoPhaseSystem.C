@@ -391,6 +391,12 @@ void Foam::twoPhaseSystem::solve()
     Info << "Two-phase pressure safeguards active: drag denominator floor = 1e-8"
         << endl;
 
+    if (forcedIsothermal())
+    {
+        Info<< "Skipping phase-energy equations; all phase temperatures are "
+            << "fixed at " << isothermalTemperature().value() << " K" << endl;
+    }
+
     fvMesh& mesh = const_cast<fvMesh&>(mesh_);
 
     const Time& runTime = mesh.time();
@@ -449,6 +455,8 @@ void Foam::twoPhaseSystem::solve()
             #include "EEqn.H"
             #include "pU/pEqn.H"
         }
+
+        enforceIsothermalTemperature();
 
         correctKinematics();
 

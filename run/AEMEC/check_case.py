@@ -471,6 +471,33 @@ def check_static(case: Path, errors: list[str]) -> None:
     check_boundary_syntax(case, errors)
     check_boundary_contract(case, errors)
 
+    cell_properties = read(case / "constant/cellProperties", errors)
+    if not has_entry(cell_properties, "solveEnergy", "false"):
+        errors.append(
+            "constant/cellProperties must disable solveEnergy for the "
+            "isothermal electrochemical diagnostic"
+        )
+    if not has_entry(cell_properties, "isothermalTemperature", "313.15"):
+        errors.append(
+            "constant/cellProperties must set isothermalTemperature 313.15"
+        )
+
+    for relative_path in (
+        "0.orig/T",
+        "0.orig/anode/T.gas",
+        "0.orig/anode/T.water",
+        "0.orig/cathode/T.gas",
+        "0.orig/cathode/T.water",
+        "0.orig/electrolyte/T",
+        "0.orig/interconnect/T",
+    ):
+        temperature = scalar_internal_field(read(case / relative_path, errors))
+        if temperature is None or abs(temperature - 313.15) > 1e-9:
+            errors.append(
+                f"{relative_path} must initialize at the isothermal "
+                "temperature 313.15 K"
+            )
+
     region_properties = read(case / "constant/regionProperties", errors)
     for region in ("anode", "cathode", "electrolyte", "interconnect", "phiEAnode", "phiECathode", "phiAnion"):
         if region not in region_properties:

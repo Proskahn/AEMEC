@@ -20,9 +20,9 @@ type          interfaceCompositionPhaseChangeTwoPhaseSystem;
 
 phases (gas water);
 
-// Liquid water occupies almost all of the inlet volume and supplies the
-// thermal capacity used by the global energy equation.  The product gas is
-// the dispersed phase and receives its own local enthalpy solve.
+// Liquid water occupies almost all of the inlet volume and is the continuous
+// phase. With solveEnergy=false in cellProperties, both phase temperatures
+// are imposed instead of solving the dispersed-gas and global energy equations.
 continuous water;
 
 LTS

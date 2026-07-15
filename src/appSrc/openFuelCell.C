@@ -102,7 +102,17 @@ int main(int argc, char *argv[])
 
         fuelCell.mapToCell();
 
-        #include "EEqns.H"
+        if (fuelCell.solveEnergy())
+        {
+            #include "EEqns.H"
+        }
+        else
+        {
+            fuelCell.enforceIsothermalTemperature();
+            Info<< "Skipping global energy equation; T = "
+                << fuelCell.isothermalTemperature().value()
+                << " K (isothermal)" << endl;
+        }
 
         runTime.write();
 

@@ -73,6 +73,15 @@ Foam::fuelCellSystem::fuelCellSystem
 
     mesh_(mesh),
 
+    solveEnergy_(lookupOrDefault<Switch>("solveEnergy", true)),
+
+    isothermalTemperature_
+    (
+        "isothermalTemperature",
+        dimTemperature,
+        lookupOrDefault<scalar>("isothermalTemperature", 313.15)
+    ),
+
     T_
     (
         IOobject
@@ -199,6 +208,22 @@ Foam::fuelCellSystem::fuelCellSystem
             mesh_
         )
     );
+
+    if (!solveEnergy_)
+    {
+        if (isothermalTemperature_.value() <= 0)
+        {
+            FatalIOErrorInFunction(*this)
+                << "isothermalTemperature must be greater than 0 K"
+                << exit(FatalIOError);
+        }
+
+        Info<< "Isothermal electrochemical mode: global, regional, phase, "
+            << "and interface temperatures are fixed at "
+            << isothermalTemperature_.value() << " K" << nl << endl;
+
+        enforceIsothermalTemperature();
+    }
 }
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -253,6 +278,26 @@ void Foam::fuelCellSystem::mapFromCell()
     Info<< "\nMap from cell \n" << endl;
 
     regions_->mapFromCell(*this);
+}
+
+
+void Foam::fuelCellSystem::enforceIsothermalTemperature()
+{
+    if (solveEnergy_)
+    {
+        return;
+    }
+
+    const scalar Tfixed = isothermalTemperature_.value();
+
+    T_.primitiveFieldRef() = Tfixed;
+
+    forAll(T_.boundaryField(), patchi)
+    {
+        T_.boundaryFieldRef()[patchi] == Tfixed;
+    }
+
+    T_.correctBoundaryConditions();
 }
 
 

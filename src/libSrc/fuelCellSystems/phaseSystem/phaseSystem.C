@@ -166,6 +166,15 @@ Foam::phaseSystem::phaseSystem
 
     mesh_(mesh),
 
+    forcedIsothermal_(false),
+
+    isothermalTemperature_
+    (
+        "isothermalTemperature",
+        dimTemperature,
+        313.15
+    ),
+
     porousZone_
     (
         new porousZoneList
@@ -504,9 +513,73 @@ void Foam::phaseSystem::correctKinematics()
 
 void Foam::phaseSystem::correctThermo()
 {
+    if (forcedIsothermal_)
+    {
+        enforceIsothermalTemperature();
+        return;
+    }
+
     forAll(phaseModels_, phasei)
     {
         phaseModels_[phasei].correctThermo();
+    }
+}
+
+
+bool Foam::phaseSystem::forcedIsothermal() const
+{
+    return forcedIsothermal_;
+}
+
+
+const Foam::dimensionedScalar& Foam::phaseSystem::isothermalTemperature() const
+{
+    return isothermalTemperature_;
+}
+
+
+void Foam::phaseSystem::setIsothermalTemperature(const dimensionedScalar& T)
+{
+    forcedIsothermal_ = true;
+    isothermalTemperature_ = T;
+    enforceIsothermalTemperature();
+}
+
+
+void Foam::phaseSystem::enforceIsothermalTemperature()
+{
+    if (!forcedIsothermal_)
+    {
+        return;
+    }
+
+    const scalar Tfixed = isothermalTemperature_.value();
+
+    forAll(phaseModels_, phasei)
+    {
+        phaseModel& phase = phaseModels_[phasei];
+        rhoThermo& thermo = phase.thermoRef();
+
+        // Species transport changes mixture enthalpy even at constant T.
+        // Normalize the composition first, then rebuild he at the prescribed
+        // temperature so rho, Cp, transport, and electrochemistry see a
+        // thermodynamically consistent isothermal state.
+        phase.correctComposition();
+
+        volScalarField& T = thermo.T();
+
+        T.primitiveFieldRef() = Tfixed;
+
+        forAll(T.boundaryField(), patchi)
+        {
+            T.boundaryFieldRef()[patchi] == Tfixed;
+        }
+
+        T.correctBoundaryConditions();
+
+        thermo.he() = thermo.he(thermo.p(), T).ref();
+        thermo.he().correctBoundaryConditions();
+        thermo.correct();
     }
 }
 

@@ -67,6 +67,14 @@ galvanostatic controller remains available for known reachable current targets,
 and the optimizer explicitly enables that mode for each isolated trial. See
 [polarization control](docs/polarization-control.md).
 
+The current branch runs that scan in an isothermal diagnostic mode. In
+`constant/cellProperties`, `solveEnergy false` bypasses both the global
+conjugate-energy equation and the local dispersed-phase energy equations, and
+`isothermalTemperature 313.15` fixes the main mesh, solids, electric regions,
+both fluid phases, and phase interfaces at 313.15 K. Flow, species transport,
+evaporation/condensation, and electrochemical source terms remain active. Set
+`solveEnergy true` only when returning to the non-isothermal energy diagnosis.
+
 ## Run
 
 ```bash

@@ -302,6 +302,12 @@ void Foam::regionTypes::fluid::mapFromCell
 {
     Info << "Map " << name() << " from Cell" << nl << endl;
 
+    if (!fuelCell.solveEnergy())
+    {
+        phases_->setIsothermalTemperature(fuelCell.isothermalTemperature());
+        return;
+    }
+
     const word& continuous = phases_->continuous();
 
     phaseModel& phase = phases_->phases()[continuous];

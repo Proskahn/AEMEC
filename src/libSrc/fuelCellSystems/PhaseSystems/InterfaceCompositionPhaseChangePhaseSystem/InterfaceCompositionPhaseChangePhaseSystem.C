@@ -380,6 +380,49 @@ template<class BasePhaseSystem>
 void Foam::InterfaceCompositionPhaseChangePhaseSystem<BasePhaseSystem>::
 correctInterfaceThermo()
 {
+    if (this->forcedIsothermal())
+    {
+        const scalar Tfixed = this->isothermalTemperature().value();
+
+        forAllConstIter
+        (
+            typename BasePhaseSystem::heatTransferModelTable,
+            this->heatTransferModels_,
+            heatTransferModelIter
+        )
+        {
+            const phasePair& pair =
+                this->phasePairs_[heatTransferModelIter.key()];
+
+            const phasePairKey key12(pair.first(), pair.second(), true);
+            const phasePairKey key21(pair.second(), pair.first(), true);
+            volScalarField& Tf = *this->Tf_[pair];
+
+            Tf.primitiveFieldRef() = Tfixed;
+            forAll(Tf.boundaryField(), patchi)
+            {
+                Tf.boundaryFieldRef()[patchi] == Tfixed;
+            }
+            Tf.correctBoundaryConditions();
+
+            // Phase change remains active.  Only the interfacial heat balance
+            // is replaced by the prescribed isothermal temperature.
+            if (this->interfaceCompositionModels_.found(key12))
+            {
+                this->interfaceCompositionModels_[key12]->update(Tf);
+            }
+            if (this->interfaceCompositionModels_.found(key21))
+            {
+                this->interfaceCompositionModels_[key21]->update(Tf);
+            }
+
+            Info<< "Tf." << pair.name()
+                << " = " << Tfixed << " K (isothermal)" << endl;
+        }
+
+        return;
+    }
+
     // This loop solves for the interface temperatures, Tf, and updates the
     // interface composition models.
     //

@@ -133,6 +133,12 @@ protected:
         //- Reference to the mesh
         const fvMesh& mesh_;
 
+        //- Bypass phase-energy equations and impose a common temperature
+        Switch forcedIsothermal_;
+
+        //- Common phase and interface temperature in forced-isothermal mode
+        dimensionedScalar isothermalTemperature_;
+
         //- Porous zone list
         autoPtr<porousZoneList> porousZone_;
 
@@ -427,6 +433,12 @@ public:
             //- return phase status, single or two
             virtual bool isSinglePhase() const = 0;
 
+            //- Return whether the region is externally forced isothermal
+            bool forcedIsothermal() const;
+
+            //- Return the forced-isothermal temperature
+            const dimensionedScalar& isothermalTemperature() const;
+
         // Sub-model lookup
 
             //- Return a sub model between a phase pair
@@ -530,6 +542,12 @@ public:
 
             //- Correct the thermodynamics
             virtual void correctThermo();
+
+            //- Enable forced-isothermal operation and impose its temperature
+            void setIsothermalTemperature(const dimensionedScalar& T);
+
+            //- Recompute every phase enthalpy at the imposed temperature
+            void enforceIsothermalTemperature();
 
             //- Correct electrochemical reaction source terms only
             virtual void correctElectrochemistry();
