@@ -67,15 +67,23 @@ activationOverpotentialModel
         anion         phi
     );
 
-    j0              120;
-    // Numerical bound for this proof-of-concept case [A/m3].  It prevents an
-    // uncalibrated initial overpotential from overflowing the flow solve.
-    jMax            5.0e8;
+    // Provisional NiFe-LDH OER baseline [A/m3].  A geometric exchange-current
+    // range of 0.203--0.818 uA/cm2 in 1 M KOH maps to 1.0e2--4.1e2 A/m3
+    // when distributed uniformly through this 20 um catalyst layer.  This
+    // setting uses the conservative lower end of that independently measured
+    // range (Scientific Reports 11, 2021, DOI: 10.1038/s41598-021-04347-9).
+    j0              1.2e2;
+    // Numerical safeguard for this proof-of-concept case [A/m3].  For the
+    // 20 um catalyst layer, 2e9 A/m3 corresponds to a 4 A/cm2 ceiling, above
+    // the intended polarization range.  It is not a physical limiting current.
+    jMax            2.0e9;
     exponentLimit   50;
     // The ionic gauge is now solved by a bounded current-balance iteration,
     // so each scalar root evaluation must use the actual overpotential.
     relax           1.0;
-    alpha           0.5;
+    // With n=2 in this implementation, alpha=0.45 represents an apparent
+    // anodic Tafel slope near the reported 66 mV/dec at room temperature.
+    alpha           0.45;
     gamma           0;
 
     nernstModel

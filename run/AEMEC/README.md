@@ -45,9 +45,11 @@ The inherited Nafion dissolved-water and hydration (`lambda`) models are
 disabled for this case.
 
 For the proof-of-concept run, both Butler–Volmer dictionaries use a numerical
-`jMax = 5e8 A/m3` ceiling and a bounded exponential argument. These settings
-prevent an uncalibrated initial potential from destabilizing the flow solver;
-replace them with validated kinetic parameters before quantitative use.
+`jMax = 2e9 A/m3` safeguard and a bounded exponential argument. For the 20 um
+catalyst layers this corresponds to 4 A/cm2, above the intended curve range.
+It prevents an uncalibrated initial potential from destabilizing the flow
+solver; it is not a physical limiting-current model and must be replaced by
+validated kinetics and transport limitations before quantitative use.
 
 Hydrogen crossover is defined from `cathodeCL` to `anodeCL`; the anode gas
 phase therefore contains a trace `H2` component. The crossover model reports

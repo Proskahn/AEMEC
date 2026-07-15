@@ -31,9 +31,10 @@ but the time table continued. The resulting log therefore mixed a requested
 target with a transient or saturated boundary current.
 
 `-10000 A/m2` is a requested 1 A/cm2 operating point in the legacy table, not
-a controller current limit. The kinetic model separately bounds its local
-volumetric source at `jMax = 5e8 A/m3`; it now reports lower- and upper-clipped
-cell counts every update.
+a controller current limit. The kinetic model retains a numerical safeguard
+at `jMax = 2e9 A/m3` (4 A/cm2 for the 20 um catalyst layers); it reports lower-
+and upper-clipped cell counts every update. This safeguard is not a physical
+limiting-current model.
 
 ## Optional convergence-based galvanostatic sequence
 

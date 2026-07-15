@@ -753,8 +753,11 @@ def check_static(case: Path, errors: list[str]) -> None:
         "constant/cathode/combustionProperties.gas",
     ):
         text = read(case / relative_path, errors)
-        if "jMax            5.0e8;" not in text or "exponentLimit   50;" not in text:
-            errors.append(f"{relative_path} must define the proof-of-concept Butler-Volmer current bound")
+        if "jMax            2.0e9;" not in text or "exponentLimit   50;" not in text:
+            errors.append(
+                f"{relative_path} must define the 2e9 A/m3 diagnostic "
+                "Butler-Volmer safeguard"
+            )
         if is_diagnostic and "electrochemicalDiagnostics true;" not in text:
             errors.append(f"{relative_path} must enable electrochemicalDiagnostics in a fixed-voltage diagnostic")
         if not has_entry(text, "relax", "1.0"):

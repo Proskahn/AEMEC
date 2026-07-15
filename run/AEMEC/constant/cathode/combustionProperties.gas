@@ -70,15 +70,24 @@ activationOverpotentialModel
         anion       phi
     );
 
-    j0              1.0e8;
-    // Numerical bound for this proof-of-concept case [A/m3].  It prevents an
-    // uncalibrated initial overpotential from overflowing the flow solve.
-    jMax            5.0e8;
+    // Provisional Pt/C alkaline-HER baseline [A/m3].  A room-temperature
+    // Pt/C result in 1 M KOH (25 ugPt/cm2, eta10=46 mV, b=99 mV/dec) implies
+    // i0,geo~=3.4 mA/cm2.  Uniformly distributing that activity through this
+    // 20 um catalyst layer gives j0~=1.7e6 A/m3 (Nature Communications 13,
+    // 2022, DOI: 10.1038/s41467-022-33216-w).  Re-scale this value when the
+    // actual Pt loading or ECSA is specified.
+    j0              1.7e6;
+    // Numerical safeguard for this proof-of-concept case [A/m3].  For the
+    // 20 um catalyst layer, 2e9 A/m3 corresponds to a 4 A/cm2 ceiling, above
+    // the intended polarization range.  It is not a physical limiting current.
+    jMax            2.0e9;
     exponentLimit   50;
     // The ionic gauge is now solved by a bounded current-balance iteration,
     // so each scalar root evaluation must use the actual overpotential.
     relax           1.0;
-    alpha           0.5;
+    // With n=2 in this implementation, alpha=0.30 represents the reported
+    // geometric Pt/C Tafel slope of approximately 99 mV/dec at room temperature.
+    alpha           0.30;
     gamma           0;
 
     nernstModel
