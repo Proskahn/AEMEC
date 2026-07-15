@@ -29,6 +29,18 @@
                  << gMin(Y1[i]) << " -> " << gMax(Y1[i])
                  << endl;
         }
+
+        // The species equations change the mixture heat capacity while the
+        // sensible-energy field still represents the old composition.  Keep
+        // the pre-reaction temperature and recompute sensible energy for the
+        // new composition before entering the energy equation.  This is the
+        // sensible enthalpy carried by the electrochemical species sources.
+        rhoThermo& thermo1 = phase1_.thermoRef();
+        const volScalarField T1("TBeforeSpeciesEnergy.gas1", thermo1.T());
+        phase1_.correctThermo();
+        thermo1.he() = thermo1.he(thermo1.p(), T1).ref();
+        thermo1.he().correctBoundaryConditions();
+        thermo1.correct();
     }
 
     if (!phase2_.pure())
@@ -55,5 +67,11 @@
                  << gMin(Y2[i]) << " -> " << gMax(Y2[i])
                  << endl;
         }
+        rhoThermo& thermo2 = phase2_.thermoRef();
+        const volScalarField T2("TBeforeSpeciesEnergy.gas2", thermo2.T());
+        phase2_.correctThermo();
+        thermo2.he() = thermo2.he(thermo2.p(), T2).ref();
+        thermo2.he().correctBoundaryConditions();
+        thermo2.correct();
     }
 }

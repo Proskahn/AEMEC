@@ -20,11 +20,14 @@ solvers
 {
     phi
     {
-        solver           GAMG;
+        // The implicit Butler-Volmer slope makes this equation symmetric
+        // positive definite. DICPCG resolves the weak-kinetics startup case
+        // reliably; GAMG previously stalled before reaching tolerance.
+        solver           PCG;
+        preconditioner   DIC;
         tolerance        1e-11;
         relTol           0;
-        smoother         DIC;
-        maxIter          100;
+        maxIter          1000;
     }
 
     cH2

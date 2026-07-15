@@ -107,6 +107,13 @@ public:
 
         void correct();
 
+        //- Re-evaluate electrochemical reaction source terms only
+        void correctElectrochemistry();
+
+        //- Select the gauge of all configured all-Neumann ionic-potential
+        //  regions so their Poisson source has zero volume integral
+        void balanceElectricCurrent();
+
         void setRDeltaT();
 
         void solve();

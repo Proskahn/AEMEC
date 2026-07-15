@@ -75,7 +75,9 @@ activationOverpotentialModel
     // uncalibrated initial overpotential from overflowing the flow solve.
     jMax            5.0e8;
     exponentLimit   50;
-    relax           0.5;
+    // The ionic gauge is now solved by a bounded current-balance iteration,
+    // so each scalar root evaluation must use the actual overpotential.
+    relax           1.0;
     alpha           0.5;
     gamma           0;
 
@@ -90,7 +92,7 @@ activationOverpotentialModel
             // Cathode: 2 H2O + 2 e- -> H2 + 2 OH-.
             // OH- is represented by the effective anion-potential region.
             H2      1
-            H2O    -1
+            H2O    -2
             e      -2
         );
     }

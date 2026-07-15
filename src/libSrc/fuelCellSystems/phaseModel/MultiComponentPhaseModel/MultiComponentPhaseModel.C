@@ -175,8 +175,6 @@ Foam::MultiComponentPhaseModel<BasePhaseModel>::~MultiComponentPhaseModel()
 template<class BasePhaseModel>
 void Foam::MultiComponentPhaseModel<BasePhaseModel>::correctThermo()
 {
-    BasePhaseModel::correctThermo();
-
     volScalarField Yt
     (
         IOobject
@@ -230,6 +228,11 @@ void Foam::MultiComponentPhaseModel<BasePhaseModel>::correctThermo()
     }
 
     diffModels_->correct(X_, diffSp_, inertIndex_);
+
+    // Reaction and thermodynamic models must see a bounded, normalized
+    // composition.  Calling the base correction first can evaluate mixture
+    // properties with sum(Y) != 1 immediately after the species solve.
+    BasePhaseModel::correctThermo();
 }
 
 

@@ -531,6 +531,9 @@ public:
             //- Correct the thermodynamics
             virtual void correctThermo();
 
+            //- Correct electrochemical reaction source terms only
+            virtual void correctElectrochemistry();
+
             //- Correct the turbulence
             virtual void correctTurbulence();
 

@@ -70,14 +70,23 @@ class AemecCaseTests(unittest.TestCase):
         cathode_collector = (case / "system/phiECathode/createPatchDict").read_text(encoding="utf-8")
         electrolyte_temperature = (case / "0.orig/electrolyte/T").read_text(encoding="utf-8")
         interconnect_temperature = (case / "0.orig/interconnect/T").read_text(encoding="utf-8")
+        ionic_potential = (case / "0.orig/phiAnion/phi").read_text(encoding="utf-8")
+        anode_solution = (case / "system/anode/fvSolution").read_text(encoding="utf-8")
+        cathode_solution = (case / "system/cathode/fvSolution").read_text(encoding="utf-8")
 
         self.assertIn("fluid (anode cathode)", regions)
         self.assertIn("electric (phiECathode phiEAnode phiAnion)", regions)
         self.assertIn("phases (gas water)", cathode)
         self.assertIn("phases (gas water)", anode)
+        self.assertIn("continuous water;", cathode)
+        self.assertIn("continuous water;", anode)
+        self.assertIn("residualAlphaEnergy 0.05;", cathode)
+        self.assertIn("residualAlphaEnergy 0.05;", anode)
+        self.assertRegex(anode_solution, r"\biDmdt\s+0\.5\s*;")
+        self.assertRegex(cathode_solution, r"\biDmdt\s+0\.5\s*;")
         self.assertIn("sourceZone      cathodeCL", crossover)
         self.assertIn("sinkZone        anodeCL", crossover)
-        self.assertIn("H2O    -1", cathode_reaction)
+        self.assertIn("H2O    -2", cathode_reaction)
         self.assertIn("H2O     1", anode_reaction)
         self.assertIn("cathodeChannel\n{", cathode_diffusivity)
         self.assertIn("anodeChannel\n{", anode_diffusivity)
@@ -104,6 +113,12 @@ class AemecCaseTests(unittest.TestCase):
         self.assertEqual(crossover.count("gasPhase            gas;"), 2)
         self.assertIn("anodeInterface", crossover)
         self.assertIn("UMembrane       (0 0 0);", crossover)
+        self.assertRegex(crossover, r"currentBalance\s*\{\s*active\s+true\s*;")
+        self.assertIn("potentialRelaxation     0.25;", crossover)
+        self.assertIn("maxFieldPotentialStep   0.02;", crossover)
+        self.assertIn("internalField   uniform 3.0;", ionic_potential)
+        self.assertIn("relax           1.0;", anode_reaction)
+        self.assertIn("relax           1.0;", cathode_reaction)
         self.assertIn("polarizationCurve", anode_controller)
         self.assertRegex(
             anode_controller,
@@ -133,6 +148,69 @@ class AemecCaseTests(unittest.TestCase):
             / "src/libSrc/fuelCellSystems/regions/electric/electric.C"
         ).read_text(encoding="utf-8")
         self.assertIn("time().stopAt(Time::saWriteNow);", controller_source)
+
+    def test_ionic_poisson_solve_uses_one_reference_cell(self) -> None:
+        electric_source = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/regions/electric/electric.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "phiEqn->setReference(referenceCell, referenceValue, true);",
+            electric_source,
+        )
+        self.assertIn(
+            "shiftPotential(selectedMeanPotential - meanPotential());",
+            electric_source,
+        )
+        self.assertIn("fvm::Sp(dJdPhi_, phi_)", electric_source)
+        self.assertIn("Ionic Newton potential update", electric_source)
+
+        butler_volmer = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/activationOverpotentialModels/ButlerVolmer/ButlerVolmer.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn("dSIdPhiAnion[anionId] = dSourceDphi;", butler_volmer)
+        self.assertNotRegex(
+            electric_source,
+            r"for\s*\([^)]*nCells\(\)[^)]*\)\s*\{[^}]*setReference",
+        )
+
+    def test_two_phase_energy_keeps_composition_and_thermo_consistent(self) -> None:
+        source = ROOT / "src/libSrc/fuelCellSystems"
+        species_equations = (
+            source / "solvers/twoPhaseSystem/YEqns.H"
+        ).read_text(encoding="utf-8")
+        energy_equation = (
+            source / "solvers/twoPhaseSystem/EEqn.H"
+        ).read_text(encoding="utf-8")
+        multicomponent = (
+            source
+            / "phaseModel/MultiComponentPhaseModel/MultiComponentPhaseModel.C"
+        ).read_text(encoding="utf-8")
+        heat_transfer = (
+            source
+            / "PhaseSystems/TwoResistanceHeatTransferPhaseSystem/TwoResistanceHeatTransferPhaseSystem.C"
+        ).read_text(encoding="utf-8")
+        anisothermal = (
+            source / "phaseModel/AnisothermalPhaseModel/AnisothermalPhaseModel.C"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("phase1_.correctThermo();", species_equations)
+        self.assertIn("thermo1.he(thermo1.p(), T1)", species_equations)
+        self.assertIn("thermo.correct();", energy_equation)
+        self.assertLess(
+            multicomponent.index("//- Normalize"),
+            multicomponent.index("BasePhaseModel::correctThermo();"),
+        )
+        self.assertIn("K/Cpv*he - fvm::Sp(K/Cpv, he)", heat_transfer)
+        explicit_capacity = "fvc::ddt(residualAlphaEnergy*rho, he)"
+        implicit_capacity = "fvm::ddt(residualAlphaEnergy*rho, he)"
+        self.assertIn(explicit_capacity, anisothermal)
+        self.assertIn(implicit_capacity, anisothermal)
+        self.assertLess(
+            anisothermal.index(implicit_capacity),
+            anisothermal.index(explicit_capacity),
+        )
 
     def test_thickness_rewrite_preserves_other_layers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

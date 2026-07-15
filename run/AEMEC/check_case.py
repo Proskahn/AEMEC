@@ -481,6 +481,28 @@ def check_static(case: Path, errors: list[str]) -> None:
         text = read(case / "constant" / region / "regionProperties", errors)
         if phase_line not in text:
             errors.append(f"constant/{region}/regionProperties must contain '{phase_line}'")
+        if not has_entry(text, "continuous", "water"):
+            errors.append(
+                f"constant/{region}/regionProperties must use liquid water as "
+                "the continuous phase for the global energy equation"
+            )
+        try:
+            gas_properties = dictionary_block(text, "gas")
+        except ValueError:
+            gas_properties = ""
+        if gas_properties and not has_entry(
+            gas_properties, "residualAlphaEnergy", "0.05"
+        ):
+            errors.append(
+                f"constant/{region}/regionProperties must set gas "
+                "residualAlphaEnergy to 0.05"
+            )
+        solution = read(case / "system" / region / "fvSolution", errors)
+        if not has_entry(solution, "iDmdt", "0.5"):
+            errors.append(
+                f"system/{region}/fvSolution must relax the explicit "
+                "interfacial mass-transfer update with iDmdt 0.5"
+            )
 
     for relative_path in (
         "0.orig/anode/H2.gas",
@@ -540,6 +562,36 @@ def check_static(case: Path, errors: list[str]) -> None:
     anion_properties = read(case / "constant/phiAnion/regionProperties", errors)
     if "lambdaSigma" in anion_properties or "lambdaName" in anion_properties:
         errors.append("constant/phiAnion/regionProperties must not use the PEM hydration-based lambdaSigma model")
+    try:
+        current_balance = dictionary_block(anion_properties, "currentBalance")
+    except ValueError:
+        current_balance = ""
+        errors.append(
+            "constant/phiAnion/regionProperties must configure currentBalance"
+        )
+    if current_balance and not has_entry(current_balance, "active", "true"):
+        errors.append(
+            "constant/phiAnion/regionProperties must enable currentBalance for the all-Neumann ionic potential"
+        )
+    for entry, value in (
+        ("potentialRelaxation", "0.25"),
+        ("maxFieldPotentialStep", "0.02"),
+    ):
+        if current_balance and not has_entry(current_balance, entry, value):
+            errors.append(
+                "constant/phiAnion/regionProperties must set "
+                f"currentBalance.{entry} to {value}"
+            )
+
+    anion_solution = read(case / "system/phiAnion/fvSolution", errors)
+    if not re.search(
+        r"\bphi\s*\{[^}]*\bsolver\s+PCG\s*;[^}]*\bpreconditioner\s+DIC\s*;",
+        anion_solution,
+        re.DOTALL,
+    ):
+        errors.append(
+            "system/phiAnion/fvSolution must use the DICPCG solver for phi"
+        )
     for zone, conductivity in (("anodeCL", "1.10"), ("cathodeCL", "1.10"), ("membrane", "11.4")):
         if not has_dictionary_block(anion_properties, zone) or f"sigma               {conductivity};" not in anion_properties:
             errors.append(f"constant/phiAnion/regionProperties is missing effective conductivity {conductivity} for '{zone}'")
@@ -693,8 +745,35 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(f"{relative_path} must define the proof-of-concept Butler-Volmer current bound")
         if is_diagnostic and "electrochemicalDiagnostics true;" not in text:
             errors.append(f"{relative_path} must enable electrochemicalDiagnostics in a fixed-voltage diagnostic")
+        if not has_entry(text, "relax", "1.0"):
+            errors.append(
+                f"{relative_path} must use relax 1.0 with the current-balance root solve"
+            )
+
+    cathode_reaction = read(
+        case / "constant/cathode/combustionProperties.gas", errors
+    )
+    reaction_list = re.search(
+        r"(?s)\bRxnList\s*\((.*?)\)\s*;",
+        without_comments(cathode_reaction),
+    )
+    if not reaction_list or not re.search(
+        r"(?m)^\s*H2O\s+-2(?:\.0*)?\s*$", reaction_list.group(1)
+    ):
+        errors.append(
+            "constant/cathode/combustionProperties.gas must use H2O -2 "
+            "for 2 H2O + 2 e- -> H2 + 2 OH-"
+        )
+
     if is_diagnostic and "electricDiagnostics true;" not in anion_properties:
         errors.append("constant/phiAnion/regionProperties must enable electricDiagnostics in a fixed-voltage diagnostic")
+
+    ionic_potential = read(case / "0.orig/phiAnion/phi", errors)
+    initial_ionic_potential = scalar_internal_field(ionic_potential)
+    if initial_ionic_potential is None or not 2.5 <= initial_ionic_potential <= 3.5:
+        errors.append(
+            "0.orig/phiAnion/phi must start near the AEM current-balance gauge (2.5--3.5 V)"
+        )
 
     for field in sorted((case / "0.orig").rglob("*")):
         if not field.is_file():

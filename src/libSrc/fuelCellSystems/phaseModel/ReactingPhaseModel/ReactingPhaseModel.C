@@ -61,6 +61,13 @@ void Foam::ReactingPhaseModel<BasePhaseModel, ReactionType>::correctThermo()
 
 
 template<class BasePhaseModel, class ReactionType>
+void Foam::ReactingPhaseModel<BasePhaseModel, ReactionType>::correctElectrochemistry()
+{
+    reaction_->correct();
+}
+
+
+template<class BasePhaseModel, class ReactionType>
 Foam::tmp<Foam::fvScalarMatrix>
 Foam::ReactingPhaseModel<BasePhaseModel, ReactionType>::R
 (

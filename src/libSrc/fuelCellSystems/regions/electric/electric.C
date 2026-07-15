@@ -104,6 +104,24 @@ Foam::regionTypes::electric::electric
         dimensionedScalar(dimCurrent/dimVol, Zero),
         zeroGradientFvPatchScalarField::typeName
     ),
+    dJdPhi_
+    (
+        IOobject
+        (
+            "dJdPhi",
+            this->time().timeName(),
+            *this,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        *this,
+        dimensionedScalar
+        (
+            j_.dimensions()/phi_.dimensions(),
+            Zero
+        ),
+        zeroGradientFvPatchScalarField::typeName
+    ),
     sigmaField_
     (
         IOobject
@@ -136,6 +154,16 @@ Foam::regionTypes::electric::electric
     maxVoltageStep_(GREAT),
     minVoltage_(-GREAT),
     maxVoltage_(GREAT),
+    currentBalanceActive_(false),
+    currentBalanceAbsoluteTolerance_(1e-12),
+    currentBalanceRelativeTolerance_(1e-10),
+    currentBalanceInitialStep_(0.01),
+    currentBalanceMaxStep_(0.25),
+    currentBalanceMaxIterations_(80),
+    currentBalanceKineticsCorrectors_(1),
+    currentBalanceFailOnNonConvergence_(true),
+    currentBalancePotentialRelaxation_(0.25),
+    currentBalanceMaxFieldPotentialStep_(0.02),
     polarizationActive_(false),
     polarizationTargets_(),
     minimumHoldDuration_(0.0),
@@ -174,6 +202,60 @@ Foam::regionTypes::electric::electric
         << ", hydrogenCrossoverOnOff=" << hydrogenCrossoverOnOff_
         << ", hydrogenCrossoverDict=" << dict_.found("hydrogenCrossover")
         << endl;
+
+    if (dict_.found("currentBalance"))
+    {
+        const dictionary& balanceDict = dict_.subDict("currentBalance");
+        currentBalanceActive_ =
+            balanceDict.lookupOrDefault<Switch>("active", false);
+        currentBalanceAbsoluteTolerance_ =
+            balanceDict.lookupOrDefault<scalar>("absoluteTolerance", 1e-12);
+        currentBalanceRelativeTolerance_ =
+            balanceDict.lookupOrDefault<scalar>("relativeTolerance", 1e-10);
+        currentBalanceInitialStep_ =
+            balanceDict.lookupOrDefault<scalar>("initialPotentialStep", 0.01);
+        currentBalanceMaxStep_ =
+            balanceDict.lookupOrDefault<scalar>("maxPotentialStep", 0.25);
+        currentBalanceMaxIterations_ =
+            balanceDict.lookupOrDefault<label>("maxIterations", 80);
+        currentBalanceKineticsCorrectors_ =
+            balanceDict.lookupOrDefault<label>("kineticsCorrectors", 1);
+        currentBalanceFailOnNonConvergence_ =
+            balanceDict.lookupOrDefault<Switch>("failOnNonConvergence", true);
+        currentBalancePotentialRelaxation_ =
+            balanceDict.lookupOrDefault<scalar>("potentialRelaxation", 0.25);
+        currentBalanceMaxFieldPotentialStep_ =
+            balanceDict.lookupOrDefault<scalar>
+            (
+                "maxFieldPotentialStep",
+                0.02
+            );
+
+        if
+        (
+            currentBalanceAbsoluteTolerance_ < 0
+         || currentBalanceRelativeTolerance_ < 0
+         || currentBalanceInitialStep_ <= 0
+         || currentBalanceMaxStep_ < currentBalanceInitialStep_
+         || currentBalanceMaxIterations_ <= 0
+         || currentBalanceKineticsCorrectors_ <= 0
+         || currentBalancePotentialRelaxation_ <= 0
+         || currentBalancePotentialRelaxation_ > 1
+         || currentBalanceMaxFieldPotentialStep_ <= 0
+        )
+        {
+            FatalIOErrorInFunction(balanceDict)
+                << "Invalid currentBalance configuration for region "
+                << name() << exit(FatalIOError);
+        }
+
+        if (currentBalanceActive_ && !phi_.needReference())
+        {
+            FatalIOErrorInFunction(balanceDict)
+                << "currentBalance requires an all-Neumann potential field in "
+                << name() << exit(FatalIOError);
+        }
+    }
 
     if (dissolveOnOff_)
     {
@@ -290,6 +372,33 @@ Foam::regionTypes::electric::electric
 
 Foam::regionTypes::electric::~electric()
 {}
+
+
+Foam::scalar Foam::regionTypes::electric::integratedSource() const
+{
+    return Foam::gSum(j_.primitiveField()*this->V());
+}
+
+
+Foam::scalar Foam::regionTypes::electric::integratedSourceMagnitude() const
+{
+    return 0.5*Foam::gSum(Foam::mag(j_.primitiveField())*this->V());
+}
+
+
+Foam::scalar Foam::regionTypes::electric::meanPotential() const
+{
+    return
+        Foam::gSum(phi_.primitiveField()*this->V())
+       /Foam::max(Foam::gSum(this->V()), VSMALL);
+}
+
+
+void Foam::regionTypes::electric::shiftPotential(const scalar deltaPhi)
+{
+    phi_.primitiveFieldRef() += deltaPhi;
+    phi_.correctBoundaryConditions();
+}
 
 
 Foam::scalar Foam::regionTypes::electric::targetCurrentDensity() const
@@ -425,34 +534,84 @@ void Foam::regionTypes::electric::solve()
 {
     Info << "\nSolve for region " << name() << ":\n" << endl;
 
+    const bool implicitKinetics =
+        Foam::gMax(Foam::mag(dJdPhi_.primitiveField())) > VSMALL;
+
+    // With no kinetic derivative, an all-Neumann potential is defined only
+    // up to an additive constant. Keep the gauge selected by the scalar
+    // current-balance solve instead of allowing the algebraic reference cell
+    // to select a new mean. A non-zero kinetic derivative makes the
+    // linearized reaction/charge-conservation equation non-singular and
+    // determines the absolute potential directly.
+    const bool preserveMeanGauge =
+        phi_.needReference() && currentBalanceActive_ && !implicitKinetics;
+    const scalar selectedMeanPotential =
+        preserveMeanGauge ? meanPotential() : 0.0;
+    const scalarField previousPotential(phi_.primitiveField());
+
     tmp<fvScalarMatrix> phiEqn
     (
       - fvm::laplacian(sigmaField_, phi_, "laplacian(sigma,phi)")
+      - fvm::Sp(dJdPhi_, phi_)
       - j_
+      + dJdPhi_*phi_
     );
 
     //- Set reference values
-    if (phi_.needReference())
+    if (phi_.needReference() && !implicitKinetics)
     {
         //- Update the potential field.
         //- Electro-neutrality: the total electron plus ionic-carrier flux is
         //- zero.  The carrier can be an anion in an AEM case.
-        const scalarField& source = j_;
-        const scalarField& volume = this->V();
-        scalarField sum = source*volume;
-        scalar iDot(Foam::gSum(sum)/Foam::gSum(volume));
-
-        for (label id = 0; id < nCells(); id++)
-        {
-            //- The option has to be true (forceReference)
-            //- otherwise, errors happen in parallel simulations
-            phiEqn->setReference(id, phi_[id] - iDot*relax_, true);
-        }
+        // The source compatibility is enforced by regionTypeList's scalar
+        // current-balance solve.  Pin one cell only to preserve the selected
+        // gauge while allowing the Poisson equation to determine spatial
+        // potential gradients.  The former all-cell reference suppressed
+        // those gradients.
+        const label referenceCell = Pstream::master() ? 0 : -1;
+        const scalar referenceValue =
+            referenceCell >= 0 ? phi_[referenceCell] : 0.0;
+        phiEqn->setReference(referenceCell, referenceValue, true);
     }
 
     //phiEqn->relax();
 
     phiEqn->solve();
+
+    if (currentBalanceActive_ && implicitKinetics)
+    {
+        const scalarField potentialCorrection
+        (
+            phi_.primitiveField() - previousPotential
+        );
+        const scalar maxPotentialCorrection =
+            Foam::gMax(Foam::mag(potentialCorrection));
+        scalar correctionScale = currentBalancePotentialRelaxation_;
+
+        if (maxPotentialCorrection > currentBalanceMaxFieldPotentialStep_)
+        {
+            correctionScale = Foam::min
+            (
+                correctionScale,
+                currentBalanceMaxFieldPotentialStep_/maxPotentialCorrection
+            );
+        }
+
+        phi_.primitiveFieldRef() =
+            previousPotential + correctionScale*potentialCorrection;
+        phi_.correctBoundaryConditions();
+
+        Info<< "Ionic Newton potential update: region=" << name()
+            << ", rawMaxCorrection=" << maxPotentialCorrection << " V"
+            << ", scale=" << correctionScale
+            << ", appliedMaxCorrection="
+            << correctionScale*maxPotentialCorrection << " V" << endl;
+    }
+
+    if (preserveMeanGauge)
+    {
+        shiftPotential(selectedMeanPotential - meanPotential());
+    }
 
     i_ = -sigmaField_ * fvc::grad(phi_);
     i_.correctBoundaryConditions();
@@ -465,7 +624,10 @@ void Foam::regionTypes::electric::solve()
             << max(sigmaField_).value() << ")"
             << ", J[min,mean,max]=(" << min(j_).value() << ","
             << j_.weightedAverage(this->V()).value() << ","
-            << max(j_).value() << ") A/m3" << endl;
+            << max(j_).value() << ") A/m3"
+            << ", dJdPhi[min,mean,max]=(" << min(dJdPhi_).value() << ","
+            << dJdPhi_.weightedAverage(this->V()).value() << ","
+            << max(dJdPhi_).value() << ") A/(m3 V)" << endl;
     }
 
     if (control_)

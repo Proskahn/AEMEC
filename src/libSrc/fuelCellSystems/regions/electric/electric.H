@@ -84,6 +84,11 @@ private:
         //- Source term (A/m3)
         volScalarField j_;
 
+        //- Local linearization dJ/dphi (A/(m3 V)).  Butler-Volmer
+        //  kinetics populate this field so the electric solve can couple
+        //  reaction and charge conservation implicitly.
+        volScalarField dJdPhi_;
+
         //- Electric conductivity
         volScalarField sigmaField_;
 
@@ -102,6 +107,19 @@ private:
         //- Allowed voltage range for galvanostatic control
         scalar minVoltage_;
         scalar maxVoltage_;
+
+        //- Optional scalar gauge solve for an all-Neumann ionic-potential
+        //  region.  It enforces the compatibility condition integral(J)dV=0.
+        Switch currentBalanceActive_;
+        scalar currentBalanceAbsoluteTolerance_;
+        scalar currentBalanceRelativeTolerance_;
+        scalar currentBalanceInitialStep_;
+        scalar currentBalanceMaxStep_;
+        label currentBalanceMaxIterations_;
+        label currentBalanceKineticsCorrectors_;
+        Switch currentBalanceFailOnNonConvergence_;
+        scalar currentBalancePotentialRelaxation_;
+        scalar currentBalanceMaxFieldPotentialStep_;
 
         //- Optional stable-point polarization curve controller.  Unlike the
         //  legacy time table, it advances a target only after convergence.
@@ -201,6 +219,55 @@ public:
 
         //- Map temperature from the parent mesh
         virtual void mapFromCell(fuelCellSystem&);
+
+        // Current-balance gauge control
+        bool currentBalanceActive() const
+        {
+            return currentBalanceActive_;
+        }
+
+        scalar integratedSource() const;
+
+        scalar integratedSourceMagnitude() const;
+
+        scalar meanPotential() const;
+
+        void shiftPotential(const scalar deltaPhi);
+
+        scalar currentBalanceAbsoluteTolerance() const
+        {
+            return currentBalanceAbsoluteTolerance_;
+        }
+
+        scalar currentBalanceRelativeTolerance() const
+        {
+            return currentBalanceRelativeTolerance_;
+        }
+
+        scalar currentBalanceInitialStep() const
+        {
+            return currentBalanceInitialStep_;
+        }
+
+        scalar currentBalanceMaxStep() const
+        {
+            return currentBalanceMaxStep_;
+        }
+
+        label currentBalanceMaxIterations() const
+        {
+            return currentBalanceMaxIterations_;
+        }
+
+        label currentBalanceKineticsCorrectors() const
+        {
+            return currentBalanceKineticsCorrectors_;
+        }
+
+        bool currentBalanceFailOnNonConvergence() const
+        {
+            return currentBalanceFailOnNonConvergence_;
+        }
 };
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

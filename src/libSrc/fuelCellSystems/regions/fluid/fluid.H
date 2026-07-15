@@ -92,6 +92,8 @@ public:
 
         virtual void correct();
 
+        virtual void correctElectrochemistry();
+
         virtual void setRDeltaT();
 
         virtual void solve();

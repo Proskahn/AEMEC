@@ -92,6 +92,12 @@ void Foam::regionTypes::fluid::correct()
 }
 
 
+void Foam::regionTypes::fluid::correctElectrochemistry()
+{
+    phases_->correctElectrochemistry();
+}
+
+
 void Foam::regionTypes::fluid::mapToCell
 (
     fuelCellSystem& fuelCell
@@ -123,6 +129,9 @@ void Foam::regionTypes::fluid::mapToCell
 
     forAll(phases_->phases(), phasei)
     {
+        // Electrochemical heat is deposited in the global conjugate energy
+        // equation.  It is not assigned entirely to a dilute product-gas
+        // phase, which would create an artificial temperature spike.
         heatSource += phases_->phases()[phasei].Qdot().ref();
     }
 

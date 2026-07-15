@@ -17,7 +17,31 @@ FoamFile
 //- Add information here
 
 control          false;
-relax           -4.0e-11;
+relax           0.0;
+
+// The ionic-potential equation has only Neumann boundaries. Its absolute
+// level is therefore selected so the anode and cathode reaction currents are
+// equal: integral(J_ion)dV = I_anode - I_cathode = 0.
+currentBalance
+{
+    active                  true;
+    // This is the compatibility condition for a singular all-Neumann
+    // Poisson equation, so it must be much tighter than an engineering
+    // convergence tolerance on the reported electrode current.
+    absoluteTolerance       1e-12; // A
+    relativeTolerance       1e-10;
+    initialPotentialStep    0.01;  // V
+    maxPotentialStep        0.25;  // V
+    maxIterations           80;
+    kineticsCorrectors      1;
+    failOnNonConvergence    true;
+
+    // Damped Newton update for the spatial potential. The cap prevents a
+    // clipped Butler-Volmer cell (zero local derivative) from producing a
+    // non-physical hundreds-of-volts correction in one outer iteration.
+    potentialRelaxation     0.25;
+    maxFieldPotentialStep   0.02;  // V per outer iteration
+}
 
 // This case uses an effective anion-conducting potential.  The inherited
 // Nafion dissolved-water model is intentionally disabled.

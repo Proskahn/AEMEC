@@ -82,6 +82,14 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
     (
         anionPhase.template lookupObject<volScalarField>("J")
     );
+    scalarField& dSEdPhiE = const_cast<volScalarField&>
+    (
+        electronPhase.template lookupObject<volScalarField>("dJdPhi")
+    );
+    scalarField& dSIdPhiAnion = const_cast<volScalarField&>
+    (
+        anionPhase.template lookupObject<volScalarField>("dJdPhi")
+    );
 
     //- Potential fields
     const scalarField& phiE = electronPhase.template
@@ -194,13 +202,37 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
             )
         );
 
+        const scalar kineticPrefactor =
+            this->j0_.value()
+           *coeff[fluidId]
+           *Foam::pow(s[fluidId], this->gamma_);
         const scalar jUnbounded =
-            this->j0_.value()*
-            coeff[fluidId]*
-            Foam::pow(s[fluidId], this->gamma_)*
+            kineticPrefactor*
             (
                 Foam::exp(forwardExponent) - Foam::exp(reverseExponent)
             );
+
+        // Analytic local slope for a Newton linearization of both electric
+        // source terms. The electron and ionic derivatives have the same
+        // negative sign because SE=-sign*j, SI=sign*j and
+        // eta=phiE-phiAnion-E_Nernst. A clipped current is locally constant.
+        scalar dSourceDphi = 0.0;
+        if (jUnbounded > 0.0 && jUnbounded < jMax)
+        {
+            const scalar dJdEta =
+                kineticPrefactor
+               *n*constant::physicoChemical::F.value()
+               /constant::physicoChemical::R.value()
+               /T[fluidId]
+               *
+                (
+                    this->alpha_*Foam::exp(forwardExponent)
+                  + (scalar(1) - this->alpha_)*Foam::exp(reverseExponent)
+                );
+
+            dSourceDphi =
+                -sign*dJdEta*this->relax_;
+        }
 
         if (jUnbounded < 0.0)
         {
@@ -217,10 +249,12 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
             Foam::max(jUnbounded, scalar(0))
         );
 
-        //- anode side: SE = Rj, SI = -Rj
-        //- cathode side: SE = -Rj, SI = Rj
+        //- anode side: SE = -Rj, SI = Rj
+        //- cathode side: SE = Rj, SI = -Rj
         SE[electronId] = -sign*j[fluidId];
         SI[anionId] = -SE[electronId];
+        dSEdPhiE[electronId] = dSourceDphi;
+        dSIdPhiAnion[anionId] = dSourceDphi;
 
         Rj += fluidPhase.V()[fluidId] * j[fluidId];
     }

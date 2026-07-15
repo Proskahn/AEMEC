@@ -20,6 +20,11 @@ type          interfaceCompositionPhaseChangeTwoPhaseSystem;
 
 phases (gas water);
 
+// Liquid water occupies almost all of the inlet volume and supplies the
+// thermal capacity used by the global energy equation.  The product gas is
+// the dispersed phase and receives its own local enthalpy solve.
+continuous water;
+
 LTS
 {
     maxCo               0.5;
@@ -43,6 +48,7 @@ gas
     }
 
     residualAlpha   1e-6;
+    residualAlphaEnergy 0.05;
 }
 
 water

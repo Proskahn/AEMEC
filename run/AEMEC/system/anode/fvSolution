@@ -83,6 +83,9 @@ relaxationFactors
     {
         default      1;
         p_rgh         0.3;
+        // The phase-change source is explicit in the segregated species solve.
+        // Damp its update to suppress evaporation/condensation oscillations.
+        iDmdt         0.5;
     }
     equations
     {

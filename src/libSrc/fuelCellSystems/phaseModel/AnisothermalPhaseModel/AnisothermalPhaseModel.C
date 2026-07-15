@@ -111,6 +111,21 @@ Foam::AnisothermalPhaseModel<BasePhaseModel>::heEqn()
 
     volScalarField& he = this->thermo_->he();
 
+    // A phase temperature is undefined as alpha tends to zero.  Use the same
+    // conservative transient regularization as the species equations: the
+    // explicit and implicit residual-capacity terms cancel at convergence but
+    // retain the previous sensible energy in under-resolved phase cells.
+    const dimensionedScalar residualAlphaEnergy
+    (
+        "residualAlphaEnergy",
+        dimless,
+        this->fluid().subDict(this->name()).template lookupOrDefault<scalar>
+        (
+            "residualAlphaEnergy",
+            this->residualAlpha().value()
+        )
+    );
+
     //- Porosity
     //- Non-dimension, created via alpha
     volScalarField porosity
@@ -150,6 +165,9 @@ Foam::AnisothermalPhaseModel<BasePhaseModel>::heEqn()
         fvm::ddt(alpha, rho, he)
       + fvm::div(alphaRhoPhi, he)
       + fvm::SuSp(-contErr, he)
+
+      + fvm::ddt(residualAlphaEnergy*rho, he)
+      - fvc::ddt(residualAlphaEnergy*rho, he)
 
       + fvc::ddt(alpha, rho, K) + fvc::div(alphaRhoPhi, K)
       - contErr*K

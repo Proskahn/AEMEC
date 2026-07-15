@@ -213,6 +213,13 @@ void Foam::fuelCellSystem::correct()
 {
     //- regions
     regions_->correct();
+
+    // Electric boundary controls are corrected after the fluid regions in
+    // the standard region order. Re-evaluate the kinetics with those current
+    // potentials, then select the all-Neumann ionic-potential gauge that
+    // enforces equal and opposite electrode currents.
+    regions_->correctElectrochemistry();
+    regions_->balanceElectricCurrent();
 }
 
 

@@ -184,6 +184,11 @@ public:
 
         virtual void correct() = 0;
 
+        //- Correct electrochemical source terms only.  Non-fluid regions do
+        //  not own reaction models and therefore use this no-op default.
+        virtual void correctElectrochemistry()
+        {}
+
         virtual void setRDeltaT() = 0;
 
         virtual void solve() = 0;

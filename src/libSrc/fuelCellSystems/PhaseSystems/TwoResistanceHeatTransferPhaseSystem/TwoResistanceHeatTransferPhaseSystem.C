@@ -173,26 +173,17 @@ heatTransfer() const
             heatTransferModelIter().second()->K()
         );
 
-        const volScalarField KEff
-        (
-            Ks.first()()*Ks.second()()
-           /max
-            (
-                Ks.first()() + Ks.second()(),
-                dimensionedScalar("small", heatTransferModel::dimK, SMALL)
-            )
-        );
-
         forAllConstIter(phasePair, pair, iter)
         {
             const phaseModel& phase = iter();
 
             const volScalarField& he(phase.thermo().he());
             const volScalarField Cpv(phase.thermo().Cpv());
+            const volScalarField& K(Ks[iter.index()]);
 
             *eqns[phase.name()] +=
-                Ks[iter.index()]*(Tf - phase.thermo().T())
-              + KEff/Cpv*he - fvm::Sp(KEff/Cpv, he);
+                K*(Tf - phase.thermo().T())
+              + K/Cpv*he - fvm::Sp(K/Cpv, he);
         }
     }
 

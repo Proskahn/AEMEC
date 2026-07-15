@@ -81,6 +81,9 @@ public:
         //- Correct the thermodynamics
         virtual void correctThermo();
 
+        //- Correct only the electrochemical reaction source terms
+        virtual void correctElectrochemistry();
+
         //- Return the species fraction equation
         virtual tmp<fvScalarMatrix> R(volScalarField& Yi) const;
 

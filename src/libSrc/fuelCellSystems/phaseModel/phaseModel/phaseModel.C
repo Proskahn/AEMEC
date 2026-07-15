@@ -165,6 +165,10 @@ void Foam::phaseModel::correctThermo()
 {}
 
 
+void Foam::phaseModel::correctElectrochemistry()
+{}
+
+
 void Foam::phaseModel::correctTurbulence()
 {}
 

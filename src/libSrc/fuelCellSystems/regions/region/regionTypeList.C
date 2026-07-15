@@ -27,6 +27,7 @@ License
 #include "volFields.H"
 #include "IOdictionary.H"
 #include "fuelCellSystem.H"
+#include "electric.H"
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -136,6 +137,164 @@ void Foam::regionTypeList::correct()
     forAll(*this, i)
     {
         this->operator[](i).correct();
+    }
+}
+
+
+void Foam::regionTypeList::correctElectrochemistry()
+{
+    forAll(*this, i)
+    {
+        this->operator[](i).correctElectrochemistry();
+    }
+}
+
+
+void Foam::regionTypeList::balanceElectricCurrent()
+{
+    forAll(*this, regionI)
+    {
+        regionType& region = this->operator[](regionI);
+
+        if (!isA<regionTypes::electric>(region))
+        {
+            continue;
+        }
+
+        regionTypes::electric& ionic =
+            refCast<regionTypes::electric>(region);
+
+        if (!ionic.currentBalanceActive())
+        {
+            continue;
+        }
+
+        const label maxIterations = ionic.currentBalanceMaxIterations();
+        const label kineticsCorrectors =
+            ionic.currentBalanceKineticsCorrectors();
+        scalar potential = ionic.meanPotential();
+        scalar imbalance = GREAT;
+        scalar tolerance = 0.0;
+        scalar bestPotential = potential;
+        scalar bestImbalance = GREAT;
+        scalar positivePotential = 0.0;
+        scalar negativePotential = 0.0;
+        bool havePositive = false;
+        bool haveNegative = false;
+        bool converged = false;
+        label iteration = 0;
+
+        const auto evaluate = [&]()
+        {
+            for (label corrector = 0; corrector < kineticsCorrectors; ++corrector)
+            {
+                correctElectrochemistry();
+            }
+
+            imbalance = ionic.integratedSource();
+            tolerance = Foam::max
+            (
+                ionic.currentBalanceAbsoluteTolerance(),
+                ionic.currentBalanceRelativeTolerance()
+               *ionic.integratedSourceMagnitude()
+            );
+
+            if (mag(imbalance) < mag(bestImbalance))
+            {
+                bestPotential = potential;
+                bestImbalance = imbalance;
+            }
+
+            if (imbalance > tolerance)
+            {
+                positivePotential = potential;
+                havePositive = true;
+            }
+            else if (imbalance < -tolerance)
+            {
+                negativePotential = potential;
+                haveNegative = true;
+            }
+            else
+            {
+                converged = true;
+            }
+
+            Info<< "Ionic current balance: region=" << ionic.name()
+                << ", iteration=" << iteration
+                << ", meanPhi=" << potential << " V"
+                << ", imbalance=" << imbalance << " A"
+                << ", tolerance=" << tolerance << " A" << endl;
+        };
+
+        evaluate();
+
+        scalar searchStep = ionic.currentBalanceInitialStep();
+
+        // Establish points on both sides of the monotonic current-balance
+        // root. Increasing ionic potential decreases integral(J_ion).
+        while
+        (
+            !converged
+         && !(havePositive && haveNegative)
+         && iteration < maxIterations
+        )
+        {
+            ++iteration;
+            const scalar direction = imbalance > 0.0 ? 1.0 : -1.0;
+            const scalar nextPotential = potential + direction*searchStep;
+            ionic.shiftPotential(nextPotential - potential);
+            potential = nextPotential;
+            evaluate();
+            searchStep = Foam::min
+            (
+                2.0*searchStep,
+                ionic.currentBalanceMaxStep()
+            );
+        }
+
+        // Once bracketed, bisection is insensitive to the very different
+        // anode and cathode exchange-current scales.
+        while
+        (
+            !converged
+         && havePositive
+         && haveNegative
+         && iteration < maxIterations
+        )
+        {
+            ++iteration;
+            const scalar nextPotential =
+                0.5*(positivePotential + negativePotential);
+            ionic.shiftPotential(nextPotential - potential);
+            potential = nextPotential;
+            evaluate();
+        }
+
+        if (!converged)
+        {
+            ionic.shiftPotential(bestPotential - potential);
+            potential = bestPotential;
+            correctElectrochemistry();
+
+            const string message
+            (
+                "Ionic current balance failed for region " + ionic.name()
+              + " after " + Foam::name(maxIterations)
+              + " iterations; best imbalance="
+              + Foam::name(bestImbalance) + " A at meanPhi="
+              + Foam::name(bestPotential) + " V"
+            );
+
+            if (ionic.currentBalanceFailOnNonConvergence())
+            {
+                FatalErrorInFunction << message << exit(FatalError);
+            }
+            else
+            {
+                WarningInFunction << message << endl;
+            }
+        }
     }
 }
 

@@ -511,6 +511,15 @@ void Foam::phaseSystem::correctThermo()
 }
 
 
+void Foam::phaseSystem::correctElectrochemistry()
+{
+    forAll(phaseModels_, phasei)
+    {
+        phaseModels_[phasei].correctElectrochemistry();
+    }
+}
+
+
 void Foam::phaseSystem::correctTurbulence()
 {
     forAll(phaseModels_, phasei)
