@@ -331,10 +331,10 @@ def check_boundary_contract(case: Path, errors: list[str]) -> None:
 
         water_path = f"0.orig/{region}/U.water"
         water_text, _ = field(water_path)
-        if vector_internal_field(water_text) != (0.01, 0.0, 0.0):
-            errors.append(f"{water_path} must initialize the liquid feed at (0.01 0 0) m/s")
+        if vector_internal_field(water_text) != (0.001, 0.0, 0.0):
+            errors.append(f"{water_path} must initialize the liquid feed at (0.001 0 0) m/s")
         expect(water_path, inlet, "type", "fixedValue")
-        expect(water_path, inlet, "value", "uniform (0.01 0 0)")
+        expect(water_path, inlet, "value", "uniform (0.001 0 0)")
         expect(water_path, outlet, "type", "pressureInletOutletVelocity")
         expect(water_path, outlet, "phi", "phi.water")
 
@@ -660,9 +660,13 @@ def check_static(case: Path, errors: list[str]) -> None:
     for patch in ("anodeInlet", "anodeOutlet", "anode_to_electrolyte", "anode_to_interconnect"):
         if not has_dictionary_block(anode_h2, patch):
             errors.append(f"0.orig/anode/H2.gas is missing boundary entry '{patch}'")
-    anode_water_velocity = read(case / "0.orig/anode/U.water", errors)
-    if "uniform (0.01 0 0)" not in anode_water_velocity:
-        errors.append("0.orig/anode/U.water must provide the aqueous-KOH feed at (0.01 0 0) m/s")
+    for region in ("anode", "cathode"):
+        water_velocity = read(case / f"0.orig/{region}/U.water", errors)
+        if "uniform (0.001 0 0)" not in water_velocity:
+            errors.append(
+                f"0.orig/{region}/U.water must provide the liquid feed at "
+                "(0.001 0 0) m/s"
+            )
 
     anode_controller = read(case / "constant/phiEAnode/regionProperties", errors)
     if not has_dictionary_block(anode_controller, "polarizationCurve"):
@@ -674,8 +678,16 @@ def check_static(case: Path, errors: list[str]) -> None:
     if not control_mode:
         errors.append("constant/phiEAnode/regionProperties must declare galvanostatic.active")
     elif control_mode.group(1) == "true":
+        try:
+            curve_block = dictionary_block(anode_controller, "polarizationCurve")
+        except ValueError:
+            curve_block = ""
+        if not curve_block or not has_entry(curve_block, "active", "true"):
+            errors.append(
+                "galvanostatic current scan must enable polarizationCurve feedback"
+            )
         for entry in (
-            "targets                     (-6000 -9000 -12000 -15000);",
+            "targets                     (0 -2000 -4000 -6000 -8000 -10000 -12000 -14000 -16000 -18000 -20000);",
             "minimumHoldDuration         15;",
             "targetCurrentTolerance      0.05;",
             "voltageTolerance            0.002;",
@@ -689,7 +701,7 @@ def check_static(case: Path, errors: list[str]) -> None:
 
         if "maxVoltageStep 0.01;" not in anode_controller:
             errors.append(
-                "constant/phiEAnode/regionProperties must use maxVoltageStep 0.01 for the POC scan"
+                "constant/phiEAnode/regionProperties must use maxVoltageStep 0.01 for the current scan"
             )
 
     voltage_type: str | None = None

@@ -101,7 +101,7 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("anodeChannel\n{", anode_diffusivity)
         self.assertIn("cellZone        cathodeMPL", cathode_porous)
         self.assertIn("cellZone        anodeMPL", anode_porous)
-        self.assertIn("uniform (0.01 0 0)", cathode_water_velocity)
+        self.assertIn("uniform (0.001 0 0)", cathode_water_velocity)
         self.assertIn("object      U.gas;", cathode_gas_velocity)
         self.assertIn("internalField   uniform (0 0 0);", cathode_gas_velocity)
         self.assertNotRegex(cathode_gas_velocity, r"\bvalue\s+internalField\s*;")
@@ -110,7 +110,7 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("object          yH2O;", cathode_water_vapour)
         self.assertFalse((case / "0.orig/cathode/H2.hydrogen").exists())
         self.assertFalse((case / "0.orig/cathode/H2O.hydrogen").exists())
-        self.assertIn("uniform (0.01 0 0)", anode_water_velocity)
+        self.assertIn("uniform (0.001 0 0)", anode_water_velocity)
         self.assertIn("H2", anode_thermo)
         self.assertIn("object          yH2;", anode_hydrogen)
         self.assertFalse((case / "0.orig/anode/H2.oxygen").exists())
@@ -131,14 +131,20 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("polarizationCurve", anode_controller)
         self.assertRegex(
             anode_controller,
-            r"galvanostatic\s*\{\s*active\s+false\s*;",
+            r"galvanostatic\s*\{\s*active\s+true\s*;",
         )
         self.assertRegex(
             anode_controller,
             r"voltage\s*\{\s*type\s+table\s*;",
         )
-        self.assertIn("(90      2.3)", anode_controller)
-        self.assertIn("targets                     (-6000 -9000 -12000 -15000);", anode_controller)
+        self.assertRegex(
+            anode_controller,
+            r"polarizationCurve\s*\{\s*active\s+true\s*;",
+        )
+        self.assertIn(
+            "targets                     (0 -2000 -4000 -6000 -8000 -10000 -12000 -14000 -16000 -18000 -20000);",
+            anode_controller,
+        )
         self.assertIn("minimumHoldDuration         15;", anode_controller)
         self.assertIn("maxVoltageStep 0.01;", anode_controller)
         self.assertIn("stabilitySamples            5;", anode_controller)

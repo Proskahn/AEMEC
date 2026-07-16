@@ -19,7 +19,7 @@ FoamFile
 
 dimensions      [1 2 -3 0 0 -1 0];
 
-internalField   uniform 1.3; // first voltage-hold value for the polarization sweep
+internalField   uniform 1.3; // initial voltage guess for galvanostatic control
 
 boundaryField
 {

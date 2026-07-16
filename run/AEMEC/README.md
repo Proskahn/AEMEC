@@ -16,10 +16,10 @@ liquid water → cathode / H2-product side → OH- through membrane → anode / 
 Both fluid regions are two-phase:
 
 - `cathode` is a liquid-water/gas region and receives liquid water at
-  `cathodeInlet` with `U.water = (0.01 0 0) m/s`. The phase named `gas`
+  `cathodeInlet` with `U.water = (0.001 0 0) m/s`. The phase named `gas`
   contains the H2 and H2O-vapour species.
 - `anode` is a liquid-water/gas region and also receives liquid aqueous KOH at
-  `anodeInlet` with `U.water = (0.01 0 0) m/s`. Its `gas` phase contains O2,
+  `anodeInlet` with `U.water = (0.001 0 0) m/s`. Its `gas` phase contains O2,
   H2O vapour, and crossover H2, which leave through `anodeOutlet`.
 
 At this level of the solver, the water phase is the aqueous-KOH carrier.
@@ -60,11 +60,11 @@ for the assumptions, dictionary contract, and remaining limitations. Validate
 diffusion/drag parameters and the printed conservation line at a reference
 thickness before running an optimization.
 
-The default `phiEAnode` configuration is a one-run potentiostatic polarization
-scan. It holds `1.3, 1.5, 1.7, 1.9, 2.1, 2.3 V` for 15 s each and records the
-resulting collector current density. The optional convergence-based
-galvanostatic controller remains available for known reachable current targets,
-and the optimizer explicitly enables that mode for each isolated trial. See
+The default `phiEAnode` configuration is a convergence-based galvanostatic
+polarization scan. It requests electrolysis current-density magnitudes from
+`0.0` to `2.0 A/cm2` in `0.2 A/cm2` increments and records the converged
+collector voltage. The signed solver targets are `0` through `-20000 A/m2`.
+The optimizer also enables galvanostatic mode for each isolated trial. See
 [polarization control](docs/polarization-control.md).
 
 The current branch uses a non-isothermal, one-temperature
@@ -89,14 +89,12 @@ make mesh
 make srun
 ```
 
-Then, from the repository root, extract the final sample from every voltage
-hold:
+Then, from the repository root, extract the accepted galvanostatic points:
 
 ```bash
 python3 visualization/polarized_curve.py \
     --log run/AEMEC/log.run \
-    --scan-mode voltage \
-    --hold-duration 15
+    --scan-mode current
 ```
 
 After changing C++ source, rebuild once with `./src/Allwmake` before these
