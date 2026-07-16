@@ -396,6 +396,11 @@ void Foam::twoPhaseSystem::solve()
         Info<< "Skipping phase-energy equations; all phase temperatures are "
             << "fixed at " << isothermalTemperature().value() << " K" << endl;
     }
+    else if (thermalEquilibrium())
+    {
+        Info<< "Skipping dispersed-phase energy equation; all phases share "
+            << "the spatially varying parent-mesh temperature" << endl;
+    }
 
     fvMesh& mesh = const_cast<fvMesh&>(mesh_);
 

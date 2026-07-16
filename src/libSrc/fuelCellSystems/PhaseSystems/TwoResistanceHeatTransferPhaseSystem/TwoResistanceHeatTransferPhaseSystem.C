@@ -259,6 +259,101 @@ Foam::TwoResistanceHeatTransferPhaseSystem<BasePhaseSystem>::heatTransfer
 
     const fvMesh& mesh = T.mesh();
 
+    if (this->thermalEquilibrium())
+    {
+        // With one common phase temperature, sensible interfacial heat
+        // exchange is internal to the summed energy equation and cancels.
+        // The remaining sum of the two film fluxes is the interface energy
+        // consumed or released by phase change (equal to -mDotL).
+        forAllConstIter
+        (
+            heatTransferModelTable,
+            heatTransferModels_,
+            heatTransferModelIter
+        )
+        {
+            const phasePair& pair
+            (
+                this->phasePairs_[heatTransferModelIter.key()]
+            );
+
+            const Pair<tmp<volScalarField>> Ks
+            (
+                heatTransferModelIter().first()->K(),
+                heatTransferModelIter().second()->K()
+            );
+
+            const volScalarField& Tf(*Tf_[pair]);
+            const volScalarField qInterface
+            (
+                Ks.first()()
+               *(Tf - pair.phase1().thermo().T())
+              + Ks.second()()
+               *(Tf - pair.phase2().thermo().T())
+            );
+
+            volScalarField qInterface0
+            (
+                IOobject
+                (
+                    "qInterfaceThermalEquilibrium",
+                    mesh.time().timeName(),
+                    mesh
+                ),
+                mesh,
+                dimensionedScalar("zero", dimPower/dimVol, 0.0)
+            );
+
+            qInterface0.rmap(qInterface, cellMap);
+            eqnPtr() += qInterface0;
+        }
+
+        // Account for the kinetic-energy difference carried by mass that
+        // changes phase. Enthalpy transport itself is already represented by
+        // the summed phase storage and flux coefficients.
+        forAllConstIter
+        (
+            phaseSystem::phasePairTable,
+            this->phasePairs_,
+            phasePairIter
+        )
+        {
+            const phasePair& pair(phasePairIter());
+
+            if (pair.ordered())
+            {
+                continue;
+            }
+
+            const volScalarField K1(pair.phase1().K());
+            const volScalarField K2(pair.phase2().K());
+            const volScalarField dmdt(this->dmdt(pair));
+            const volScalarField dmdt21(posPart(dmdt));
+            const volScalarField dmdt12(negPart(dmdt));
+            const volScalarField qKinetic
+            (
+                dmdt21*(K2 - K1) - dmdt12*(K1 - K2)
+            );
+
+            volScalarField qKinetic0
+            (
+                IOobject
+                (
+                    "qKineticThermalEquilibrium",
+                    mesh.time().timeName(),
+                    mesh
+                ),
+                mesh,
+                dimensionedScalar("zero", dimPower/dimVol, 0.0)
+            );
+
+            qKinetic0.rmap(qKinetic, cellMap);
+            eqnPtr() += qKinetic0;
+        }
+
+        return eqnPtr;
+    }
+
     // Heat transfer with the interface
     forAllConstIter
     (

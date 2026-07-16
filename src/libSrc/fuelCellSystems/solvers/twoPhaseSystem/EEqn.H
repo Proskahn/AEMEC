@@ -17,7 +17,12 @@ for (int Ecorr=0; Ecorr<nEnergyCorrectors; Ecorr++)
     phaseSystem::heatTransferTable&
         heatTransfer = heatTransferPtr();
 
-    if (!forcedIsothermal() && !phase.isothermal())
+    if
+    (
+       !forcedIsothermal()
+     && !thermalEquilibrium()
+     && !phase.isothermal()
+    )
     {
         fvScalarMatrix EEqn
         (

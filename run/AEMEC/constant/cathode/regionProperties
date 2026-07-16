@@ -20,9 +20,10 @@ type          interfaceCompositionPhaseChangeTwoPhaseSystem;
 
 phases (gas water);
 
-// Liquid water occupies almost all of the inlet volume and is the continuous
-// phase. With solveEnergy=false in cellProperties, both phase temperatures
-// are imposed instead of solving the dispersed-gas and global energy equations.
+// Gas and liquid retain separate phase fractions, velocities, and species,
+// but share the spatially varying temperature solved by the parent energy
+// equation. Both phases contribute storage, convection, and conductivity.
+thermalEquilibrium true;
 continuous water;
 
 LTS
@@ -48,12 +49,6 @@ gas
     }
 
     residualAlpha   1e-6;
-
-    // Below alpha.gas=0.5 the dispersed-gas temperature has too little
-    // physical heat capacity to define an independent cell temperature.
-    // The residual transient capacity holds its previous sensible energy;
-    // it cancels algebraically at steady state and does not add heat.
-    residualAlphaEnergy 0.5;
 }
 
 water

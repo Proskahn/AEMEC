@@ -136,6 +136,9 @@ protected:
         //- Bypass phase-energy equations and impose a common temperature
         Switch forcedIsothermal_;
 
+        //- Solve one common temperature for all phases in the parent mesh
+        Switch thermalEquilibrium_;
+
         //- Common phase and interface temperature in forced-isothermal mode
         dimensionedScalar isothermalTemperature_;
 
@@ -435,6 +438,9 @@ public:
 
             //- Return whether the region is externally forced isothermal
             bool forcedIsothermal() const;
+
+            //- Return whether all phases share the parent-mesh temperature
+            bool thermalEquilibrium() const;
 
             //- Return the forced-isothermal temperature
             const dimensionedScalar& isothermalTemperature() const;

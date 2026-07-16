@@ -168,6 +168,11 @@ Foam::phaseSystem::phaseSystem
 
     forcedIsothermal_(false),
 
+    thermalEquilibrium_
+    (
+        lookupOrDefault<Switch>("thermalEquilibrium", false)
+    ),
+
     isothermalTemperature_
     (
         "isothermalTemperature",
@@ -532,6 +537,12 @@ bool Foam::phaseSystem::forcedIsothermal() const
 }
 
 
+bool Foam::phaseSystem::thermalEquilibrium() const
+{
+    return thermalEquilibrium_;
+}
+
+
 const Foam::dimensionedScalar& Foam::phaseSystem::isothermalTemperature() const
 {
     return isothermalTemperature_;
@@ -697,6 +708,8 @@ bool Foam::phaseSystem::read()
     if (regIOobject::read())
     {
         bool readOK = true;
+
+        readIfPresent("thermalEquilibrium", thermalEquilibrium_);
 
         forAll(phaseModels_, phasei)
         {

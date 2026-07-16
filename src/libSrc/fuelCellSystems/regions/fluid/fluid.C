@@ -113,6 +113,7 @@ void Foam::regionTypes::fluid::mapToCell
 
     // Phase model
     phaseModel& phase = phases_->phases()[continuous];
+    const bool thermalEquilibrium = phases_->thermalEquilibrium();
 
     if (phase.isothermal())
     {
@@ -127,12 +128,30 @@ void Foam::regionTypes::fluid::mapToCell
       * (phase.U()&g)
     );
 
+    if (thermalEquilibrium)
+    {
+        heatSource += phase.heQdot();
+    }
+
     forAll(phases_->phases(), phasei)
     {
+        phaseModel& phaseiModel = phases_->phases()[phasei];
+
+        if (thermalEquilibrium && phaseiModel.name() != continuous)
+        {
+            // In local thermal equilibrium the parent equation is the sum of
+            // every phase enthalpy equation, including kinetic/pressure work.
+            heatSource +=
+                phaseiModel
+              * phaseiModel.thermo().rho()
+              * (phaseiModel.U()&g)
+              + phaseiModel.heQdot();
+        }
+
         // Electrochemical heat is deposited in the global conjugate energy
         // equation.  It is not assigned entirely to a dilute product-gas
         // phase, which would create an artificial temperature spike.
-        heatSource += phases_->phases()[phasei].Qdot().ref();
+        heatSource += phaseiModel.Qdot().ref();
     }
 
     // Heat transfer field in parent mesh
@@ -169,6 +188,32 @@ void Foam::regionTypes::fluid::mapToCell
       * phase.thermo().Cp()
     );
 
+    if (thermalEquilibrium)
+    {
+        forAll(phases_->phases(), phasei)
+        {
+            phaseModel& phaseiModel = phases_->phases()[phasei];
+
+            if (phaseiModel.name() == continuous)
+            {
+                continue;
+            }
+
+            tmp<volScalarField> tPhaseRhoCp =
+                phaseiModel
+              * phaseiModel.thermo().Cp()
+              * phaseiModel.thermo().rho();
+
+            rhoCp += tPhaseRhoCp().primitiveField();
+
+            tmp<volScalarField> tPhaseContErrCp =
+                phaseiModel.continuityError()
+              * phaseiModel.thermo().Cp();
+
+            contErrCp += tPhaseContErrCp().primitiveField();
+        }
+    }
+
     // Perform reverse mapping
     fuelCell.rhoCp().rmap(rhoCp, cellMapIO_);
 
@@ -188,13 +233,37 @@ void Foam::regionTypes::fluid::mapToCell
     //
     // ** recall phi already incorporates rho **
     //
-    surfaceScalarField& rhoPhi = phase.alphaRhoPhiRef();
+    surfaceScalarField& continuousRhoPhi = phase.alphaRhoPhiRef();
 
-    scalarField rhoCpPhi
-    (
-        linearInterpolate(phase.thermo().Cp())
-      * rhoPhi
-    );
+    scalarField rhoPhi(continuousRhoPhi.primitiveField());
+
+    tmp<surfaceScalarField> tRhoCpPhi =
+        linearInterpolate(phase.thermo().Cp())*continuousRhoPhi;
+
+    scalarField rhoCpPhi(tRhoCpPhi().primitiveField());
+
+    if (thermalEquilibrium)
+    {
+        forAll(phases_->phases(), phasei)
+        {
+            phaseModel& phaseiModel = phases_->phases()[phasei];
+
+            if (phaseiModel.name() == continuous)
+            {
+                continue;
+            }
+
+            surfaceScalarField& phaseRhoPhi =
+                phaseiModel.alphaRhoPhiRef();
+
+            rhoPhi += phaseRhoPhi.primitiveField();
+
+            tmp<surfaceScalarField> tPhaseRhoCpPhi =
+                linearInterpolate(phaseiModel.thermo().Cp())*phaseRhoPhi;
+
+            rhoCpPhi += tPhaseRhoCpPhi().primitiveField();
+        }
+    }
 
     fuelCell.phi().rmap
     (
@@ -241,22 +310,52 @@ void Foam::regionTypes::fluid::mapToCell
             curFpm -= mesh_.boundary()
                         [patchesMapIO_[patchI]].patch().start();
 
+            scalarField rhoPhiPatch
+            (
+                continuousRhoPhi.boundaryField()[patchI]
+            );
+
+            tmp<volScalarField> tContinuousCp = phase.thermo().Cp();
+            scalarField rhoCpPhiPatch
+            (
+                tContinuousCp().boundaryField()[patchI]
+               *continuousRhoPhi.boundaryField()[patchI]
+            );
+
+            if (thermalEquilibrium)
+            {
+                forAll(phases_->phases(), phasei)
+                {
+                    phaseModel& phaseiModel = phases_->phases()[phasei];
+
+                    if (phaseiModel.name() == continuous)
+                    {
+                        continue;
+                    }
+
+                    surfaceScalarField& phaseRhoPhi =
+                        phaseiModel.alphaRhoPhiRef();
+                    tmp<volScalarField> tPhaseCp =
+                        phaseiModel.thermo().Cp();
+
+                    rhoPhiPatch += phaseRhoPhi.boundaryField()[patchI];
+                    rhoCpPhiPatch +=
+                        tPhaseCp().boundaryField()[patchI]
+                       *phaseRhoPhi.boundaryField()[patchI];
+                }
+            }
+
             fuelCell.phi().boundaryFieldRef()[patchesMapIO_[patchI]].
                 scalarField::rmap
                 (
-                    (
-                        rhoPhi.boundaryFieldRef()[patchI]
-                    )*curMask,
+                    rhoPhiPatch*curMask,
                     curFpm
                 );
 
             fuelCell.rhoCpPhi().boundaryFieldRef()[patchesMapIO_[patchI]].
                 scalarField::rmap
                 (
-                    (
-                        phase.thermo().Cp().ref().boundaryFieldRef()[patchI]
-                      * rhoPhi.boundaryFieldRef()[patchI]
-                    )*curMask,
+                    rhoCpPhiPatch*curMask,
                     curFpm
                 );
         }
@@ -267,6 +366,24 @@ void Foam::regionTypes::fluid::mapToCell
     scalarField kF(nCells(), 0.0);
 
     kF = phase.kappa()*phase;
+
+    if (thermalEquilibrium)
+    {
+        forAll(phases_->phases(), phasei)
+        {
+            phaseModel& phaseiModel = phases_->phases()[phasei];
+
+            if (phaseiModel.name() == continuous)
+            {
+                continue;
+            }
+
+            tmp<volScalarField> tPhaseKappa =
+                phaseiModel.kappa()*phaseiModel;
+
+            kF += tPhaseKappa().primitiveField();
+        }
+    }
 
     forAll(phases_->porousZone(), iz)
     {
@@ -305,6 +422,38 @@ void Foam::regionTypes::fluid::mapFromCell
     if (!fuelCell.solveEnergy())
     {
         phases_->setIsothermalTemperature(fuelCell.isothermalTemperature());
+        return;
+    }
+
+    if (phases_->thermalEquilibrium())
+    {
+        forAll(phases_->phases(), phasei)
+        {
+            phaseModel& phase = phases_->phases()[phasei];
+            rhoThermo& thermo = phase.thermoRef();
+
+            // Species changes alter mixture enthalpy. Normalize composition
+            // first, then reconstruct every phase enthalpy from the one
+            // temperature solved in the parent conjugate-energy equation.
+            phase.correctComposition();
+
+            volScalarField T0(thermo.T());
+
+            forAll(T0, cellI)
+            {
+                T0[cellI] = fuelCell.T()[cellMapIO_[cellI]];
+            }
+
+            thermo.he() = thermo.he(thermo.p(), T0).ref();
+            thermo.he().correctBoundaryConditions();
+            thermo.correct();
+
+            // The he-to-T inversion has a finite convergence tolerance.
+            // Re-impose the shared temperature exactly so both phase models
+            // enter the flow/species solve with the same thermal state.
+            thermo.T() = T0;
+        }
+
         return;
     }
 

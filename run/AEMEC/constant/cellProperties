@@ -17,9 +17,12 @@ FoamFile
 nx    4;
 ny    1;
 
-// Isothermal diagnostic mode: retain flow, species, phase change, and
-// electrochemistry while bypassing global and local phase-energy equations.
-solveEnergy             false;
+// Solve a spatially varying conjugate temperature.  The anode and cathode
+// regionProperties select local thermal equilibrium so gas and liquid share
+// this temperature while retaining separate flow and species equations.
+solveEnergy             true;
+
+// Used only if solveEnergy is switched off for an isothermal diagnostic.
 isothermalTemperature   313.15;
 
 // ************************************************************************* //

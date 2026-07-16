@@ -472,10 +472,10 @@ def check_static(case: Path, errors: list[str]) -> None:
     check_boundary_contract(case, errors)
 
     cell_properties = read(case / "constant/cellProperties", errors)
-    if not has_entry(cell_properties, "solveEnergy", "false"):
+    if not has_entry(cell_properties, "solveEnergy", "true"):
         errors.append(
-            "constant/cellProperties must disable solveEnergy for the "
-            "isothermal electrochemical diagnostic"
+            "constant/cellProperties must enable solveEnergy for the "
+            "one-temperature thermal-equilibrium model"
         )
     if not has_entry(cell_properties, "isothermalTemperature", "313.15"):
         errors.append(
@@ -494,7 +494,7 @@ def check_static(case: Path, errors: list[str]) -> None:
         temperature = scalar_internal_field(read(case / relative_path, errors))
         if temperature is None or abs(temperature - 313.15) > 1e-9:
             errors.append(
-                f"{relative_path} must initialize at the isothermal "
+                f"{relative_path} must initialize at the reference "
                 "temperature 313.15 K"
             )
 
@@ -504,7 +504,6 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(f"constant/regionProperties does not declare region '{region}'")
 
     expected_phases = {"anode": "phases (gas water)", "cathode": "phases (gas water)"}
-    expected_residual_energy = {"anode": "0.05", "cathode": "0.5"}
     for region, phase_line in expected_phases.items():
         text = read(case / "constant" / region / "regionProperties", errors)
         if phase_line not in text:
@@ -514,18 +513,15 @@ def check_static(case: Path, errors: list[str]) -> None:
                 f"constant/{region}/regionProperties must use liquid water as "
                 "the continuous phase for the global energy equation"
             )
-        try:
-            gas_properties = dictionary_block(text, "gas")
-        except ValueError:
-            gas_properties = ""
-        if gas_properties and not has_entry(
-            gas_properties,
-            "residualAlphaEnergy",
-            expected_residual_energy[region],
-        ):
+        if not has_entry(text, "thermalEquilibrium", "true"):
             errors.append(
-                f"constant/{region}/regionProperties must set gas "
-                "residualAlphaEnergy to " + expected_residual_energy[region]
+                f"constant/{region}/regionProperties must enable "
+                "thermalEquilibrium"
+            )
+        if re.search(r"\bresidualAlphaEnergy\b", without_comments(text)):
+            errors.append(
+                f"constant/{region}/regionProperties must not use "
+                "residualAlphaEnergy in common-temperature mode"
             )
         gas_thermo = read(
             case / "constant" / region / "thermophysicalProperties.gas",

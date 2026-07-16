@@ -67,13 +67,20 @@ galvanostatic controller remains available for known reachable current targets,
 and the optimizer explicitly enables that mode for each isolated trial. See
 [polarization control](docs/polarization-control.md).
 
-The current branch runs that scan in an isothermal diagnostic mode. In
-`constant/cellProperties`, `solveEnergy false` bypasses both the global
-conjugate-energy equation and the local dispersed-phase energy equations, and
-`isothermalTemperature 313.15` fixes the main mesh, solids, electric regions,
-both fluid phases, and phase interfaces at 313.15 K. Flow, species transport,
-evaporation/condensation, and electrochemical source terms remain active. Set
-`solveEnergy true` only when returning to the non-isothermal energy diagnosis.
+The current branch uses a non-isothermal, one-temperature
+Eulerian--Eulerian model. `constant/cellProperties` enables the global
+conjugate-energy equation with `solveEnergy true`, while the anode and cathode
+`regionProperties` dictionaries set `thermalEquilibrium true`. Gas and liquid
+retain separate phase fractions, velocities, mass fluxes, and species, but
+share the spatially varying parent-mesh temperature. Both phases contribute
+to thermal storage, convection, conductivity, gravity/pressure/kinetic work,
+and reaction heat. The independent dilute-gas enthalpy equation and its
+`residualAlphaEnergy` regularization are not used. The summed interfacial film
+heat supplies the latent-heat source/sink without retaining an internal
+gas-to-liquid sensible-heat exchange term.
+
+`isothermalTemperature 313.15` remains as the fallback value used only when
+`solveEnergy` is explicitly disabled for an electrochemical diagnostic.
 
 ## Run
 

@@ -47,6 +47,9 @@ class AemecCaseTests(unittest.TestCase):
     def test_case_uses_the_cathode_fed_aem_region_contract(self) -> None:
         case = ROOT / "run/AEMEC"
         regions = (case / "constant/regionProperties").read_text(encoding="utf-8")
+        cell_properties = (case / "constant/cellProperties").read_text(
+            encoding="utf-8"
+        )
         cathode = (case / "constant/cathode/regionProperties").read_text(encoding="utf-8")
         anode = (case / "constant/anode/regionProperties").read_text(encoding="utf-8")
         crossover = (case / "constant/phiAnion/regionProperties").read_text(encoding="utf-8")
@@ -81,9 +84,11 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("phases (gas water)", anode)
         self.assertIn("continuous water;", cathode)
         self.assertIn("continuous water;", anode)
-        self.assertIn("residualAlphaEnergy 0.5;", cathode)
-        self.assertIn("residualAlphaEnergy 0.05;", anode)
-        self.assertIn("it cancels algebraically at steady state", cathode)
+        self.assertIn("solveEnergy             true;", cell_properties)
+        self.assertIn("thermalEquilibrium true;", cathode)
+        self.assertIn("thermalEquilibrium true;", anode)
+        self.assertNotIn("residualAlphaEnergy", cathode)
+        self.assertNotIn("residualAlphaEnergy", anode)
         self.assertIn("pressureWorkAlphaLimit 0.05;", anode_thermo)
         self.assertIn("pressureWorkAlphaLimit 0.05;", cathode_thermo)
         self.assertRegex(anode_solution, r"\biDmdt\s+0\.5\s*;")
@@ -208,6 +213,15 @@ class AemecCaseTests(unittest.TestCase):
         anisothermal = (
             source / "phaseModel/AnisothermalPhaseModel/AnisothermalPhaseModel.C"
         ).read_text(encoding="utf-8")
+        phase_system = (source / "phaseSystem/phaseSystem.C").read_text(
+            encoding="utf-8"
+        )
+        fluid_region = (source / "regions/fluid/fluid.C").read_text(
+            encoding="utf-8"
+        )
+        global_energy = (ROOT / "src/appSrc/EEqns.H").read_text(
+            encoding="utf-8"
+        )
 
         self.assertNotIn("phase1_.correctThermo();", species_equations)
         self.assertNotIn("phase2_.correctThermo();", species_equations)
@@ -229,6 +243,7 @@ class AemecCaseTests(unittest.TestCase):
             species_equations,
         )
         self.assertIn("thermo.correct();", energy_equation)
+        self.assertIn("!thermalEquilibrium()", energy_equation)
         self.assertIn("correctComposition();", multicomponent)
         self.assertLess(
             multicomponent.index("//- Normalize"),
@@ -248,6 +263,17 @@ class AemecCaseTests(unittest.TestCase):
             anisothermal.index(implicit_capacity),
             anisothermal.index(explicit_capacity),
         )
+        self.assertIn('readIfPresent("thermalEquilibrium"', phase_system)
+        self.assertIn("phases_->thermalEquilibrium()", fluid_region)
+        self.assertIn("rhoCp += tPhaseRhoCp().primitiveField();", fluid_region)
+        self.assertIn("rhoCpPhi += tPhaseRhoCpPhi().primitiveField();", fluid_region)
+        self.assertIn("kF += tPhaseKappa().primitiveField();", fluid_region)
+        self.assertIn("thermo.he() = thermo.he(thermo.p(), T0).ref();", fluid_region)
+        self.assertIn("thermo.T() = T0;", fluid_region)
+        self.assertIn("if (this->thermalEquilibrium())", heat_transfer)
+        self.assertIn("qInterface0.rmap(qInterface, cellMap);", heat_transfer)
+        self.assertIn("fvm::Sp(fvc::ddt(rhoCpCell), TCell)", global_energy)
+        self.assertIn("fvm::Sp(fvc::div(rhoCpPhiCell), TCell)", global_energy)
 
     def test_thickness_rewrite_preserves_other_layers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
