@@ -633,6 +633,11 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/Function1.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/function1Base.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/Function1.C \
 ../fuelCellSystems/lnInclude/Constant.H \
+../fuelCellSystems/lnInclude/activationOverpotentialModelTemplate.H \
+../fuelCellSystems/lnInclude/activationOverpotentialModel.H \
+../fuelCellSystems/lnInclude/regionType.H \
+../fuelCellSystems/lnInclude/nernstModel.H \
+../fuelCellSystems/lnInclude/activationOverpotentialModelTemplate.C \
 ../fuelCellSystems/lnInclude/Constant.C \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/MRFZoneTemplates.C \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvMatrices.H \
