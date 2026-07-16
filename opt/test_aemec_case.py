@@ -146,7 +146,8 @@ class AemecCaseTests(unittest.TestCase):
             anode_controller,
         )
         self.assertIn("minimumHoldDuration         15;", anode_controller)
-        self.assertIn("maxVoltageStep 0.01;", anode_controller)
+        self.assertIn("relax             1.0e-6;", anode_controller)
+        self.assertIn("maxVoltageStep 0.002;", anode_controller)
         self.assertIn("stabilitySamples            5;", anode_controller)
         self.assertRegex(anode_collector, r"name\s+interconnect0\s*;")
         self.assertRegex(anode_collector, r"set\s+interconnect0\s*;")

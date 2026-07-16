@@ -699,9 +699,13 @@ def check_static(case: Path, errors: list[str]) -> None:
                     f"constant/phiEAnode/regionProperties is missing stable polarization entry '{entry}'"
                 )
 
-        if "maxVoltageStep 0.01;" not in anode_controller:
+        if "relax             1.0e-6;" not in anode_controller:
             errors.append(
-                "constant/phiEAnode/regionProperties must use maxVoltageStep 0.01 for the current scan"
+                "constant/phiEAnode/regionProperties must use relax 1.0e-6 for stable current control"
+            )
+        if "maxVoltageStep 0.002;" not in anode_controller:
+            errors.append(
+                "constant/phiEAnode/regionProperties must use maxVoltageStep 0.002 for the current scan"
             )
 
     voltage_type: str | None = None

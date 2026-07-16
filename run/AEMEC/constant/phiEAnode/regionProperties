@@ -17,16 +17,14 @@ FoamFile
 //- Add information here
 
 control           true;
-relax             1.0e-5;
+relax             1.0e-6;
 
 galvanostatic
 {
     active      true;
     region      phiEAnode;
     patchName   interconnect0;
-    maxVoltageStep 0.01;   // Maximum controller movement per outer iteration [V]
-    minVoltage  1.0;       // Physical safety bounds [V]
-    maxVoltage  2.5;
+    maxVoltageStep 0.002;  // Maximum controller movement per outer iteration [V]
 
     // Retained for fixed-voltage diagnostics. This table is inactive while
     // galvanostatic.active is true.

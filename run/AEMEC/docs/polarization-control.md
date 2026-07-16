@@ -64,15 +64,17 @@ The stable current controller is configured in
 | `currentStabilityTolerance` | Consecutive-sample current variation relative to scale | `0.02` |
 | `stabilitySamples` | Consecutive stable samples required | `5` |
 
-For this scan, `maxVoltageStep` is `0.01 V` per outer
-iteration. This reduces controller ramp time while retaining the existing
-5%-target and stability checks.
+For this scan, the proportional controller gain is `relax = 1e-6` and
+`maxVoltageStep` is `0.002 V` per outer iteration. These values suppress the
+two-point current oscillation observed with `relax = 1e-5` and a `0.01 V` step
+near the 0.6 A/cm2 target, while retaining the existing 5%-target and stability
+checks.
 
-The controller rejects a point when the voltage is at `minVoltage` or
-`maxVoltage`, or when applying the correction would clip the voltage. It keeps
-that target active instead of silently advancing. If a target remains rejected
-until `endTime`, treat it as unreachable within the selected voltage bounds;
-do not put it on the polarization curve.
+The default current scan does not specify `minVoltage` or `maxVoltage`, so the
+controller uses its effectively unbounded built-in defaults. The per-update
+`maxVoltageStep` remains active. If a target does not meet the current and
+stability criteria before `endTime`, it is not accepted and must not be put on
+the polarization curve.
 
 Every controller update writes one `galvanostatic target:` line with signed and
 requested target, measured current, error, applied voltage, raw/limited voltage
@@ -96,7 +98,7 @@ make srun
 The supplied `controlDict.run` has a 300-second safety timeout. The solver
 stops earlier and writes the final multi-region state after all 11 targets are
 accepted. If the run reaches 300 seconds first, inspect the last target for a
-voltage-bound or convergence failure before increasing the timeout.
+convergence failure before increasing the timeout.
 
 From the repository root, extract the controller records marked as accepted:
 
