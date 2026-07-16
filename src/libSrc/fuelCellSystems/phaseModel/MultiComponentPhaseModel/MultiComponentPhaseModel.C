@@ -145,7 +145,10 @@ Foam::MultiComponentPhaseModel<BasePhaseModel>::MultiComponentPhaseModel
                     IOobject::AUTO_WRITE
                 ),
                 this->mesh(),
-                dimensionedScalar("diff", this->muEff()->dimensions()/dimDensity, SMALL),
+                // Species diffusivity is kinematic viscosity [L2/T]. Use the
+                // canonical dimension directly instead of evaluating muEff()
+                // merely to infer dimensions while the phase is constructed.
+                dimensionedScalar("diff", dimViscosity, SMALL),
                 zeroGradientFvPatchScalarField::typeName
             )
         );

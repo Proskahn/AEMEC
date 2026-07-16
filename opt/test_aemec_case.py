@@ -213,6 +213,10 @@ class AemecCaseTests(unittest.TestCase):
         anisothermal = (
             source / "phaseModel/AnisothermalPhaseModel/AnisothermalPhaseModel.C"
         ).read_text(encoding="utf-8")
+        multicomponent_phase = (
+            source
+            / "phaseModel/MultiComponentPhaseModel/MultiComponentPhaseModel.C"
+        ).read_text(encoding="utf-8")
         phase_system = (source / "phaseSystem/phaseSystem.C").read_text(
             encoding="utf-8"
         )
@@ -274,6 +278,18 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("qInterface0.rmap(qInterface, cellMap);", heat_transfer)
         self.assertIn("fvm::Sp(fvc::ddt(rhoCpCell), TCell)", global_energy)
         self.assertIn("fvm::Sp(fvc::div(rhoCpPhiCell), TCell)", global_energy)
+        self.assertIn(
+            'dimensionedScalar("diff", dimViscosity, SMALL)',
+            multicomponent_phase,
+        )
+        self.assertNotIn(
+            "this->muEff()->dimensions()/dimDensity",
+            multicomponent_phase,
+        )
+
+        clean_script = (ROOT / "src/libSrc/Allwclean").read_text(encoding="utf-8")
+        self.assertIn("wclean libso thermoTools", clean_script)
+        self.assertNotIn("wclean libso thermalTools", clean_script)
 
     def test_thickness_rewrite_preserves_other_layers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
