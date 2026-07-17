@@ -1,18 +1,15 @@
 # Polarization-curve control
 
-## Default: convergence-based current sweep
+## Default: voltage-table sweep
 
-The default case uses galvanostatic control (`galvanostatic.active true`) and
-enables `polarizationCurve`. It requests current-density magnitudes from `0.0`
-to `2.0 A/cm2` in `0.2 A/cm2` increments. Electrolysis current is negative in
-the solver convention, so the configured targets are
-`0, -2000, ..., -20000 A/m2`. The collector voltage is adjusted until each
-current target is accepted.
+The default case uses potentiostatic control (`galvanostatic.active false`). A
+`voltage` table prescribes `1.3, 1.5, 1.7, 1.9, 2.1,` and `2.3 V`, holding each
+level for 15 s. The resulting collector current density is measured at the end
+of each hold.
 
-The controller requires both the current-target error and consecutive current
-and voltage changes to satisfy the configured tolerances. It advances only
-after the minimum 15-second hold and five stable samples. The `ibar` time table
-is retained only as a fallback for runs that disable `polarizationCurve`.
+This sweep is time-based rather than convergence-based. Verify that the current
+and transport fields have settled by the end of each hold before interpreting
+the extracted curve.
 
 ## Why the former current scan did not produce a curve
 
@@ -37,7 +34,7 @@ at `jMax = 2e9 A/m3` (4 A/cm2 for the 20 um catalyst layers); it reports lower-
 and upper-clipped cell counts every update. This safeguard is not a physical
 limiting-current model.
 
-## Convergence-based galvanostatic sequence
+## Optional convergence-based galvanostatic sequence
 
 Each outer iteration now performs:
 
@@ -51,7 +48,7 @@ retain active target and previously applied collector voltage
 → advance to the next target only after acceptance
 ```
 
-The stable current controller is configured in
+The optional stable current controller is configured in
 `constant/phiEAnode/regionProperties` under `galvanostatic.polarizationCurve`:
 
 | Parameter | Meaning | AEMEC starting value |
@@ -70,7 +67,7 @@ two-point current oscillation observed with `relax = 1e-5` and a `0.01 V` step
 near the 0.6 A/cm2 target, while retaining the existing 5%-target and stability
 checks.
 
-The default current scan does not specify `minVoltage` or `maxVoltage`, so the
+The optional current scan does not specify `minVoltage` or `maxVoltage`, so the
 controller uses its effectively unbounded built-in defaults. The per-update
 `maxVoltageStep` remains active. If a target does not meet the current and
 stability criteria before `endTime`, it is not accepted and must not be put on
@@ -85,7 +82,7 @@ clipping.
 
 ## Running and plotting
 
-Run the default current sweep:
+Run the default voltage sweep:
 
 ```bash
 cd /Users/zhuang/AEMEC
@@ -95,20 +92,19 @@ make mesh
 make srun
 ```
 
-The supplied `controlDict.run` has a 300-second safety timeout. The solver
-stops earlier and writes the final multi-region state after all 11 targets are
-accepted. If the run reaches 300 seconds first, inspect the last target for a
-convergence failure before increasing the timeout.
+The supplied `controlDict.run` ends at 90 s, matching the last voltage-table
+entry.
 
-From the repository root, extract the controller records marked as accepted:
+From the repository root, extract the final sample from every voltage hold:
 
 ```bash
 python3 visualization/polarized_curve.py \
     --log run/AEMEC/log.run \
-    --scan-mode current
+    --scan-mode voltage \
+    --hold-duration 15
 ```
 
-The extractor plots only controller records marked `accepted: true`; use
-`--all-samples` only to inspect rejected transients. For a fixed-voltage run,
-use `prepare_fixed_voltage_diagnostic.py`, which disables galvanostatic
-feedback in an isolated case copy.
+For an optional current-controlled run, enable both `galvanostatic` and
+`polarizationCurve`. In that mode the extractor plots only controller records
+marked `accepted: true`; use `--all-samples` only to inspect rejected
+transients.

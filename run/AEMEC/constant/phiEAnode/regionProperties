@@ -21,13 +21,13 @@ relax             1.0e-6;
 
 galvanostatic
 {
-    active      true;
+    active      false;
     region      phiEAnode;
     patchName   interconnect0;
     maxVoltageStep 0.002;  // Maximum controller movement per outer iteration [V]
 
-    // Retained for fixed-voltage diagnostics. This table is inactive while
-    // galvanostatic.active is true.
+    // Default potentiostatic polarization scan: impose each collector
+    // voltage for 15 s and measure the resulting current density.
     voltage
     {
         type    table;
@@ -48,9 +48,8 @@ galvanostatic
         );
     }
 
-    // Time-based fallback used when polarizationCurve.active is false. The
-    // default scan below is convergence-based instead. Electrolysis current
-    // is negative in this solver convention; 2000 A/m2 = 0.2 A/cm2.
+    // Optional galvanostatic fallback. Electrolysis current is negative in
+    // this solver convention; 2000 A/m2 = 0.2 A/cm2.
     ibar
     {
         type    table;
@@ -81,12 +80,11 @@ galvanostatic
         );
     }
 
-    // A true polarization scan: do not advance a target simply because time
-    // elapsed. The next target is selected only after the post-solve boundary
-    // current is on target and both current and voltage are stable.
+    // Optional convergence-based current scan. It is inactive during the
+    // default voltage-table sweep.
     polarizationCurve
     {
-        active                      true;
+        active                      false;
         targets                     (0 -2000 -4000 -6000 -8000 -10000 -12000 -14000 -16000 -18000 -20000);
         minimumHoldDuration         15;
         targetCurrentTolerance      0.05;
