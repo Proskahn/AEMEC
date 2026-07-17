@@ -22,14 +22,14 @@ startTime       0;
 
 stopAt          endTime;
 
-// Six prescribed voltage levels, each held for 15 s.
-endTime         90;
+// Eleven prescribed voltage levels, each held for 15 s.
+endTime         165;
 
 deltaT          0.1;
 
 writeControl    runTime;
 
-writeInterval   90;
+writeInterval   165;
 
 purgeWrite      0;
 

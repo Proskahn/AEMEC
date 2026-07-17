@@ -11,11 +11,13 @@ from aemec_case import (
     AemecEvaluationConfig,
     AemecOpenFoamEvaluator,
     OptimizationError,
-    configure_target_hold,
+    VoltageHold,
+    VoltageSweep,
+    configure_voltage_sweep,
     copy_clean_case,
-    parse_objective_samples,
+    interpolate_voltage_objective,
+    parse_voltage_sweep_samples,
     rewrite_block_mesh_thickness,
-    select_target_sample,
 )
 
 
@@ -141,7 +143,8 @@ class AemecCaseTests(unittest.TestCase):
             anode_controller,
             r"polarizationCurve\s*\{\s*active\s+false\s*;",
         )
-        self.assertIn("(90      2.3)", anode_controller)
+        self.assertIn("(15.001  1.4)", anode_controller)
+        self.assertIn("(165     2.3)", anode_controller)
         self.assertIn(
             "targets                     (0 -2000 -4000 -6000 -8000 -10000 -12000 -14000 -16000 -18000 -20000);",
             anode_controller,
@@ -306,49 +309,62 @@ class AemecCaseTests(unittest.TestCase):
             self.assertEqual(update.new_thickness_um, 50.0)
             self.assertIn("0.025", mesh.read_text(encoding="utf-8"))
 
-    def test_fast_mode_configures_direct_target_and_final_write(self) -> None:
+    def test_optimizer_configures_complete_voltage_sweep(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             case = Path(directory)
             copy_controls(case)
-            hold = configure_target_hold(case, AemecEvaluationConfig())
-            self.assertEqual(hold.outer_iterations, 250)
-            self.assertEqual(hold.delta_t_s, 1.0)
+            sweep = configure_voltage_sweep(case, AemecEvaluationConfig())
+            self.assertEqual(len(sweep.holds), 11)
+            self.assertEqual(sweep.outer_iterations, 1650)
+            self.assertEqual(sweep.delta_t_s, 0.1)
+            self.assertEqual(sweep.holds[1].voltage_v, 1.4)
             controls = (case / "system/controlDict.run").read_text(encoding="utf-8")
             controller = (case / "constant/phiEAnode/regionProperties").read_text(encoding="utf-8")
-            self.assertRegex(controls, r"endTime\s+250\s*;")
-            self.assertRegex(controls, r"writeInterval\s+250\s*;")
+            self.assertRegex(controls, r"endTime\s+165\s*;")
+            self.assertRegex(controls, r"writeInterval\s+165\s*;")
             self.assertRegex(
                 controller,
                 r"polarizationCurve\s*\{[\s\S]*?active\s+false\s*;",
             )
             self.assertRegex(
                 controller,
-                r"galvanostatic\s*\{\s*active\s+true\s*;",
+                r"galvanostatic\s*\{\s*active\s+false\s*;",
             )
 
-    def test_parser_uses_post_solve_boundary_current_and_final_window(self) -> None:
+    def test_voltage_sweep_interpolates_at_target_current(self) -> None:
         config = AemecEvaluationConfig(stability_samples=3)
         log = """
 Time = 1
-galvanostatic target: -10000 A/m2, raw dV: 0.0001, limited dV: 0.0001
-ibar: -8000 voltage: 1.7
-Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = -10000 A/m2, voltage = 1.8
-Hydrogen crossover objective: anode gas source rate = 2.0e-5 mol/s
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8000 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.0e-5 mol/s
 Time = 2
-galvanostatic target: -10000 A/m2, raw dV: 0.0001, limited dV: 0.0001
-Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = -10005 A/m2, voltage = 1.801
-Hydrogen crossover objective: anode gas source rate = 2.01e-5 mol/s
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8010 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.01e-5 mol/s
 Time = 3
-galvanostatic target: -10000 A/m2, raw dV: 0.0001, limited dV: 0.0001
-Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = -10010 A/m2, voltage = 1.8
-Hydrogen crossover objective: anode gas source rate = 2.0e-5 mol/s
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8000 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.0e-5 mol/s
+Time = 4
+Controlled boundary current (A) at x: signed = -0.96, magnitude = 0.96, current density = -12000 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.0e-5 mol/s
+Time = 5
+Controlled boundary current (A) at x: signed = -0.96, magnitude = 0.96, current density = -12010 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.01e-5 mol/s
+Time = 6
+Controlled boundary current (A) at x: signed = -0.96, magnitude = 0.96, current density = -12000 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.0e-5 mol/s
 End
 """
-        samples = parse_objective_samples(log)
-        self.assertEqual(samples[0].actual_current_density_a_m2, -10000.0)
-        hold = type("Hold", (), {"end_s": 3.0, "delta_t_s": 1.0})()
-        selected = select_target_sample(log, config, hold)
-        self.assertEqual(selected.time_s, 3.0)
+        samples = parse_voltage_sweep_samples(log)
+        self.assertEqual(samples[0].current_density_a_m2, -8000.0)
+        sweep = VoltageSweep(
+            (VoltageHold(0.0, 3.0, 1.7), VoltageHold(3.001, 6.0, 1.8)),
+            delta_t_s=1.0,
+            outer_iterations=6,
+        )
+        objective = interpolate_voltage_objective(log, config, sweep)
+        self.assertAlmostEqual(objective.cell_voltage_v, 1.75)
+        self.assertAlmostEqual(objective.crossover_rate_mol_s, 4.0e-5)
+        self.assertAlmostEqual(objective.interpolation_fraction, 0.5)
 
     def test_copy_refuses_to_delete_source(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -377,18 +393,24 @@ for region in ('', 'anode', 'cathode', 'electrolyte', 'interconnect', 'phiECatho
                 encoding="utf-8",
             )
             (source / "solver.py").write_text(
-                """for moment in (246, 247, 248, 249, 250):
-    print(f'Time = {moment}')
-    print('galvanostatic target: -10000 A/m2, raw dV: 0.0001, limited dV: 0.0001')
-    print('Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = -10000 A/m2, voltage = 1.8')
-    print('Hydrogen crossover objective: anode release rate = 2e-5 mol/s')
+                """voltages = [1.3 + 0.1 * index for index in range(11)]
+for index, voltage in enumerate(voltages, start=1):
+    end = 15.0 * index
+    current_density = -(voltage - 1.3) * 18000.0
+    for offset in (0.4, 0.3, 0.2, 0.1, 0.0):
+        print(f'Time = {end - offset:.1f}')
+        print(f'Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = {current_density} A/m2, voltage = {voltage}')
+        print(f'Hydrogen crossover objective: anode release rate = {voltage * 1e-5} mol/s')
 print('End')
 """,
                 encoding="utf-8",
             )
             evaluator = AemecOpenFoamEvaluator(source, root / "work/case", root / "logs", (sys.executable, "mesh.py"), (sys.executable, "solver.py"), AemecEvaluationConfig(), 10.0)
             result = evaluator.evaluate(0, 40.0)
-            self.assertEqual(result.sample.cell_voltage_v, 1.8)
+            self.assertAlmostEqual(result.objective.cell_voltage_v, 1.8555555556)
+            self.assertAlmostEqual(
+                result.objective.crossover_rate_mol_s, 1.8555555556e-5
+            )
             self.assertTrue(result.solver_log.is_file())
 
 

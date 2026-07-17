@@ -1,9 +1,9 @@
 """AEMEC/OpenFOAM adapter for the generic optimization engine.
 
 This module contains the case-specific science and runtime integration: the
-membrane geometry convention, galvanostatic schedule, log contract, and safe
-OpenFOAM scratch-case execution.  It does not know how Optuna selects designs
-or how Pareto reports are rendered.
+membrane geometry convention, potentiostatic sweep, interpolation contract,
+and safe OpenFOAM scratch-case execution.  It does not know how Optuna selects
+designs or how Pareto reports are rendered.
 """
 
 from __future__ import annotations
@@ -24,19 +24,15 @@ from typing import Iterable, Sequence
 from optimization_lib import ObjectiveResult, OptimizationError
 
 
-# Version 5 records the post-solve boundary-current feedback controller. It
-# must not resume studies made with the old pre-solve reaction-source feedback.
-OBJECTIVE_SCHEMA_VERSION = 5
+# Version 6 derives the 1 A/cm2 objective from a potentiostatic polarization
+# sweep. It must not resume studies whose objective came from galvanostatic
+# feedback.
+OBJECTIVE_SCHEMA_VERSION = 6
 DEFAULT_TARGET_CURRENT_DENSITY_A_M2 = 10_000.0
 DEFAULT_CURRENT_RELATIVE_TOLERANCE = 0.05
-DEFAULT_TARGET_HOLD_DURATION_S = 30.0
-DEFAULT_RUN_MODE = "fast"
-DEFAULT_SOLVER_ITERATIONS = 250
-DEFAULT_ITERATION_CLOCK_STEP = 1.0
 DEFAULT_STABILITY_SAMPLES = 5
 DEFAULT_VOLTAGE_STABILITY_TOLERANCE_V = 0.005
 DEFAULT_CROSSOVER_STABILITY_RELATIVE_TOLERANCE = 0.02
-DEFAULT_CONTROLLER_STEP_TOLERANCE_V = 0.001
 
 FLOAT_PATTERN = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
 VERTEX_RE = re.compile(
@@ -44,13 +40,6 @@ VERTEX_RE = re.compile(
 )
 TABLE_PAIR_RE = re.compile(rf"\(\s*({FLOAT_PATTERN})\s+({FLOAT_PATTERN})\s*\)")
 TIME_RE = re.compile(rf"^\s*Time\s*=\s*({FLOAT_PATTERN})\s*$")
-TARGET_CURRENT_RE = re.compile(
-    rf"\bgalvanostatic\s+target:\s*({FLOAT_PATTERN})\s*A/m2\b", re.IGNORECASE
-)
-CONTROLLER_STEP_RE = re.compile(
-    rf"\bgalvanostatic\s+target:.*?\blimited\s+dV:\s*({FLOAT_PATTERN})\b",
-    re.IGNORECASE,
-)
 BOUNDARY_POINT_RE = re.compile(
     rf"Controlled\s+boundary\s+current.*?current\s+density\s*=\s*"
     rf"({FLOAT_PATTERN})\s*A/m2.*?voltage\s*=\s*({FLOAT_PATTERN})\b",
@@ -71,16 +60,11 @@ FATAL_OUTPUT_RE = re.compile(
 class AemecEvaluationConfig:
     target_current_density_a_m2: float = DEFAULT_TARGET_CURRENT_DENSITY_A_M2
     current_relative_tolerance: float = DEFAULT_CURRENT_RELATIVE_TOLERANCE
-    run_mode: str = DEFAULT_RUN_MODE
-    solver_iterations: int = DEFAULT_SOLVER_ITERATIONS
-    iteration_clock_step: float = DEFAULT_ITERATION_CLOCK_STEP
-    target_hold_duration_s: float = DEFAULT_TARGET_HOLD_DURATION_S
     stability_samples: int = DEFAULT_STABILITY_SAMPLES
     voltage_stability_tolerance_v: float = DEFAULT_VOLTAGE_STABILITY_TOLERANCE_V
     crossover_stability_relative_tolerance: float = (
         DEFAULT_CROSSOVER_STABILITY_RELATIVE_TOLERANCE
     )
-    controller_step_tolerance_v: float = DEFAULT_CONTROLLER_STEP_TOLERANCE_V
 
     def validate(self) -> None:
         if (
@@ -90,20 +74,6 @@ class AemecEvaluationConfig:
             raise OptimizationError("Target current-density magnitude must be positive")
         if not 0 < self.current_relative_tolerance < 1:
             raise OptimizationError("Current relative tolerance must be in (0, 1)")
-        if self.run_mode not in {"fast", "ramp"}:
-            raise OptimizationError("Run mode must be 'fast' or 'ramp'")
-        if self.run_mode == "fast" and self.solver_iterations < self.stability_samples:
-            raise OptimizationError("Fast-mode iteration budget is shorter than stability window")
-        if self.run_mode == "fast" and (
-            not math.isfinite(self.iteration_clock_step)
-            or self.iteration_clock_step <= 0
-        ):
-            raise OptimizationError("Iteration-clock step must be positive")
-        if self.run_mode == "ramp" and (
-            not math.isfinite(self.target_hold_duration_s)
-            or self.target_hold_duration_s <= 0
-        ):
-            raise OptimizationError("Ramp-mode target hold duration must be positive")
         if self.stability_samples <= 0:
             raise OptimizationError("Stability sample count must be positive")
         if (
@@ -113,11 +83,6 @@ class AemecEvaluationConfig:
             raise OptimizationError("Voltage stability tolerance cannot be negative")
         if not 0 <= self.crossover_stability_relative_tolerance < 1:
             raise OptimizationError("Crossover stability tolerance must be in [0, 1)")
-        if (
-            not math.isfinite(self.controller_step_tolerance_v)
-            or self.controller_step_tolerance_v < 0
-        ):
-            raise OptimizationError("Controller-step tolerance cannot be negative")
 
     def resume_settings(self) -> dict[str, object]:
         self.validate()
@@ -125,16 +90,11 @@ class AemecEvaluationConfig:
             "objective_schema_version": OBJECTIVE_SCHEMA_VERSION,
             "target_current_density_a_m2": self.target_current_density_a_m2,
             "current_relative_tolerance": self.current_relative_tolerance,
-            "run_mode": self.run_mode,
-            "solver_iterations": self.solver_iterations if self.run_mode == "fast" else None,
-            "iteration_clock_step": self.iteration_clock_step if self.run_mode == "fast" else None,
-            "target_hold_duration_s": (
-                self.target_hold_duration_s if self.run_mode == "ramp" else None
-            ),
             "stability_samples": self.stability_samples,
             "voltage_stability_tolerance_v": self.voltage_stability_tolerance_v,
-            "crossover_stability_relative_tolerance": self.crossover_stability_relative_tolerance,
-            "controller_step_tolerance_v": self.controller_step_tolerance_v,
+            "crossover_stability_relative_tolerance": (
+                self.crossover_stability_relative_tolerance
+            ),
         }
 
 
@@ -148,43 +108,64 @@ class GeometryUpdate:
 
 
 @dataclass(frozen=True)
-class TargetHold:
+class VoltageHold:
     start_s: float
     end_s: float
-    delta_t_s: float
-    outer_iterations: int
-    signed_current_density_a_m2: float
+    voltage_v: float
 
 
 @dataclass(frozen=True)
-class ObjectiveSample:
+class VoltageSweep:
+    holds: tuple[VoltageHold, ...]
+    delta_t_s: float
+    outer_iterations: int
+
+
+@dataclass(frozen=True)
+class SweepSample:
     time_s: float
-    target_current_density_a_m2: float
-    actual_current_density_a_m2: float
+    current_density_a_m2: float
     cell_voltage_v: float
     crossover_rate_mol_s: float
-    controller_voltage_step_v: float
+
+
+@dataclass(frozen=True)
+class InterpolatedObjective:
+    target_current_density_a_m2: float
+    cell_voltage_v: float
+    crossover_rate_mol_s: float
+    interpolation_fraction: float
+    lower_sample: SweepSample
+    upper_sample: SweepSample
 
 
 @dataclass(frozen=True)
 class AemecEvaluation:
-    sample: ObjectiveSample
-    target_hold: TargetHold
+    objective: InterpolatedObjective
+    voltage_sweep: VoltageSweep
     solver_log: Path
     mesh_log: Path
     duration_s: float
 
     def as_objective_result(self) -> ObjectiveResult:
+        objective = self.objective
+        lower = objective.lower_sample
+        upper = objective.upper_sample
         return ObjectiveResult(
-            values=(self.sample.cell_voltage_v, self.sample.crossover_rate_mol_s),
+            values=(objective.cell_voltage_v, objective.crossover_rate_mol_s),
             metadata={
-                "sample_time_s": self.sample.time_s,
-                "actual_current_density_a_m2": self.sample.actual_current_density_a_m2,
-                "controller_voltage_step_v": self.sample.controller_voltage_step_v,
-                "target_hold_start_s": self.target_hold.start_s,
-                "target_hold_end_s": self.target_hold.end_s,
-                "solver_clock_step": self.target_hold.delta_t_s,
-                "solver_outer_iterations": self.target_hold.outer_iterations,
+                "target_current_density_a_m2": objective.target_current_density_a_m2,
+                "interpolation_fraction": objective.interpolation_fraction,
+                "lower_time_s": lower.time_s,
+                "lower_current_density_a_m2": lower.current_density_a_m2,
+                "lower_voltage_v": lower.cell_voltage_v,
+                "upper_time_s": upper.time_s,
+                "upper_current_density_a_m2": upper.current_density_a_m2,
+                "upper_voltage_v": upper.cell_voltage_v,
+                "voltage_hold_count": len(self.voltage_sweep.holds),
+                "sweep_end_s": self.voltage_sweep.holds[-1].end_s,
+                "solver_clock_step": self.voltage_sweep.delta_t_s,
+                "solver_outer_iterations": self.voltage_sweep.outer_iterations,
                 "duration_s": self.duration_s,
                 "solver_log": str(self.solver_log),
                 "mesh_log": str(self.mesh_log),
@@ -307,11 +288,7 @@ def _replace_control_scalar(path: Path, keyword: str, value: float, required: bo
 
 
 def _set_polarization_curve_active(text: str, active: bool) -> str:
-    """Disable the multi-target stable scan in an optimizer scratch case.
-
-    Optimization owns one direct current target per CFD evaluation; it retains
-    its separate final-window stability validation below.
-    """
+    """Set the optional convergence-controlled current-scan switch."""
     if not re.search(r"\bpolarizationCurve\b\s*\{", text):
         return text
     start, end = _named_block_span(text, "polarizationCurve")
@@ -329,7 +306,7 @@ def _set_polarization_curve_active(text: str, active: bool) -> str:
 
 
 def _set_galvanostatic_active(text: str, active: bool) -> str:
-    """Select current control in an optimizer scratch case."""
+    """Select current or imposed-voltage control in a scratch case."""
     start, end = _named_block_span(text, "galvanostatic")
     block = text[start:end]
     replacement = "true" if active else "false"
@@ -344,94 +321,101 @@ def _set_galvanostatic_active(text: str, active: bool) -> str:
     return text[:start] + rewritten + text[end:]
 
 
-def configure_target_hold(case_path: Path, config: AemecEvaluationConfig) -> TargetHold:
-    """Configure either a direct-target fast run or the original ramped run."""
+def configure_voltage_sweep(
+    case_path: Path, config: AemecEvaluationConfig
+) -> VoltageSweep:
+    """Retain the case voltage table and configure a complete sweep run."""
     config.validate()
-    # Galvanostatic control is applied at the physical oxygen/anode collector.
     region_path = case_path / "constant/phiEAnode/regionProperties"
     text = region_path.read_text(encoding="utf-8")
-    text = _set_galvanostatic_active(text, True)
+    text = _set_galvanostatic_active(text, False)
     text = _set_polarization_curve_active(text, False)
+
     gs_start, gs_end = _named_block_span(text, "galvanostatic")
-    ibar_start_rel, ibar_end_rel = _named_block_span(text[gs_start:gs_end], "ibar")
-    ibar_start, ibar_end = gs_start + ibar_start_rel, gs_start + ibar_end_rel
-    ibar_text = text[ibar_start:ibar_end]
-    values_match = re.search(r"\bvalues\s*\(", ibar_text)
+    voltage_start_rel, voltage_end_rel = _named_block_span(
+        text[gs_start:gs_end], "voltage"
+    )
+    voltage_start = gs_start + voltage_start_rel
+    voltage_end = gs_start + voltage_end_rel
+    voltage_text = text[voltage_start:voltage_end]
+    if not re.search(r"(?m)^\s*type\s+table\s*;", voltage_text):
+        raise OptimizationError("Optimization requires a voltage table")
+    values_match = re.search(r"\bvalues\s*\(", voltage_text)
     if not values_match:
-        raise OptimizationError("Cannot find galvanostatic ibar values")
-    values_open_rel = ibar_text.find("(", values_match.start())
-    values_close_rel = _matching_delimiter(ibar_text, values_open_rel, "(", ")")
-    values_open, values_close = ibar_start + values_open_rel, ibar_start + values_close_rel
+        raise OptimizationError("Cannot find voltage-table values")
+    values_open_rel = voltage_text.find("(", values_match.start())
+    values_close_rel = _matching_delimiter(
+        voltage_text, values_open_rel, "(", ")"
+    )
     pairs = [
         (float(match.group(1)), float(match.group(2)))
-        for match in TABLE_PAIR_RE.finditer(text[values_open + 1:values_close])
+        for match in TABLE_PAIR_RE.finditer(
+            voltage_text[values_open_rel + 1:values_close_rel]
+        )
     ]
-    target_index = next(
-        (
-            index for index, (_, current) in enumerate(pairs)
-            if math.isclose(abs(current), config.target_current_density_a_m2, rel_tol=1.0e-9, abs_tol=1.0e-6)
-        ),
-        None,
-    )
-    if target_index is None:
-        raise OptimizationError("The galvanostatic table has no requested current hold")
+    if len(pairs) < 2 or len(pairs) % 2:
+        raise OptimizationError(
+            "Voltage table must contain start/end pairs for every hold"
+        )
+
+    holds: list[VoltageHold] = []
+    for index in range(0, len(pairs), 2):
+        (start_s, start_voltage), (end_s, end_voltage) = pairs[index:index + 2]
+        if end_s <= start_s:
+            raise OptimizationError("Every voltage hold must have positive duration")
+        if not math.isclose(
+            start_voltage, end_voltage, rel_tol=0.0, abs_tol=1.0e-10
+        ):
+            raise OptimizationError(
+                "Every voltage hold must repeat the same voltage at its start and end"
+            )
+        if holds and start_s <= holds[-1].end_s:
+            raise OptimizationError("Voltage holds must have increasing time ranges")
+        holds.append(VoltageHold(start_s, end_s, start_voltage))
+
+    if any(
+        current.voltage_v <= previous.voltage_v
+        for previous, current in zip(holds, holds[1:])
+    ):
+        raise OptimizationError("Voltage sweep values must increase strictly")
+
     control_run = case_path / "system/controlDict.run"
     control_text = control_run.read_text(encoding="utf-8")
-    delta_match = re.search(rf"(?m)^\s*deltaT\s+({FLOAT_PATTERN})\s*;", control_text)
+    delta_match = re.search(
+        rf"(?m)^\s*deltaT\s+({FLOAT_PATTERN})\s*;", control_text
+    )
     if not delta_match:
         raise OptimizationError("Cannot read deltaT from controlDict.run")
-    original_delta = float(delta_match.group(1))
-    if original_delta <= 0 or not math.isfinite(original_delta):
+    delta_t = float(delta_match.group(1))
+    if delta_t <= 0 or not math.isfinite(delta_t):
         raise OptimizationError("OpenFOAM deltaT must be positive")
-    target_time, signed_target = pairs[target_index]
-    if config.run_mode == "fast":
-        delta_t = config.iteration_clock_step
-        first_time = delta_t
-        end_time = config.solver_iterations * delta_t
-        outer_iterations = config.solver_iterations
-        available = config.solver_iterations
-        rewritten_pairs = [(0.0, signed_target), (end_time, signed_target)]
-    else:
-        delta_t = original_delta
-        first_time = math.ceil((target_time - 1.0e-12) / delta_t) * delta_t
-        end_time = math.ceil((first_time + config.target_hold_duration_s - 1.0e-12) / delta_t) * delta_t
-        outer_iterations = int(round(end_time / delta_t))
-        available = int(math.floor((end_time - first_time) / delta_t + 1.0e-9)) + 1
-        rewritten_pairs = pairs[:target_index + 1] + [(end_time, signed_target)]
-    if available < config.stability_samples:
-        raise OptimizationError("Target hold is shorter than the stability window")
-    pair_lines = "\n".join(
-        f"            ({_format_number(moment)}  {_format_number(current)})"
-        for moment, current in rewritten_pairs
-    )
-    region_path.write_text(
-        text[:values_open + 1] + "\n" + pair_lines + "\n        " + text[values_close:],
-        encoding="utf-8",
-    )
+    if any(
+        (hold.end_s - hold.start_s) / delta_t + 1.0e-9
+        < config.stability_samples
+        for hold in holds
+    ):
+        raise OptimizationError("A voltage hold is shorter than the stability window")
+
+    end_time = holds[-1].end_s
+    outer_iterations = int(math.ceil(end_time / delta_t - 1.0e-12))
+    region_path.write_text(text, encoding="utf-8")
     for control_path in (control_run, case_path / "system/controlDict"):
         _replace_control_scalar(control_path, "endTime", end_time)
-        if config.run_mode == "fast":
-            _replace_control_scalar(control_path, "deltaT", delta_t)
         _replace_control_scalar(control_path, "writeInterval", end_time)
         _replace_control_scalar(control_path, "purgeWrite", 1, required=False)
-    return TargetHold(first_time, end_time, delta_t, outer_iterations, signed_target)
+    return VoltageSweep(tuple(holds), delta_t, outer_iterations)
 
 
-def parse_objective_samples(log_text: str) -> list[ObjectiveSample]:
-    current_time = target = current = voltage = controller_step = None
-    samples: list[ObjectiveSample] = []
+def parse_voltage_sweep_samples(log_text: str) -> list[SweepSample]:
+    """Pair post-solve collector current and crossover records by time step."""
+    current_time = current = voltage = None
+    samples: list[SweepSample] = []
     for line in log_text.splitlines():
         match = TIME_RE.search(line)
         if match:
             current_time = float(match.group(1))
-            target = current = voltage = controller_step = None
+            current = voltage = None
             continue
-        match = TARGET_CURRENT_RE.search(line)
-        if match:
-            target = float(match.group(1))
-        match = CONTROLLER_STEP_RE.search(line)
-        if match:
-            controller_step = float(match.group(1))
         match = BOUNDARY_POINT_RE.search(line)
         if match:
             current, voltage = float(match.group(1)), float(match.group(2))
@@ -439,49 +423,187 @@ def parse_objective_samples(log_text: str) -> list[ObjectiveSample]:
         match = CROSSOVER_RE.search(line)
         if match:
             crossover = float(match.group(1))
-            values = (current_time, target, current, voltage, controller_step, crossover)
+            values = (current_time, current, voltage, crossover)
             if all(value is not None and math.isfinite(value) for value in values):
-                samples.append(ObjectiveSample(float(current_time), float(target), float(current), float(voltage), crossover, float(controller_step)))
+                samples.append(
+                    SweepSample(
+                        float(current_time),
+                        float(current),
+                        float(voltage),
+                        crossover,
+                    )
+                )
     return samples
 
 
-def select_target_sample(log_text: str, config: AemecEvaluationConfig, hold: TargetHold) -> ObjectiveSample:
-    """Require a complete, consecutive, stable final window at the signed target."""
+def _stable_voltage_hold_window(
+    samples: Sequence[SweepSample],
+    hold: VoltageHold,
+    sweep: VoltageSweep,
+    config: AemecEvaluationConfig,
+) -> list[SweepSample]:
+    time_tolerance = max(1.0e-8, 0.25 * sweep.delta_t_s)
+    voltage_tolerance = max(1.0e-8, config.voltage_stability_tolerance_v)
+    hold_samples = [
+        sample
+        for sample in samples
+        if hold.start_s - time_tolerance < sample.time_s <= hold.end_s + time_tolerance
+        and math.isclose(
+            sample.cell_voltage_v,
+            hold.voltage_v,
+            rel_tol=0.0,
+            abs_tol=voltage_tolerance,
+        )
+    ]
+    if len(hold_samples) < config.stability_samples:
+        raise OptimizationError(
+            f"Not enough paired samples at the {hold.voltage_v:g} V hold"
+        )
+    window = hold_samples[-config.stability_samples:]
+    if not math.isclose(
+        window[-1].time_s,
+        hold.end_s,
+        rel_tol=0.0,
+        abs_tol=time_tolerance,
+    ):
+        raise OptimizationError(
+            f"The final sample is missing from the {hold.voltage_v:g} V hold"
+        )
+    for previous, current_sample in zip(window, window[1:]):
+        if not math.isclose(
+            current_sample.time_s - previous.time_s,
+            sweep.delta_t_s,
+            rel_tol=0.0,
+            abs_tol=time_tolerance,
+        ):
+            raise OptimizationError(
+                f"Final samples are not consecutive at {hold.voltage_v:g} V"
+            )
+    if any(
+        sample.cell_voltage_v <= 0 or sample.crossover_rate_mol_s < 0
+        for sample in window
+    ):
+        raise OptimizationError(
+            f"The {hold.voltage_v:g} V hold contains non-physical objectives"
+        )
+    voltage_values = [sample.cell_voltage_v for sample in window]
+    if (
+        max(voltage_values) - min(voltage_values)
+        > config.voltage_stability_tolerance_v
+    ):
+        raise OptimizationError(
+            f"Cell voltage is not stable at the {hold.voltage_v:g} V hold"
+        )
+    current_values = [abs(sample.current_density_a_m2) for sample in window]
+    current_scale = max(
+        max(current_values), 0.01 * config.target_current_density_a_m2, 1.0e-30
+    )
+    if (
+        max(current_values) - min(current_values)
+    ) / current_scale > config.current_relative_tolerance:
+        raise OptimizationError(
+            f"Collector current is not stable at the {hold.voltage_v:g} V hold"
+        )
+    crossover_values = [sample.crossover_rate_mol_s for sample in window]
+    crossover_scale = max(
+        max(abs(value) for value in crossover_values), 1.0e-30
+    )
+    if (
+        max(crossover_values) - min(crossover_values)
+    ) / crossover_scale > config.crossover_stability_relative_tolerance:
+        raise OptimizationError(
+            f"Hydrogen crossover is not stable at the {hold.voltage_v:g} V hold"
+        )
+    return window
+
+
+def interpolate_voltage_objective(
+    log_text: str,
+    config: AemecEvaluationConfig,
+    sweep: VoltageSweep,
+) -> InterpolatedObjective:
+    """Linearly interpolate voltage and crossover at the requested current."""
     if not NORMAL_END_RE.search(log_text):
-        raise OptimizationError("Solver log does not contain the normal OpenFOAM 'End'")
+        raise OptimizationError(
+            "Solver log does not contain the normal OpenFOAM 'End'"
+        )
     fatal = FATAL_OUTPUT_RE.search(log_text)
     if fatal:
-        raise OptimizationError(f"Solver log contains a fatal marker: {fatal.group(0)!r}")
-    samples = [
-        sample for sample in parse_objective_samples(log_text)
-        if math.isclose(abs(sample.target_current_density_a_m2), config.target_current_density_a_m2, rel_tol=1.0e-9, abs_tol=1.0e-6)
+        raise OptimizationError(
+            f"Solver log contains a fatal marker: {fatal.group(0)!r}"
+        )
+    samples = parse_voltage_sweep_samples(log_text)
+    windows = [
+        _stable_voltage_hold_window(samples, hold, sweep, config)
+        for hold in sweep.holds
     ]
-    if len(samples) < config.stability_samples:
-        raise OptimizationError("Not enough paired target-current objective samples")
-    window = samples[-config.stability_samples:]
-    time_tolerance = max(1.0e-8, 0.25 * hold.delta_t_s)
-    if not math.isclose(window[-1].time_s, hold.end_s, rel_tol=0, abs_tol=time_tolerance):
-        raise OptimizationError("The final objective sample is missing")
-    for previous, current in zip(window, window[1:]):
-        if not math.isclose(current.time_s - previous.time_s, hold.delta_t_s, rel_tol=0, abs_tol=time_tolerance):
-            raise OptimizationError("Final objective samples are not consecutive")
-    allowed_current_error = config.current_relative_tolerance * config.target_current_density_a_m2
-    for sample in window:
-        if abs(sample.actual_current_density_a_m2 - sample.target_current_density_a_m2) > allowed_current_error:
-            raise OptimizationError("The final target-current window is outside tolerance")
-        if sample.cell_voltage_v <= 0 or sample.crossover_rate_mol_s < 0:
-            raise OptimizationError("Final target-current window contains non-physical objectives")
-    if max(abs(sample.controller_voltage_step_v) for sample in window) > config.controller_step_tolerance_v:
-        raise OptimizationError("The galvanostatic controller is still moving")
-    voltage_range = max(sample.cell_voltage_v for sample in window) - min(sample.cell_voltage_v for sample in window)
-    if voltage_range > config.voltage_stability_tolerance_v:
-        raise OptimizationError("Cell voltage is not stable")
-    crossover_values = [sample.crossover_rate_mol_s for sample in window]
-    crossover_range = max(crossover_values) - min(crossover_values)
-    scale = max(max(abs(value) for value in crossover_values), 1.0e-30)
-    if crossover_range / scale > config.crossover_stability_relative_tolerance:
-        raise OptimizationError("Hydrogen crossover is not stable")
-    return window[-1]
+    points = [window[-1] for window in windows]
+    target = config.target_current_density_a_m2
+    exact = [
+        point
+        for point in points
+        if math.isclose(
+            abs(point.current_density_a_m2),
+            target,
+            rel_tol=1.0e-12,
+            abs_tol=1.0e-6,
+        )
+    ]
+    if len(exact) > 1:
+        raise OptimizationError(
+            "The voltage sweep contains duplicate target-current points"
+        )
+    if exact:
+        point = exact[0]
+        return InterpolatedObjective(
+            target,
+            point.cell_voltage_v,
+            point.crossover_rate_mol_s,
+            0.0,
+            point,
+            point,
+        )
+
+    brackets: list[tuple[SweepSample, SweepSample]] = []
+    for first, second in zip(points, points[1:]):
+        first_current = abs(first.current_density_a_m2)
+        second_current = abs(second.current_density_a_m2)
+        if (first_current - target) * (second_current - target) < 0:
+            brackets.append((first, second))
+    if not brackets:
+        current_min = min(abs(point.current_density_a_m2) for point in points)
+        current_max = max(abs(point.current_density_a_m2) for point in points)
+        raise OptimizationError(
+            "Voltage sweep does not bracket the target current density: "
+            f"target={target:g} A/m2, sampled range={current_min:g}..{current_max:g} A/m2"
+        )
+    if len(brackets) > 1:
+        raise OptimizationError(
+            "The polarization curve crosses the target current more than once"
+        )
+
+    first, second = brackets[0]
+    if abs(first.current_density_a_m2) <= abs(second.current_density_a_m2):
+        lower, upper = first, second
+    else:
+        lower, upper = second, first
+    lower_current = abs(lower.current_density_a_m2)
+    upper_current = abs(upper.current_density_a_m2)
+    fraction = (target - lower_current) / (upper_current - lower_current)
+    voltage = lower.cell_voltage_v + fraction * (
+        upper.cell_voltage_v - lower.cell_voltage_v
+    )
+    crossover = lower.crossover_rate_mol_s + fraction * (
+        upper.crossover_rate_mol_s - lower.crossover_rate_mol_s
+    )
+    return InterpolatedObjective(
+        target,
+        voltage,
+        crossover,
+        fraction,
+        lower,
+        upper,
+    )
 
 
 def _case_copy_ignore(_: str, names: list[str]) -> set[str]:
@@ -614,11 +736,19 @@ class AemecOpenFoamEvaluator:
         started = time.monotonic()
         copy_clean_case(self.source_case, self.work_case)
         rewrite_block_mesh_thickness(self.work_case / "system/blockMeshDict", thickness_um)
-        hold = configure_target_hold(self.work_case, self.config)
+        sweep = configure_voltage_sweep(self.work_case, self.config)
         mesh_log = self.logs_dir / f"trial_{trial_number:04d}_mesh.log"
         solver_log = self.logs_dir / f"trial_{trial_number:04d}_solver.log"
         run_command(self.mesh_command, self.work_case, mesh_log, self.timeout_s)
         self._verify_mesh()
         solver_output = run_command(self.solver_command, self.work_case, solver_log, self.timeout_s)
-        sample = select_target_sample(solver_output, self.config, hold)
-        return AemecEvaluation(sample, hold, solver_log, mesh_log, time.monotonic() - started)
+        objective = interpolate_voltage_objective(
+            solver_output, self.config, sweep
+        )
+        return AemecEvaluation(
+            objective,
+            sweep,
+            solver_log,
+            mesh_log,
+            time.monotonic() - started,
+        )

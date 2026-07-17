@@ -12,15 +12,10 @@ from typing import Sequence
 from aemec_case import (
     AemecEvaluationConfig,
     AemecOpenFoamEvaluator,
-    DEFAULT_CONTROLLER_STEP_TOLERANCE_V,
     DEFAULT_CROSSOVER_STABILITY_RELATIVE_TOLERANCE,
     DEFAULT_CURRENT_RELATIVE_TOLERANCE,
-    DEFAULT_ITERATION_CLOCK_STEP,
-    DEFAULT_RUN_MODE,
-    DEFAULT_SOLVER_ITERATIONS,
     DEFAULT_STABILITY_SAMPLES,
     DEFAULT_TARGET_CURRENT_DENSITY_A_M2,
-    DEFAULT_TARGET_HOLD_DURATION_S,
     DEFAULT_VOLTAGE_STABILITY_TOLERANCE_V,
     case_fingerprint,
     validate_path_layout,
@@ -42,6 +37,11 @@ DEFAULT_MAX_THICKNESS_UM = 100.0
 DEFAULT_STARTUP_TRIALS = 10
 DEFAULT_SEED = 42
 DEFAULT_MAX_CONSECUTIVE_FAILURES = 3
+LEGACY_DEFAULT_RUN_MODE = "fast"
+LEGACY_DEFAULT_SOLVER_ITERATIONS = 250
+LEGACY_DEFAULT_ITERATION_CLOCK_STEP = 1.0
+LEGACY_DEFAULT_TARGET_HOLD_DURATION_S = 30.0
+LEGACY_DEFAULT_CONTROLLER_STEP_TOLERANCE_V = 0.001
 PARAMETER_NAME = "membrane_thickness_um"
 
 AEMEC_REPORT = ReportSpec(
@@ -51,11 +51,16 @@ AEMEC_REPORT = ReportSpec(
     objective_labels=("Cell voltage at 1 A/cm2 [V]", "H2 crossover rate [mol/s]"),
     title="AEMEC membrane-thickness Pareto front",
     metadata_columns=(
-        "sample_time_s",
-        "actual_current_density_a_m2",
-        "controller_voltage_step_v",
-        "target_hold_start_s",
-        "target_hold_end_s",
+        "target_current_density_a_m2",
+        "interpolation_fraction",
+        "lower_time_s",
+        "lower_current_density_a_m2",
+        "lower_voltage_v",
+        "upper_time_s",
+        "upper_current_density_a_m2",
+        "upper_voltage_v",
+        "voltage_hold_count",
+        "sweep_end_s",
         "solver_clock_step",
         "solver_outer_iterations",
         "duration_s",
@@ -87,15 +92,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-consecutive-failures", type=int, default=DEFAULT_MAX_CONSECUTIVE_FAILURES)
     parser.add_argument("--study-name", default="aemec-membrane-thickness")
     parser.add_argument("--target-current-density-a-m2", type=float, default=DEFAULT_TARGET_CURRENT_DENSITY_A_M2)
-    parser.add_argument("--current-relative-tolerance", type=float, default=DEFAULT_CURRENT_RELATIVE_TOLERANCE)
-    parser.add_argument("--run-mode", choices=("fast", "ramp"), default=DEFAULT_RUN_MODE)
-    parser.add_argument("--solver-iterations", type=int, default=DEFAULT_SOLVER_ITERATIONS)
-    parser.add_argument("--iteration-clock-step", type=float, default=DEFAULT_ITERATION_CLOCK_STEP)
-    parser.add_argument("--target-hold-duration-s", type=float, default=DEFAULT_TARGET_HOLD_DURATION_S)
+    parser.add_argument("--current-relative-tolerance", type=float, default=DEFAULT_CURRENT_RELATIVE_TOLERANCE, help="Maximum relative current variation in each final voltage-hold window.")
+    parser.add_argument("--run-mode", choices=("fast", "ramp"), default=LEGACY_DEFAULT_RUN_MODE, help="Legacy compatibility option; the optimizer always runs the complete voltage sweep.")
+    parser.add_argument("--solver-iterations", type=int, default=LEGACY_DEFAULT_SOLVER_ITERATIONS, help="Legacy compatibility option; ignored by potentiostatic sweep evaluations.")
+    parser.add_argument("--iteration-clock-step", type=float, default=LEGACY_DEFAULT_ITERATION_CLOCK_STEP, help="Legacy compatibility option; the sweep uses controlDict.run deltaT.")
+    parser.add_argument("--target-hold-duration-s", type=float, default=LEGACY_DEFAULT_TARGET_HOLD_DURATION_S, help="Legacy compatibility option; voltage hold times come from the voltage table.")
     parser.add_argument("--stability-samples", type=int, default=DEFAULT_STABILITY_SAMPLES)
     parser.add_argument("--voltage-stability-tolerance-v", type=float, default=DEFAULT_VOLTAGE_STABILITY_TOLERANCE_V)
     parser.add_argument("--crossover-stability-relative-tolerance", type=float, default=DEFAULT_CROSSOVER_STABILITY_RELATIVE_TOLERANCE)
-    parser.add_argument("--controller-step-tolerance-v", type=float, default=DEFAULT_CONTROLLER_STEP_TOLERANCE_V)
+    parser.add_argument("--controller-step-tolerance-v", type=float, default=LEGACY_DEFAULT_CONTROLLER_STEP_TOLERANCE_V, help="Legacy compatibility option; no galvanostatic controller is used.")
     parser.add_argument("--mesh-command", type=parse_command, default=("make", "mesh"))
     parser.add_argument("--solver-command", type=parse_command, default=("openFuelCell",))
     parser.add_argument("--timeout-minutes", type=float, default=None)
@@ -106,14 +111,9 @@ def _evaluation_config(args: argparse.Namespace) -> AemecEvaluationConfig:
     return AemecEvaluationConfig(
         target_current_density_a_m2=args.target_current_density_a_m2,
         current_relative_tolerance=args.current_relative_tolerance,
-        run_mode=args.run_mode,
-        solver_iterations=args.solver_iterations,
-        iteration_clock_step=args.iteration_clock_step,
-        target_hold_duration_s=args.target_hold_duration_s,
         stability_samples=args.stability_samples,
         voltage_stability_tolerance_v=args.voltage_stability_tolerance_v,
         crossover_stability_relative_tolerance=args.crossover_stability_relative_tolerance,
-        controller_step_tolerance_v=args.controller_step_tolerance_v,
     )
 
 
@@ -172,11 +172,11 @@ def run_optimization(args: argparse.Namespace):
 
     def evaluate(trial_number: int, thickness_um: float):
         result = evaluator.evaluate(trial_number, thickness_um)
-        sample = result.sample
+        objective = result.objective
         print(
-            f"  voltage={sample.cell_voltage_v:.8g} V, "
-            f"crossover={sample.crossover_rate_mol_s:.8g} mol/s, "
-            f"current density={sample.actual_current_density_a_m2:.8g} A/m2",
+            f"  interpolated voltage={objective.cell_voltage_v:.8g} V, "
+            f"crossover={objective.crossover_rate_mol_s:.8g} mol/s at "
+            f"{objective.target_current_density_a_m2:.8g} A/m2",
             flush=True,
         )
         return result.as_objective_result()

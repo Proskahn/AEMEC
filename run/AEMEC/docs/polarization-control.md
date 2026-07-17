@@ -3,9 +3,9 @@
 ## Default: voltage-table sweep
 
 The default case uses potentiostatic control (`galvanostatic.active false`). A
-`voltage` table prescribes `1.3, 1.5, 1.7, 1.9, 2.1,` and `2.3 V`, holding each
-level for 15 s. The resulting collector current density is measured at the end
-of each hold.
+`voltage` table prescribes `1.3` through `2.3 V` in `0.1 V` increments, holding
+each level for 15 s. The resulting collector current density is measured at
+the end of each hold. The complete sweep lasts 165 s.
 
 This sweep is time-based rather than convergence-based. Verify that the current
 and transport fields have settled by the end of each hold before interpreting
@@ -92,7 +92,7 @@ make mesh
 make srun
 ```
 
-The supplied `controlDict.run` ends at 90 s, matching the last voltage-table
+The supplied `controlDict.run` ends at 165 s, matching the last voltage-table
 entry.
 
 From the repository root, extract the final sample from every voltage hold:

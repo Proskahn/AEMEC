@@ -38,18 +38,16 @@ python3 opt/run_optimization.py \
   --study-name aemec-fast-pilot
 ```
 
-Validate fast and ramp modes at thin, middle, and thick designs before a long
-run:
+Validate thin, middle, and thick designs with a small study before a long run:
 
 ```bash
-python3 opt/run_optimization.py --iterations 3 --startup-trials 3 --study-name validate-fast
-python3 opt/run_optimization.py --iterations 3 --startup-trials 3 --run-mode ramp --study-name validate-ramp
+python3 opt/run_optimization.py --iterations 3 --startup-trials 3 --study-name validate-sweep
 ```
 
 A useful starting comparison is agreement within a few millivolts for voltage
-and about 2% for crossover. Increase `--solver-iterations` or use ramp mode if
-fast mode is not stable. Use `--current-relative-tolerance` and
-`--timeout-minutes` to adjust acceptance limits and command timeout.
+and about 2% for crossover. Every trial runs the full 165 s voltage sweep; use
+`--current-relative-tolerance` and `--timeout-minutes` to adjust the final-window
+acceptance limit and command timeout.
 
 ## Outputs and resume
 
@@ -71,9 +69,10 @@ python3 opt/run_optimization.py --solver-command "mySolver --case-option"
 ## Troubleshooting and tests
 
 A trial is rejected for command failures/timeouts, missing mesh files, OpenFOAM
-fatal markers, missing normal termination, missing target data, or failed
-operating-point/stability checks. Inspect that trial's log directory, correct
-the cause, and rerun the same command.
+fatal markers, missing normal termination, incomplete voltage-hold data, an
+unbracketed 1 A/cm2 target, multiple curve crossings, or failed stability
+checks. Inspect that trial's log directory, correct the cause, and rerun the
+same command.
 
 The unit and mocked-adapter tests require no OpenFOAM installation:
 

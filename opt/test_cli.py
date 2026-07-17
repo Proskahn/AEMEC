@@ -7,7 +7,7 @@ from run_optimization import OptimizationError, main
 
 
 class CliTests(unittest.TestCase):
-    def test_default_cli_is_fast_and_keeps_fifty_evaluations(self) -> None:
+    def test_default_cli_keeps_legacy_options_and_fifty_evaluations(self) -> None:
         args = build_parser().parse_args([])
         self.assertEqual(args.iterations, 50)
         self.assertEqual(args.run_mode, "fast")

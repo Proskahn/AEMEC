@@ -61,9 +61,10 @@ diffusion/drag parameters and the printed conservation line at a reference
 thickness before running an optimization.
 
 The default `phiEAnode` configuration is a potentiostatic polarization scan.
-It holds `1.3, 1.5, 1.7, 1.9, 2.1,` and `2.3 V` for 15 s each and records the
-resulting collector current density. The optimizer separately enables
-galvanostatic mode for each isolated trial. See
+It holds `1.3` through `2.3 V` in `0.1 V` increments for 15 s each and records
+the resulting collector current density. Each optimization trial uses this
+same voltage sweep and linearly interpolates the voltage and crossover rate at
+`1 A/cm2`; it does not enable galvanostatic feedback. See
 [polarization control](docs/polarization-control.md).
 
 The current branch uses a non-isothermal, one-temperature

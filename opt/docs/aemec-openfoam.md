@@ -14,9 +14,15 @@ remain unchanged; only membrane and total-stack thickness change.
 
 The two minimization objectives are:
 
-1. Cell voltage at a requested current magnitude of 1 A/cm2 (scheduled as
-   `-10000 A/m2` for this case's electrolysis sign convention).
-2. Anode-side hydrogen crossover/release rate in `mol/s`.
+1. Cell voltage at a current magnitude of 1 A/cm2 (`10000 A/m2`).
+2. Anode-side hydrogen crossover/release rate at that same interpolated
+   operating point, in `mol/s`.
+
+Each trial retains potentiostatic control and runs the complete 1.3--2.3 V
+table in 0.1 V increments. The adapter takes the settled final window from
+each voltage hold, finds the two adjacent current-density samples surrounding
+1 A/cm2, and applies linear interpolation. It rejects the trial rather than
+extrapolating when the simulated curve does not bracket 1 A/cm2.
 
 The crossover objective is the positive anode sink integral
 `sinkCoeff * max(cH2 - cH2Anode, 0)`. It represents hydrogen transported
@@ -24,28 +30,21 @@ through the membrane and released to the anode; it is not the older Faradaic
 hydrogen-generation diagnostic. It requires a positive `sinkCoeff` and a
 configured `sinkZone`.
 
-## Fast and ramp modes
+## Sweep duration
 
-`--run-mode fast` is the default. It applies the target from the first outer
-iteration, uses 250 outer coupling iterations by default, and writes fields
-only at the final iteration. This reduces solver-loop work versus the legacy
-roughly 801-iteration ramp, while retaining the fluid-region local-time-stepping
-configuration. `--iteration-clock-step` controls only the current-table and
-outer-loop clock; it is not the fluid-region physical/local pseudo-time step.
-
-Use `--run-mode ramp` when validating the shortcut or when fast mode does not
-meet the stability checks. It retains the source current steps before 1 A/cm2,
-then holds the target for 30 additional seconds and removes later steps.
+The supplied voltage table has eleven 15 s holds, so each CFD evaluation runs
+to 165 s at `deltaT = 0.1 s`. The legacy fast/ramp and solver-iteration command
+line options remain accepted for command compatibility, but they do not
+shorten or replace this potentiostatic sweep.
 
 ## Acceptance checks
 
-The adapter uses the post-solve collector current-density log record, not a
-pre-solve boundary value. It selects the final paired voltage and crossover
-sample at the target hold and rejects a trial when the current tolerance,
-controller motion, voltage stability, crossover stability, command status, or
-normal solver termination fails. Defaults require five final samples, <=5%
-current error, <=0.005 V voltage range, <=2% crossover range, and <=0.001 V
-controller movement.
+The adapter uses post-solve collector current-density records, not a pre-solve
+reaction-source value. It requires a complete final window at every voltage
+hold and rejects a trial for an incomplete curve, an unbracketed target,
+multiple crossings, unstable current/crossover, command failure, or abnormal
+solver termination. Defaults require five final samples, <=5% relative current
+variation, <=0.005 V voltage variation, and <=2% crossover variation.
 
 Only the block-mesh workflow is parameterized. `make salomeMesh` is unsupported
 because its SALOME geometry has separate nominal thickness and hard-coded IDs.
