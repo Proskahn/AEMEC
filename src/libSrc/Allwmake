@@ -4,7 +4,9 @@ cd ${0%/*} || exit 1    # Run from this directory
 # Parse arguments for library compilation
 . $WM_PROJECT_DIR/wmake/scripts/AllwmakeParseArguments
 
-wmakeLnInclude fuelCellSystems
+# Refresh an existing lnInclude directory as well as creating it. This keeps
+# newly added headers visible when rebuilding in a persistent Docker volume.
+wmakeLnInclude -u fuelCellSystems
 
 wmake $targetType regionCourantNo
 wmake $targetType interfacialModels
