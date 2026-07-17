@@ -71,8 +71,9 @@ python3 opt/run_optimization.py --solver-command "mySolver --case-option"
 A trial is rejected for command failures/timeouts, missing mesh files, OpenFOAM
 fatal markers, missing normal termination, incomplete voltage-hold data, an
 unbracketed 1 A/cm2 target, multiple curve crossings, or failed stability
-checks. Inspect that trial's log directory, correct the cause, and rerun the
-same command.
+checks at the interpolation endpoints. Unused voltage holds must be complete
+but do not have to pass the relative crossover-stability test. Inspect that
+trial's log directory, correct the cause, and rerun the same command.
 
 The unit and mocked-adapter tests require no OpenFOAM installation:
 

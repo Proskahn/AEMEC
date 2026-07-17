@@ -436,7 +436,7 @@ def parse_voltage_sweep_samples(log_text: str) -> list[SweepSample]:
     return samples
 
 
-def _stable_voltage_hold_window(
+def _voltage_hold_window(
     samples: Sequence[SweepSample],
     hold: VoltageHold,
     sweep: VoltageSweep,
@@ -486,6 +486,15 @@ def _stable_voltage_hold_window(
         raise OptimizationError(
             f"The {hold.voltage_v:g} V hold contains non-physical objectives"
         )
+    return window
+
+
+def _validate_voltage_hold_stability(
+    window: Sequence[SweepSample],
+    hold: VoltageHold,
+    config: AemecEvaluationConfig,
+) -> None:
+    """Validate only a hold that contributes to the interpolated objective."""
     voltage_values = [sample.cell_voltage_v for sample in window]
     if (
         max(voltage_values) - min(voltage_values)
@@ -498,23 +507,28 @@ def _stable_voltage_hold_window(
     current_scale = max(
         max(current_values), 0.01 * config.target_current_density_a_m2, 1.0e-30
     )
-    if (
+    current_relative_range = (
         max(current_values) - min(current_values)
-    ) / current_scale > config.current_relative_tolerance:
+    ) / current_scale
+    if current_relative_range > config.current_relative_tolerance:
         raise OptimizationError(
-            f"Collector current is not stable at the {hold.voltage_v:g} V hold"
+            f"Collector current is not stable at the {hold.voltage_v:g} V hold: "
+            f"relative range={current_relative_range:.6g}, "
+            f"limit={config.current_relative_tolerance:.6g}"
         )
     crossover_values = [sample.crossover_rate_mol_s for sample in window]
     crossover_scale = max(
         max(abs(value) for value in crossover_values), 1.0e-30
     )
-    if (
+    crossover_relative_range = (
         max(crossover_values) - min(crossover_values)
-    ) / crossover_scale > config.crossover_stability_relative_tolerance:
+    ) / crossover_scale
+    if crossover_relative_range > config.crossover_stability_relative_tolerance:
         raise OptimizationError(
-            f"Hydrogen crossover is not stable at the {hold.voltage_v:g} V hold"
+            f"Hydrogen crossover is not stable at the {hold.voltage_v:g} V hold: "
+            f"relative range={crossover_relative_range:.6g}, "
+            f"limit={config.crossover_stability_relative_tolerance:.6g}"
         )
-    return window
 
 
 def interpolate_voltage_objective(
@@ -533,15 +547,19 @@ def interpolate_voltage_objective(
             f"Solver log contains a fatal marker: {fatal.group(0)!r}"
         )
     samples = parse_voltage_sweep_samples(log_text)
+    # Every hold must have complete paired output, but stability is relevant
+    # only for the one exact point or two points used by the interpolation.
+    # Applying a relative crossover test to an unused, near-zero 1.3 V point
+    # makes the full trial fail on numerical noise rather than objective quality.
     windows = [
-        _stable_voltage_hold_window(samples, hold, sweep, config)
+        _voltage_hold_window(samples, hold, sweep, config)
         for hold in sweep.holds
     ]
     points = [window[-1] for window in windows]
     target = config.target_current_density_a_m2
-    exact = [
-        point
-        for point in points
+    exact_indices = [
+        index
+        for index, point in enumerate(points)
         if math.isclose(
             abs(point.current_density_a_m2),
             target,
@@ -549,12 +567,16 @@ def interpolate_voltage_objective(
             abs_tol=1.0e-6,
         )
     ]
-    if len(exact) > 1:
+    if len(exact_indices) > 1:
         raise OptimizationError(
             "The voltage sweep contains duplicate target-current points"
         )
-    if exact:
-        point = exact[0]
+    if exact_indices:
+        index = exact_indices[0]
+        point = points[index]
+        _validate_voltage_hold_stability(
+            windows[index], sweep.holds[index], config
+        )
         return InterpolatedObjective(
             target,
             point.cell_voltage_v,
@@ -564,12 +586,12 @@ def interpolate_voltage_objective(
             point,
         )
 
-    brackets: list[tuple[SweepSample, SweepSample]] = []
-    for first, second in zip(points, points[1:]):
+    brackets: list[tuple[int, int]] = []
+    for index, (first, second) in enumerate(zip(points, points[1:])):
         first_current = abs(first.current_density_a_m2)
         second_current = abs(second.current_density_a_m2)
         if (first_current - target) * (second_current - target) < 0:
-            brackets.append((first, second))
+            brackets.append((index, index + 1))
     if not brackets:
         current_min = min(abs(point.current_density_a_m2) for point in points)
         current_max = max(abs(point.current_density_a_m2) for point in points)
@@ -582,7 +604,12 @@ def interpolate_voltage_objective(
             "The polarization curve crosses the target current more than once"
         )
 
-    first, second = brackets[0]
+    first_index, second_index = brackets[0]
+    for index in (first_index, second_index):
+        _validate_voltage_hold_stability(
+            windows[index], sweep.holds[index], config
+        )
+    first, second = points[first_index], points[second_index]
     if abs(first.current_density_a_m2) <= abs(second.current_density_a_m2):
         lower, upper = first, second
     else:

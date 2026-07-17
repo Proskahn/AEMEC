@@ -366,6 +366,53 @@ End
         self.assertAlmostEqual(objective.crossover_rate_mol_s, 4.0e-5)
         self.assertAlmostEqual(objective.interpolation_fraction, 0.5)
 
+    def test_unused_low_voltage_instability_does_not_reject_interpolation(self) -> None:
+        config = AemecEvaluationConfig(stability_samples=3)
+        log = """
+Time = 1
+Controlled boundary current (A) at x: signed = -0.01, magnitude = 0.01, current density = -100 A/m2, voltage = 1.3
+Hydrogen crossover objective: anode gas source rate = 1.0e-12 mol/s
+Time = 2
+Controlled boundary current (A) at x: signed = -0.01, magnitude = 0.01, current density = -110 A/m2, voltage = 1.3
+Hydrogen crossover objective: anode gas source rate = 2.0e-12 mol/s
+Time = 3
+Controlled boundary current (A) at x: signed = -0.01, magnitude = 0.01, current density = -90 A/m2, voltage = 1.3
+Hydrogen crossover objective: anode gas source rate = 4.0e-12 mol/s
+Time = 4
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8000 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.0e-5 mol/s
+Time = 5
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8010 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.01e-5 mol/s
+Time = 6
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8000 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.0e-5 mol/s
+Time = 7
+Controlled boundary current (A) at x: signed = -0.96, magnitude = 0.96, current density = -12000 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.0e-5 mol/s
+Time = 8
+Controlled boundary current (A) at x: signed = -0.96, magnitude = 0.96, current density = -12010 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.01e-5 mol/s
+Time = 9
+Controlled boundary current (A) at x: signed = -0.96, magnitude = 0.96, current density = -12000 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.0e-5 mol/s
+End
+"""
+        sweep = VoltageSweep(
+            (
+                VoltageHold(0.0, 3.0, 1.3),
+                VoltageHold(3.001, 6.0, 1.7),
+                VoltageHold(6.001, 9.0, 1.8),
+            ),
+            delta_t_s=1.0,
+            outer_iterations=9,
+        )
+
+        objective = interpolate_voltage_objective(log, config, sweep)
+
+        self.assertAlmostEqual(objective.cell_voltage_v, 1.75)
+        self.assertAlmostEqual(objective.crossover_rate_mol_s, 4.0e-5)
+
     def test_copy_refuses_to_delete_source(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "case"

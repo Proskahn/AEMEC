@@ -41,10 +41,13 @@ shorten or replace this potentiostatic sweep.
 
 The adapter uses post-solve collector current-density records, not a pre-solve
 reaction-source value. It requires a complete final window at every voltage
-hold and rejects a trial for an incomplete curve, an unbracketed target,
-multiple crossings, unstable current/crossover, command failure, or abnormal
-solver termination. Defaults require five final samples, <=5% relative current
-variation, <=0.005 V voltage variation, and <=2% crossover variation.
+hold, then applies the stability criteria only to the exact target point or the
+two holds used for interpolation. This avoids rejecting a useful curve because
+an unused low-voltage crossover value is close to zero. A trial is rejected for
+an incomplete curve, an unbracketed target, multiple crossings, unstable
+interpolation endpoints, command failure, or abnormal solver termination.
+Defaults require five final samples, <=5% relative current variation, <=0.005 V
+voltage variation, and <=2% crossover variation at the objective endpoints.
 
 Only the block-mesh workflow is parameterized. `make salomeMesh` is unsupported
 because its SALOME geometry has separate nominal thickness and hard-coded IDs.
