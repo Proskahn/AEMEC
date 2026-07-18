@@ -92,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-consecutive-failures", type=int, default=DEFAULT_MAX_CONSECUTIVE_FAILURES)
     parser.add_argument("--study-name", default="aemec-membrane-thickness")
     parser.add_argument("--target-current-density-a-m2", type=float, default=DEFAULT_TARGET_CURRENT_DENSITY_A_M2)
-    parser.add_argument("--current-relative-tolerance", type=float, default=DEFAULT_CURRENT_RELATIVE_TOLERANCE, help="Maximum relative current variation in each final voltage-hold window.")
+    parser.add_argument("--current-relative-tolerance", type=float, default=DEFAULT_CURRENT_RELATIVE_TOLERANCE, help="Maximum current coefficient of variation in each objective voltage-hold window.")
     parser.add_argument("--run-mode", choices=("fast", "ramp"), default=LEGACY_DEFAULT_RUN_MODE, help="Legacy compatibility option; the optimizer always runs the complete voltage sweep.")
     parser.add_argument("--solver-iterations", type=int, default=LEGACY_DEFAULT_SOLVER_ITERATIONS, help="Legacy compatibility option; ignored by potentiostatic sweep evaluations.")
     parser.add_argument("--iteration-clock-step", type=float, default=LEGACY_DEFAULT_ITERATION_CLOCK_STEP, help="Legacy compatibility option; the sweep uses controlDict.run deltaT.")

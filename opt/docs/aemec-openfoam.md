@@ -46,8 +46,12 @@ two holds used for interpolation. This avoids rejecting a useful curve because
 an unused low-voltage crossover value is close to zero. A trial is rejected for
 an incomplete curve, an unbracketed target, multiple crossings, unstable
 interpolation endpoints, command failure, or abnormal solver termination.
-Defaults require five final samples, <=5% relative current variation, <=0.005 V
-voltage variation, and <=2% crossover variation at the objective endpoints.
+Defaults require five final samples, <=5% current coefficient of variation,
+<=0.005 V voltage variation, and <=2% crossover variation at the objective
+endpoints. The current coefficient of variation is the population standard
+deviation divided by the final-window mean; unlike a peak-to-peak range, it
+does not reject a bounded five-sample oscillation merely because both extrema
+occur in the window.
 
 Only the block-mesh workflow is parameterized. `make salomeMesh` is unsupported
 because its SALOME geometry has separate nominal thickness and hard-coded IDs.

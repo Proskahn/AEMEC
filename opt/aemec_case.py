@@ -504,16 +504,18 @@ def _validate_voltage_hold_stability(
             f"Cell voltage is not stable at the {hold.voltage_v:g} V hold"
         )
     current_values = [abs(sample.current_density_a_m2) for sample in window]
+    current_mean = sum(current_values) / len(current_values)
     current_scale = max(
-        max(current_values), 0.01 * config.target_current_density_a_m2, 1.0e-30
+        current_mean, 0.01 * config.target_current_density_a_m2, 1.0e-30
     )
-    current_relative_range = (
-        max(current_values) - min(current_values)
+    current_relative_std_dev = math.sqrt(
+        sum((value - current_mean) ** 2 for value in current_values)
+        / len(current_values)
     ) / current_scale
-    if current_relative_range > config.current_relative_tolerance:
+    if current_relative_std_dev > config.current_relative_tolerance:
         raise OptimizationError(
             f"Collector current is not stable at the {hold.voltage_v:g} V hold: "
-            f"relative range={current_relative_range:.6g}, "
+            f"relative standard deviation={current_relative_std_dev:.6g}, "
             f"limit={config.current_relative_tolerance:.6g}"
         )
     crossover_values = [sample.crossover_rate_mol_s for sample in window]

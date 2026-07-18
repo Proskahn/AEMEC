@@ -413,6 +413,50 @@ End
         self.assertAlmostEqual(objective.cell_voltage_v, 1.75)
         self.assertAlmostEqual(objective.crossover_rate_mol_s, 4.0e-5)
 
+    def test_bounded_endpoint_scatter_uses_coefficient_of_variation(self) -> None:
+        lower_currents = [6306.412, 7050.841, 6900.965, 6676.044, 6253.350]
+        upper_currents = [10375.260, 10603.020, 10759.080, 10697.220, 10326.470]
+        self.assertGreater(
+            (max(lower_currents) - min(lower_currents)) / max(lower_currents),
+            0.05,
+        )
+        lines: list[str] = []
+        for voltage, currents, start_time, crossover in (
+            (2.0, lower_currents, 1, 3.0e-8),
+            (2.1, upper_currents, 6, 3.1e-8),
+        ):
+            for offset, current in enumerate(currents):
+                lines.extend(
+                    (
+                        f"Time = {start_time + offset}",
+                        "Controlled boundary current (A) at x: signed = -0.8, "
+                        "magnitude = 0.8, "
+                        f"current density = {-current} A/m2, voltage = {voltage}",
+                        "Hydrogen crossover objective: anode gas source rate = "
+                        f"{crossover} mol/s",
+                    )
+                )
+        lines.append("End")
+        sweep = VoltageSweep(
+            (VoltageHold(0.0, 5.0, 2.0), VoltageHold(5.001, 10.0, 2.1)),
+            delta_t_s=1.0,
+            outer_iterations=10,
+        )
+
+        objective = interpolate_voltage_objective(
+            "\n".join(lines),
+            AemecEvaluationConfig(stability_samples=5),
+            sweep,
+        )
+
+        expected_fraction = (10000.0 - lower_currents[-1]) / (
+            upper_currents[-1] - lower_currents[-1]
+        )
+        self.assertAlmostEqual(
+            objective.cell_voltage_v,
+            2.0 + 0.1 * expected_fraction,
+        )
+
     def test_copy_refuses_to_delete_source(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "case"

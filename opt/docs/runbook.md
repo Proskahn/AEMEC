@@ -47,7 +47,7 @@ python3 opt/run_optimization.py --iterations 3 --startup-trials 3 --study-name v
 A useful starting comparison is agreement within a few millivolts for voltage
 and about 2% for crossover. Every trial runs the full 165 s voltage sweep; use
 `--current-relative-tolerance` and `--timeout-minutes` to adjust the final-window
-acceptance limit and command timeout.
+current coefficient-of-variation limit and command timeout.
 
 ## Outputs and resume
 
