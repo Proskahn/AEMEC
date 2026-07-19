@@ -75,6 +75,16 @@ python3 opt/export_trial_curves.py \
 If curve CSVs already exist, the command creates only the missing PNGs. Add
 `--overwrite` to regenerate both files after changing the exporter.
 
+Overlay the stored curves for the 20, 40, 60, and 80 um membrane trials:
+
+```bash
+python3 opt/plot_membrane_polarization_curves.py \
+  opt/results/aemec-production-20-553c273e
+```
+
+The default output is `selected_polarization_curves.png` in the study
+directory. Use `--thicknesses` to select a different set.
+
 Re-run the same command to resume until its completed-trial budget is reached.
 Use a new `--study-name` after changing bounds, source case, operating settings,
 or other study settings. `--output-dir` selects a different artifact root.
