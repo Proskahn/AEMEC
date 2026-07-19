@@ -8,6 +8,7 @@ designs or how Pareto reports are rendered.
 
 from __future__ import annotations
 
+import csv
 import hashlib
 import math
 import os
@@ -41,8 +42,9 @@ VERTEX_RE = re.compile(
 TABLE_PAIR_RE = re.compile(rf"\(\s*({FLOAT_PATTERN})\s+({FLOAT_PATTERN})\s*\)")
 TIME_RE = re.compile(rf"^\s*Time\s*=\s*({FLOAT_PATTERN})\s*$")
 BOUNDARY_POINT_RE = re.compile(
-    rf"Controlled\s+boundary\s+current.*?current\s+density\s*=\s*"
-    rf"({FLOAT_PATTERN})\s*A/m2.*?voltage\s*=\s*({FLOAT_PATTERN})\b",
+    rf"Controlled\s+boundary\s+current.*?signed\s*=\s*({FLOAT_PATTERN}).*?"
+    rf"current\s+density\s*=\s*({FLOAT_PATTERN})\s*A/m2.*?"
+    rf"voltage\s*=\s*({FLOAT_PATTERN})\b",
     re.IGNORECASE,
 )
 CROSSOVER_RE = re.compile(
@@ -124,6 +126,7 @@ class VoltageSweep:
 @dataclass(frozen=True)
 class SweepSample:
     time_s: float
+    current_a: float
     current_density_a_m2: float
     cell_voltage_v: float
     crossover_rate_mol_s: float
@@ -145,6 +148,7 @@ class AemecEvaluation:
     voltage_sweep: VoltageSweep
     solver_log: Path
     mesh_log: Path
+    polarization_curve_csv: Path
     duration_s: float
 
     def as_objective_result(self) -> ObjectiveResult:
@@ -169,6 +173,7 @@ class AemecEvaluation:
                 "duration_s": self.duration_s,
                 "solver_log": str(self.solver_log),
                 "mesh_log": str(self.mesh_log),
+                "polarization_curve_csv": str(self.polarization_curve_csv),
             },
         )
 
@@ -408,32 +413,165 @@ def configure_voltage_sweep(
 
 def parse_voltage_sweep_samples(log_text: str) -> list[SweepSample]:
     """Pair post-solve collector current and crossover records by time step."""
-    current_time = current = voltage = None
+    current_time = current_a = current_density = voltage = None
     samples: list[SweepSample] = []
     for line in log_text.splitlines():
         match = TIME_RE.search(line)
         if match:
             current_time = float(match.group(1))
-            current = voltage = None
+            current_a = current_density = voltage = None
             continue
         match = BOUNDARY_POINT_RE.search(line)
         if match:
-            current, voltage = float(match.group(1)), float(match.group(2))
+            current_a = float(match.group(1))
+            current_density = float(match.group(2))
+            voltage = float(match.group(3))
             continue
         match = CROSSOVER_RE.search(line)
         if match:
             crossover = float(match.group(1))
-            values = (current_time, current, voltage, crossover)
+            values = (
+                current_time,
+                current_a,
+                current_density,
+                voltage,
+                crossover,
+            )
             if all(value is not None and math.isfinite(value) for value in values):
                 samples.append(
                     SweepSample(
                         float(current_time),
-                        float(current),
+                        float(current_a),
+                        float(current_density),
                         float(voltage),
                         crossover,
                     )
                 )
     return samples
+
+
+def write_polarization_curve_csv(
+    output_path: Path,
+    log_text: str,
+    config: AemecEvaluationConfig,
+    interpolation: tuple[float, float, float] | None = None,
+) -> int:
+    """Write one final I-V point and its quality statistics per voltage hold.
+
+    ``interpolation`` contains the lower voltage, upper voltage, and upper-point
+    interpolation fraction. It is optional so a usable curve is still written
+    when objective acceptance fails after the solver completed.
+    """
+    config.validate()
+    grouped: dict[float, list[SweepSample]] = {}
+    for sample in parse_voltage_sweep_samples(log_text):
+        grouped.setdefault(round(sample.cell_voltage_v, 9), []).append(sample)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = (
+        "hold_index",
+        "hold_start_time_s",
+        "hold_end_time_s",
+        "cell_voltage_v",
+        "final_time_s",
+        "final_current_a",
+        "final_current_density_a_m2",
+        "final_current_density_a_cm2",
+        "final_current_density_magnitude_a_cm2",
+        "final_crossover_rate_mol_s",
+        "window_sample_count",
+        "window_current_density_mean_a_m2",
+        "window_current_density_cv",
+        "window_current_density_drift_relative",
+        "window_crossover_mean_mol_s",
+        "window_crossover_relative_range",
+        "is_interpolation_endpoint",
+        "interpolation_weight",
+    )
+    with output_path.open("w", newline="", encoding="utf-8") as output_file:
+        writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+        writer.writeheader()
+        for hold_index, (voltage_key, hold_samples) in enumerate(
+            sorted(grouped.items()), start=1
+        ):
+            hold_samples.sort(key=lambda sample: sample.time_s)
+            final = hold_samples[-1]
+            window = hold_samples[-config.stability_samples:]
+            signed_currents = [
+                sample.current_density_a_m2 for sample in window
+            ]
+            current_magnitudes = [abs(value) for value in signed_currents]
+            signed_current_mean = sum(signed_currents) / len(signed_currents)
+            current_mean = sum(current_magnitudes) / len(current_magnitudes)
+            current_scale = max(
+                current_mean,
+                0.01 * config.target_current_density_a_m2,
+                1.0e-30,
+            )
+            current_cv = math.sqrt(
+                sum((value - current_mean) ** 2 for value in current_magnitudes)
+                / len(current_magnitudes)
+            ) / current_scale
+            current_drift = (
+                current_magnitudes[-1] - current_magnitudes[0]
+            ) / current_scale
+            crossover_values = [
+                sample.crossover_rate_mol_s for sample in window
+            ]
+            crossover_mean = sum(crossover_values) / len(crossover_values)
+            crossover_scale = max(
+                max(abs(value) for value in crossover_values), 1.0e-30
+            )
+            crossover_relative_range = (
+                max(crossover_values) - min(crossover_values)
+            ) / crossover_scale
+
+            is_endpoint: bool | str = ""
+            interpolation_weight: float | str = ""
+            if interpolation is not None:
+                lower_voltage, upper_voltage, upper_fraction = interpolation
+                is_lower = math.isclose(
+                    voltage_key, lower_voltage, rel_tol=0.0, abs_tol=1.0e-8
+                )
+                is_upper = math.isclose(
+                    voltage_key, upper_voltage, rel_tol=0.0, abs_tol=1.0e-8
+                )
+                is_endpoint = is_lower or is_upper
+                interpolation_weight = 0.0
+                if is_lower and is_upper:
+                    interpolation_weight = 1.0
+                elif is_lower:
+                    interpolation_weight = 1.0 - upper_fraction
+                elif is_upper:
+                    interpolation_weight = upper_fraction
+
+            writer.writerow(
+                {
+                    "hold_index": hold_index,
+                    "hold_start_time_s": hold_samples[0].time_s,
+                    "hold_end_time_s": final.time_s,
+                    "cell_voltage_v": final.cell_voltage_v,
+                    "final_time_s": final.time_s,
+                    "final_current_a": final.current_a,
+                    "final_current_density_a_m2": final.current_density_a_m2,
+                    "final_current_density_a_cm2": (
+                        final.current_density_a_m2 / 1.0e4
+                    ),
+                    "final_current_density_magnitude_a_cm2": (
+                        abs(final.current_density_a_m2) / 1.0e4
+                    ),
+                    "final_crossover_rate_mol_s": final.crossover_rate_mol_s,
+                    "window_sample_count": len(window),
+                    "window_current_density_mean_a_m2": signed_current_mean,
+                    "window_current_density_cv": current_cv,
+                    "window_current_density_drift_relative": current_drift,
+                    "window_crossover_mean_mol_s": crossover_mean,
+                    "window_crossover_relative_range": crossover_relative_range,
+                    "is_interpolation_endpoint": is_endpoint,
+                    "interpolation_weight": interpolation_weight,
+                }
+            )
+    return len(grouped)
 
 
 def _voltage_hold_window(
@@ -768,16 +906,36 @@ class AemecOpenFoamEvaluator:
         sweep = configure_voltage_sweep(self.work_case, self.config)
         mesh_log = self.logs_dir / f"trial_{trial_number:04d}_mesh.log"
         solver_log = self.logs_dir / f"trial_{trial_number:04d}_solver.log"
+        curve_csv = (
+            self.logs_dir / f"trial_{trial_number:04d}_polarization_curve.csv"
+        )
         run_command(self.mesh_command, self.work_case, mesh_log, self.timeout_s)
         self._verify_mesh()
         solver_output = run_command(self.solver_command, self.work_case, solver_log, self.timeout_s)
-        objective = interpolate_voltage_objective(
-            solver_output, self.config, sweep
+        try:
+            objective = interpolate_voltage_objective(
+                solver_output, self.config, sweep
+            )
+        except OptimizationError:
+            write_polarization_curve_csv(
+                curve_csv, solver_output, self.config
+            )
+            raise
+        write_polarization_curve_csv(
+            curve_csv,
+            solver_output,
+            self.config,
+            (
+                objective.lower_sample.cell_voltage_v,
+                objective.upper_sample.cell_voltage_v,
+                objective.interpolation_fraction,
+            ),
         )
         return AemecEvaluation(
             objective,
             sweep,
             solver_log,
             mesh_log,
+            curve_csv,
             time.monotonic() - started,
         )

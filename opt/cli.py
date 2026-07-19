@@ -65,6 +65,7 @@ AEMEC_REPORT = ReportSpec(
         "solver_outer_iterations",
         "duration_s",
         "solver_log",
+        "polarization_curve_csv",
     ),
 )
 
@@ -176,7 +177,8 @@ def run_optimization(args: argparse.Namespace):
         print(
             f"  interpolated voltage={objective.cell_voltage_v:.8g} V, "
             f"crossover={objective.crossover_rate_mol_s:.8g} mol/s at "
-            f"{objective.target_current_density_a_m2:.8g} A/m2",
+            f"{objective.target_current_density_a_m2:.8g} A/m2\n"
+            f"  polarization curve={result.polarization_curve_csv}",
             flush=True,
         )
         return result.as_objective_result()

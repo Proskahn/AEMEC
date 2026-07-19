@@ -30,6 +30,13 @@ through the membrane and released to the anode; it is not the older Faradaic
 hydrogen-generation diagnostic. It requires a positive `sinkCoeff` and a
 configured `sinkZone`.
 
+Every solver completion also writes
+`logs/trial_XXXX_polarization_curve.csv`. The file contains one row per voltage
+hold with the final current, current density, crossover rate, final-window
+mean/CV/drift statistics, and interpolation-endpoint weight. It is written
+before objective acceptance, so a completed simulation remains inspectable
+even if its curve is later rejected for stability or bracketing.
+
 ## Sweep duration
 
 The supplied voltage table has eleven 15 s holds, so each CFD evaluation runs

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,7 @@ from aemec_case import (
     interpolate_voltage_objective,
     parse_voltage_sweep_samples,
     rewrite_block_mesh_thickness,
+    write_polarization_curve_csv,
 )
 
 
@@ -366,6 +368,44 @@ End
         self.assertAlmostEqual(objective.crossover_rate_mol_s, 4.0e-5)
         self.assertAlmostEqual(objective.interpolation_fraction, 0.5)
 
+    def test_trial_curve_csv_contains_iv_points_and_window_quality(self) -> None:
+        log = """
+Time = 1
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8000 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.0e-5 mol/s
+Time = 2
+Controlled boundary current (A) at x: signed = -0.65, magnitude = 0.65, current density = -8125 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.01e-5 mol/s
+Time = 3
+Controlled boundary current (A) at x: signed = -0.96, magnitude = 0.96, current density = -12000 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.0e-5 mol/s
+Time = 4
+Controlled boundary current (A) at x: signed = -0.97, magnitude = 0.97, current density = -12125 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.01e-5 mol/s
+End
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "trial_0000_polarization_curve.csv"
+            point_count = write_polarization_curve_csv(
+                output_path,
+                log,
+                AemecEvaluationConfig(stability_samples=2),
+                (1.7, 1.8, 0.5),
+            )
+            with output_path.open(newline="", encoding="utf-8") as input_file:
+                rows = list(csv.DictReader(input_file))
+
+        self.assertEqual(point_count, 2)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(float(rows[0]["final_current_a"]), -0.65)
+        self.assertEqual(
+            float(rows[0]["final_current_density_magnitude_a_cm2"]),
+            0.8125,
+        )
+        self.assertEqual(rows[0]["is_interpolation_endpoint"], "True")
+        self.assertAlmostEqual(float(rows[0]["interpolation_weight"]), 0.5)
+        self.assertGreater(float(rows[0]["window_current_density_cv"]), 0.0)
+
     def test_unused_low_voltage_instability_does_not_reject_interpolation(self) -> None:
         config = AemecEvaluationConfig(stability_samples=3)
         log = """
@@ -503,6 +543,29 @@ print('End')
                 result.objective.crossover_rate_mol_s, 1.8555555556e-5
             )
             self.assertTrue(result.solver_log.is_file())
+            self.assertTrue(result.polarization_curve_csv.is_file())
+            self.assertEqual(
+                len(result.polarization_curve_csv.read_text().splitlines()),
+                12,
+            )
+
+            (source / "solver.py").write_text(
+                """voltages = [1.3 + 0.1 * index for index in range(11)]
+for index, voltage in enumerate(voltages, start=1):
+    end = 15.0 * index
+    for offset in (0.4, 0.3, 0.2, 0.1, 0.0):
+        print(f'Time = {end - offset:.1f}')
+        print(f'Controlled boundary current (A) at x: signed = -0.08, magnitude = 0.08, current density = -1000 A/m2, voltage = {voltage}')
+        print('Hydrogen crossover objective: anode release rate = 1e-8 mol/s')
+print('End')
+""",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(OptimizationError, "does not bracket"):
+                evaluator.evaluate(1, 50.0)
+            rejected_curve = root / "logs/trial_0001_polarization_curve.csv"
+            self.assertTrue(rejected_curve.is_file())
+            self.assertEqual(len(rejected_curve.read_text().splitlines()), 12)
 
 
 if __name__ == "__main__":
