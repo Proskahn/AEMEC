@@ -20,7 +20,9 @@ from aemec_case import (
     parse_voltage_sweep_samples,
     rewrite_block_mesh_thickness,
     write_polarization_curve_csv,
+    write_polarization_curve_plot,
 )
+from export_trial_curves import main as export_trial_curves
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -406,6 +408,55 @@ End
         self.assertAlmostEqual(float(rows[0]["interpolation_weight"]), 0.5)
         self.assertGreater(float(rows[0]["window_current_density_cv"]), 0.0)
 
+    def test_trial_curve_plot_is_created_from_stored_csv(self) -> None:
+        log = """
+Time = 1
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8000 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.0e-5 mol/s
+Time = 2
+Controlled boundary current (A) at x: signed = -0.96, magnitude = 0.96, current density = -12000 A/m2, voltage = 1.8
+Hydrogen crossover objective: anode gas source rate = 5.0e-5 mol/s
+End
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            curve_csv = Path(directory) / "trial_0000_polarization_curve.csv"
+            curve_plot = Path(directory) / "trial_0000_polarization_curve.png"
+            write_polarization_curve_csv(
+                curve_csv,
+                log,
+                AemecEvaluationConfig(stability_samples=1),
+                (1.7, 1.8, 0.5),
+            )
+            point_count = write_polarization_curve_plot(curve_csv, curve_plot)
+
+            self.assertEqual(point_count, 2)
+            self.assertTrue(curve_plot.is_file())
+            self.assertEqual(curve_plot.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
+
+    def test_curve_backfill_adds_a_missing_plot_without_rewriting_csv(self) -> None:
+        log = """
+Time = 1
+Controlled boundary current (A) at x: signed = -0.64, magnitude = 0.64, current density = -8000 A/m2, voltage = 1.7
+Hydrogen crossover objective: anode gas source rate = 3.0e-5 mol/s
+End
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            study_dir = Path(directory)
+            logs_dir = study_dir / "logs"
+            logs_dir.mkdir()
+            solver_log = logs_dir / "trial_0000_solver.log"
+            solver_log.write_text(log, encoding="utf-8")
+
+            self.assertEqual(export_trial_curves([str(study_dir)]), 0)
+            curve_csv = logs_dir / "trial_0000_polarization_curve.csv"
+            curve_plot = logs_dir / "trial_0000_polarization_curve.png"
+            original_csv = curve_csv.read_bytes()
+            curve_plot.unlink()
+
+            self.assertEqual(export_trial_curves([str(study_dir)]), 0)
+            self.assertEqual(curve_csv.read_bytes(), original_csv)
+            self.assertEqual(curve_plot.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
+
     def test_unused_low_voltage_instability_does_not_reject_interpolation(self) -> None:
         config = AemecEvaluationConfig(stability_samples=3)
         log = """
@@ -544,6 +595,7 @@ print('End')
             )
             self.assertTrue(result.solver_log.is_file())
             self.assertTrue(result.polarization_curve_csv.is_file())
+            self.assertTrue(result.polarization_curve_plot.is_file())
             self.assertEqual(
                 len(result.polarization_curve_csv.read_text().splitlines()),
                 12,
@@ -564,7 +616,9 @@ print('End')
             with self.assertRaisesRegex(OptimizationError, "does not bracket"):
                 evaluator.evaluate(1, 50.0)
             rejected_curve = root / "logs/trial_0001_polarization_curve.csv"
+            rejected_plot = root / "logs/trial_0001_polarization_curve.png"
             self.assertTrue(rejected_curve.is_file())
+            self.assertTrue(rejected_plot.is_file())
             self.assertEqual(len(rejected_curve.read_text().splitlines()), 12)
 
 

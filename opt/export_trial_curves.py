@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Backfill per-trial polarization-curve CSV files from solver logs."""
+"""Backfill per-trial polarization-curve CSV and PNG files from solver logs."""
 
 from __future__ import annotations
 
@@ -8,7 +8,11 @@ import csv
 from pathlib import Path
 from typing import Sequence
 
-from aemec_case import AemecEvaluationConfig, write_polarization_curve_csv
+from aemec_case import (
+    AemecEvaluationConfig,
+    write_polarization_curve_csv,
+    write_polarization_curve_plot,
+)
 
 
 def _interpolation_markers(
@@ -33,8 +37,8 @@ def _interpolation_markers(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Create trial_XXXX_polarization_curve.csv beside every existing "
-            "trial_XXXX_solver.log in an optimization study."
+            "Create trial_XXXX_polarization_curve.csv and .png beside every "
+            "existing trial_XXXX_solver.log in an optimization study."
         )
     )
     parser.add_argument(
@@ -47,7 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--target-current-density-a-m2", type=float, default=10_000.0
     )
     parser.add_argument(
-        "--overwrite", action="store_true", help="Replace existing curve CSV files."
+        "--overwrite",
+        action="store_true",
+        help="Replace existing curve CSV and PNG files.",
     )
     return parser
 
@@ -64,7 +70,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     config.validate()
     markers = _interpolation_markers(study_dir / "optimization_results.csv")
-    written = skipped = 0
+    csv_written = plots_written = unchanged = 0
     for solver_log in sorted(logs_dir.glob("trial_*_solver.log")):
         trial_text = solver_log.name.removeprefix("trial_").removesuffix(
             "_solver.log"
@@ -74,18 +80,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         except ValueError:
             continue
         output_path = logs_dir / f"trial_{trial_number:04d}_polarization_curve.csv"
-        if output_path.exists() and not args.overwrite:
-            skipped += 1
+        plot_path = logs_dir / f"trial_{trial_number:04d}_polarization_curve.png"
+        write_csv = args.overwrite or not output_path.exists()
+        write_plot = args.overwrite or not plot_path.exists()
+        if not write_csv and not write_plot:
+            unchanged += 1
             continue
-        point_count = write_polarization_curve_csv(
-            output_path,
-            solver_log.read_text(encoding="utf-8", errors="replace"),
-            config,
-            markers.get(trial_number),
-        )
-        print(f"trial {trial_number}: {point_count} voltage points -> {output_path}")
-        written += 1
-    print(f"Written: {written}; skipped existing: {skipped}")
+        if write_csv:
+            point_count = write_polarization_curve_csv(
+                output_path,
+                solver_log.read_text(encoding="utf-8", errors="replace"),
+                config,
+                markers.get(trial_number),
+            )
+            print(
+                f"trial {trial_number}: {point_count} voltage points -> "
+                f"{output_path}"
+            )
+            csv_written += 1
+        if write_plot:
+            point_count = write_polarization_curve_plot(
+                output_path,
+                plot_path,
+                f"Trial {trial_number} Polarization Curve",
+            )
+            print(f"trial {trial_number}: {point_count} plotted points -> {plot_path}")
+            plots_written += 1
+    print(
+        f"CSV written: {csv_written}; plots written: {plots_written}; "
+        f"unchanged: {unchanged}"
+    )
     return 0
 
 

@@ -20,6 +20,6 @@ Documentation is separated by concern:
 The source case is never modified: every evaluation receives a fresh scratch
 copy under `opt/work/`.
 
-Every solver run retains its raw log and a compact per-trial polarization-curve
-CSV. Existing study logs can be converted with `opt/export_trial_curves.py`
-without rerunning the CFD simulations.
+Every solver run retains its raw log, a compact per-trial polarization-curve
+CSV, and a PNG plot of that curve. Existing study logs can be converted with
+`opt/export_trial_curves.py` without rerunning the CFD simulations.

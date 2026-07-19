@@ -55,7 +55,8 @@ Each study writes a settings-specific directory under `opt/results/` containing
 `optimization.db`, `optimization_results.csv`, `pareto_front.csv`,
 `pareto_front.png`, and `logs/trial_*`. Each completed solver call has both its
 raw `trial_XXXX_solver.log` and a compact
-`trial_XXXX_polarization_curve.csv`. Results are checkpointed after every
+`trial_XXXX_polarization_curve.csv` plus its matching
+`trial_XXXX_polarization_curve.png`. Results are checkpointed after every
 completed evaluation.
 
 The curve CSV contains one final I-V point for each imposed voltage, both
@@ -63,14 +64,16 @@ signed and magnitude current density in A/cm2, the corresponding crossover
 rate, final-window quality statistics, and flags for the points used to
 interpolate the 1 A/cm2 objective.
 
-Backfill curve CSV files for an existing study without rerunning OpenFOAM:
+Backfill curve CSV and PNG files for an existing study without rerunning
+OpenFOAM:
 
 ```bash
 python3 opt/export_trial_curves.py \
   opt/results/aemec-production-20-553c273e
 ```
 
-Add `--overwrite` to regenerate curve files after changing the exporter.
+If curve CSVs already exist, the command creates only the missing PNGs. Add
+`--overwrite` to regenerate both files after changing the exporter.
 
 Re-run the same command to resume until its completed-trial budget is reached.
 Use a new `--study-name` after changing bounds, source case, operating settings,

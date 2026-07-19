@@ -149,6 +149,7 @@ class AemecEvaluation:
     solver_log: Path
     mesh_log: Path
     polarization_curve_csv: Path
+    polarization_curve_plot: Path
     duration_s: float
 
     def as_objective_result(self) -> ObjectiveResult:
@@ -174,6 +175,7 @@ class AemecEvaluation:
                 "solver_log": str(self.solver_log),
                 "mesh_log": str(self.mesh_log),
                 "polarization_curve_csv": str(self.polarization_curve_csv),
+                "polarization_curve_plot": str(self.polarization_curve_plot),
             },
         )
 
@@ -574,6 +576,80 @@ def write_polarization_curve_csv(
     return len(grouped)
 
 
+def write_polarization_curve_plot(
+    curve_csv: Path,
+    output_path: Path,
+    title: str | None = None,
+) -> int:
+    """Plot a stored per-trial I-V curve and return its point count."""
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+
+    with curve_csv.open(newline="", encoding="utf-8") as input_file:
+        rows = list(csv.DictReader(input_file))
+    if not rows:
+        raise OptimizationError(
+            f"Cannot plot an empty polarization curve: {curve_csv}"
+        )
+
+    try:
+        current_density = [
+            float(row["final_current_density_magnitude_a_cm2"])
+            for row in rows
+        ]
+        voltage = [float(row["cell_voltage_v"]) for row in rows]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise OptimizationError(
+            f"Invalid polarization-curve CSV: {curve_csv}"
+        ) from exc
+
+    figure = Figure(figsize=(6.2, 4.4), layout="constrained")
+    FigureCanvasAgg(figure)
+    axes = figure.subplots()
+    axes.plot(current_density, voltage, marker="o", linewidth=1.8)
+    axes.set_xlabel(r"$|j|$ [A/cm$^2$]")
+    axes.set_ylabel("Cell voltage [V]")
+    axes.set_title(title or "AEMEC Polarization Curve")
+    axes.grid(True, which="major", alpha=0.3)
+    axes.ticklabel_format(axis="x", style="plain")
+
+    endpoint_rows = [
+        row
+        for row in rows
+        if row.get("is_interpolation_endpoint", "").strip().lower()
+        in {"true", "1", "yes"}
+    ]
+    try:
+        weights = [float(row["interpolation_weight"]) for row in endpoint_rows]
+    except (KeyError, TypeError, ValueError):
+        weights = []
+    if endpoint_rows and weights and math.isclose(
+        sum(weights), 1.0, rel_tol=0.0, abs_tol=1.0e-8
+    ):
+        objective_current = sum(
+            weight * float(row["final_current_density_magnitude_a_cm2"])
+            for row, weight in zip(endpoint_rows, weights)
+        )
+        objective_voltage = sum(
+            weight * float(row["cell_voltage_v"])
+            for row, weight in zip(endpoint_rows, weights)
+        )
+        axes.scatter(
+            [objective_current],
+            [objective_voltage],
+            marker="D",
+            s=42,
+            zorder=3,
+            label="Interpolated objective",
+        )
+        axes.legend()
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(output_path, dpi=200)
+    figure.clear()
+    return len(rows)
+
+
 def _voltage_hold_window(
     samples: Sequence[SweepSample],
     hold: VoltageHold,
@@ -909,6 +985,9 @@ class AemecOpenFoamEvaluator:
         curve_csv = (
             self.logs_dir / f"trial_{trial_number:04d}_polarization_curve.csv"
         )
+        curve_plot = (
+            self.logs_dir / f"trial_{trial_number:04d}_polarization_curve.png"
+        )
         run_command(self.mesh_command, self.work_case, mesh_log, self.timeout_s)
         self._verify_mesh()
         solver_output = run_command(self.solver_command, self.work_case, solver_log, self.timeout_s)
@@ -917,9 +996,15 @@ class AemecOpenFoamEvaluator:
                 solver_output, self.config, sweep
             )
         except OptimizationError:
-            write_polarization_curve_csv(
+            point_count = write_polarization_curve_csv(
                 curve_csv, solver_output, self.config
             )
+            if point_count:
+                write_polarization_curve_plot(
+                    curve_csv,
+                    curve_plot,
+                    f"Trial {trial_number} Polarization Curve",
+                )
             raise
         write_polarization_curve_csv(
             curve_csv,
@@ -931,11 +1016,17 @@ class AemecOpenFoamEvaluator:
                 objective.interpolation_fraction,
             ),
         )
+        write_polarization_curve_plot(
+            curve_csv,
+            curve_plot,
+            f"Trial {trial_number} Polarization Curve",
+        )
         return AemecEvaluation(
             objective,
             sweep,
             solver_log,
             mesh_log,
             curve_csv,
+            curve_plot,
             time.monotonic() - started,
         )

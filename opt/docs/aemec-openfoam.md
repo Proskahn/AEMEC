@@ -31,7 +31,8 @@ hydrogen-generation diagnostic. It requires a positive `sinkCoeff` and a
 configured `sinkZone`.
 
 Every solver completion also writes
-`logs/trial_XXXX_polarization_curve.csv`. The file contains one row per voltage
+`logs/trial_XXXX_polarization_curve.csv` and a matching
+`logs/trial_XXXX_polarization_curve.png`. The CSV contains one row per voltage
 hold with the final current, current density, crossover rate, final-window
 mean/CV/drift statistics, and interpolation-endpoint weight. It is written
 before objective acceptance, so a completed simulation remains inspectable
