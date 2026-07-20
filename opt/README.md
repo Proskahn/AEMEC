@@ -23,5 +23,5 @@ copy under `opt/work/`.
 Every solver run retains its raw log, a compact per-trial polarization-curve
 CSV, and a PNG plot of that curve. Existing study logs can be converted with
 `opt/export_trial_curves.py` without rerunning the CFD simulations.
-Use `opt/plot_membrane_polarization_curves.py` to overlay selected membrane
-thicknesses from those stored curve CSV files.
+Use `opt/plot_membrane_polarization_curves.py` to overlay polarization and
+H2-crossover behavior for selected membrane thicknesses from those stored CSVs.
