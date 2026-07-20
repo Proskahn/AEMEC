@@ -1,0 +1,53 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by the original author
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    location    "0/cathode";
+    object      U.gas;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    cathodeInlet
+    {
+        type            fixedValue;
+        value           $internalField;
+    }
+    cathodeOutlet
+    {
+        type            pressureInletOutletVelocity;
+        phi             phi.gas;
+        value           $internalField;
+    }
+    cathodeSides
+    {
+        type            fixedValue;
+        value           $internalField;
+    }
+    cathode_to_electrolyte
+    {
+        type            fixedValue;
+        value           $internalField;
+    }
+    cathode_to_interconnect
+    {
+        type            fixedValue;
+        value           $internalField;
+    }
+}
+
+
+// ************************************************************************* //

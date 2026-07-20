@@ -1,0 +1,71 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright held by the original author
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+    class           volScalarField;
+    object          yH2;
+}
+
+// Trace hydrogen in the anode gas phase.  The conservative membrane
+// crossover source raises this field; it is zero in the supplied anode feed.
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 1e-12;
+
+boundaryField
+{
+    anodeInlet
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    anodeOutlet
+    {
+        type            inletOutlet;
+        phi             phi.gas;
+        inletValue      uniform 0;
+        value           $internalField;
+    }
+
+    anodeSides
+    {
+        type            zeroGradient;
+    }
+
+    anodeInletSides
+    {
+        type            zeroGradient;
+    }
+
+    anodeOutletSides
+    {
+        type            zeroGradient;
+    }
+
+    anodeGDLSides
+    {
+        type            zeroGradient;
+    }
+
+    anode_to_interconnect
+    {
+        type            zeroGradient;
+    }
+
+    anode_to_electrolyte
+    {
+        type            zeroGradient;
+    }
+}
+
+
+// ************************************************************************* //

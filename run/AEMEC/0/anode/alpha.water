@@ -1,0 +1,53 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2306                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    arch        "LSB;label=32;scalar=64";
+    class       volScalarField;
+    location    "0/anode";
+    object      alpha.water;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0.9999;
+
+boundaryField
+{
+    anodeInlet
+    {
+        type            calculated;
+        value           uniform 0.9999;
+    }
+    anodeOutlet
+    {
+        type            calculated;
+        value           uniform 0.9999;
+    }
+    anodeSides
+    {
+        type            calculated;
+        value           uniform 0.9999;
+    }
+    anode_to_interconnect
+    {
+        type            calculated;
+        value           uniform 0.9999;
+    }
+    anode_to_electrolyte
+    {
+        type            calculated;
+        value           uniform 0.9999;
+    }
+}
+
+
+// ************************************************************************* //
