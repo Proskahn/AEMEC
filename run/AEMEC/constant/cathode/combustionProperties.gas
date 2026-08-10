@@ -18,6 +18,7 @@ FoamFile
 // This dictionary is phase-qualified as combustionProperties.gas because the
 // reacting phase is named "gas" in regionProperties.
 combustionModel electroChemicalReaction;
+electrochemicalDiagnostics true;
 
 dissolved       false;
 

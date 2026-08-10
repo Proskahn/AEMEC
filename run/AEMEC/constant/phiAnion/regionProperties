@@ -18,6 +18,7 @@ FoamFile
 
 control          false;
 relax           0.0;
+electricDiagnostics true;
 
 // The ionic-potential equation has only Neumann boundaries. Its absolute
 // level is therefore selected so the anode and cathode reaction currents are

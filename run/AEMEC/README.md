@@ -103,6 +103,27 @@ python3 visualization/polarized_curve.py \
     --hold-duration 15
 ```
 
+Generate the voltage-loss decomposition and hydrogen-crossover figures from
+the same accepted polarization points with:
+
+```bash
+python3 visualization/aemec_diagnostics.py \
+    --log run/AEMEC/log.run \
+    --scan-mode voltage
+```
+
+This writes `voltage_decomposition.{csv,png}` and
+`hydrogen_crossover.{csv,png}` in `visualization/`. The voltage figure contains
+the cell voltage, lowest-current reversible baseline, current-dependent Nernst
+shift (a concentration/transport proxy), anode and cathode activation losses,
+electronic and anion ohmic losses, and an explicit unresolved closure curve.
+Ohmic voltage is evaluated as `integral(i^2/sigma dV)/I`; activation and Nernst
+terms are current-weighted over their catalyst layers. The crossover figure
+shows the Faradaic H2-production, cathode-retained, and membrane-crossover
+rates together with crossover as a percentage of instantaneous production.
+That percentage is omitted near open circuit if crossover is supplied by the
+existing cathode inventory and exceeds instantaneous production.
+
 After changing C++ source, rebuild once with `./src/Allwmake` before these
 case commands. You do not rebuild the solver between optimization trials;
 each trial remeshes and runs the case with its selected membrane thickness.

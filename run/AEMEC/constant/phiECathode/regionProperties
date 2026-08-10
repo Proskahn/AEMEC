@@ -16,6 +16,8 @@ FoamFile
 
 //- Add information here
 
+electricDiagnostics true;
+
 sigma
 {
     bpp

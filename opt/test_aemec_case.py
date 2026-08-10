@@ -76,6 +76,7 @@ class AemecCaseTests(unittest.TestCase):
         cathode_thermo = (case / "constant/cathode/thermophysicalProperties.gas").read_text(encoding="utf-8")
         anode_hydrogen = (case / "0.orig/anode/H2.gas").read_text(encoding="utf-8")
         anode_controller = (case / "constant/phiEAnode/regionProperties").read_text(encoding="utf-8")
+        cathode_electric = (case / "constant/phiECathode/regionProperties").read_text(encoding="utf-8")
         anode_collector = (case / "system/phiEAnode/createPatchDict").read_text(encoding="utf-8")
         cathode_collector = (case / "system/phiECathode/createPatchDict").read_text(encoding="utf-8")
         electrolyte_temperature = (case / "0.orig/electrolyte/T").read_text(encoding="utf-8")
@@ -142,6 +143,11 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("internalField   uniform 3.0;", ionic_potential)
         self.assertIn("relax           1.0;", anode_reaction)
         self.assertIn("relax           1.0;", cathode_reaction)
+        self.assertIn("electrochemicalDiagnostics true;", anode_reaction)
+        self.assertIn("electrochemicalDiagnostics true;", cathode_reaction)
+        self.assertIn("electricDiagnostics true;", anode_controller)
+        self.assertIn("electricDiagnostics true;", cathode_electric)
+        self.assertIn("electricDiagnostics true;", crossover)
         self.assertIn("polarizationCurve", anode_controller)
         self.assertRegex(
             anode_controller,
@@ -194,6 +200,16 @@ class AemecCaseTests(unittest.TestCase):
         )
         self.assertIn("fvm::Sp(dJdPhi_, phi_)", electric_source)
         self.assertIn("Ionic Newton potential update", electric_source)
+        self.assertIn("ohmicPower", electric_source)
+        self.assertIn("equivalentOhmicVoltage", electric_source)
+
+        reaction_source = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/electroChemicalModel/electroChemicalReaction.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn("activationPower", reaction_source)
+        self.assertIn("equivalentActivationVoltage", reaction_source)
+        self.assertIn("currentWeightedNernst", reaction_source)
 
         butler_volmer = (
             ROOT

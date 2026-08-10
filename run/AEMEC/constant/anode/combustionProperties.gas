@@ -16,6 +16,7 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 combustionModel electroChemicalReaction;
+electrochemicalDiagnostics true;
 
 dissolved       false;
 

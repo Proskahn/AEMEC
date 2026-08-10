@@ -807,8 +807,6 @@ def check_static(case: Path, errors: list[str]) -> None:
             "potentiostatic voltage table must end at system/controlDict.run endTime"
         )
 
-    is_diagnostic = voltage_type == "constant"
-
     for relative_path in (
         "constant/anode/combustionProperties.gas",
         "constant/cathode/combustionProperties.gas",
@@ -819,8 +817,11 @@ def check_static(case: Path, errors: list[str]) -> None:
                 f"{relative_path} must define the 2e9 A/m3 diagnostic "
                 "Butler-Volmer safeguard"
             )
-        if is_diagnostic and "electrochemicalDiagnostics true;" not in text:
-            errors.append(f"{relative_path} must enable electrochemicalDiagnostics in a fixed-voltage diagnostic")
+        if "electrochemicalDiagnostics true;" not in text:
+            errors.append(
+                f"{relative_path} must enable electrochemicalDiagnostics for "
+                "voltage-decomposition output"
+            )
         if not has_entry(text, "relax", "1.0"):
             errors.append(
                 f"{relative_path} must use relax 1.0 with the current-balance root solve"
@@ -841,8 +842,17 @@ def check_static(case: Path, errors: list[str]) -> None:
             "for 2 H2O + 2 e- -> H2 + 2 OH-"
         )
 
-    if is_diagnostic and "electricDiagnostics true;" not in anion_properties:
-        errors.append("constant/phiAnion/regionProperties must enable electricDiagnostics in a fixed-voltage diagnostic")
+    for relative_path in (
+        "constant/phiEAnode/regionProperties",
+        "constant/phiECathode/regionProperties",
+        "constant/phiAnion/regionProperties",
+    ):
+        text = read(case / relative_path, errors)
+        if "electricDiagnostics true;" not in text:
+            errors.append(
+                f"{relative_path} must enable electricDiagnostics for "
+                "voltage-decomposition output"
+            )
 
     ionic_potential = read(case / "0.orig/phiAnion/phi", errors)
     initial_ionic_potential = scalar_internal_field(ionic_potential)

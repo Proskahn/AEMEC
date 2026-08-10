@@ -167,6 +167,8 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
 
         scalar catalystVolume = 0.0;
         scalar integratedCurrent = 0.0;
+        scalar activationPower = 0.0;
+        scalar currentWeightedNernst = 0.0;
         scalar etaWeightedSum = 0.0;
         scalar nernstWeightedSum = 0.0;
         scalar temperatureWeightedSum = 0.0;
@@ -185,6 +187,9 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
         scalar hydrogenMax = -GREAT;
         scalar gasFractionMin = GREAT;
         scalar gasFractionMax = -GREAT;
+        const scalar reactionSign =
+            eta_->nernst().rxnList()["e"]
+           /mag(eta_->nernst().rxnList()["e"]);
 
         forAll(cells, cellI)
         {
@@ -193,6 +198,13 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
 
             catalystVolume += volume;
             integratedCurrent += reactionCurrent[fluidId]*volume;
+            activationPower +=
+                reactionCurrent[fluidId]
+               *reactionSign
+               *activationOverpotential[fluidId]
+               *volume;
+            currentWeightedNernst +=
+                reactionCurrent[fluidId]*nernstPotential[fluidId]*volume;
             etaWeightedSum += activationOverpotential[fluidId]*volume;
             nernstWeightedSum += nernstPotential[fluidId]*volume;
             temperatureWeightedSum += temperature[fluidId]*volume;
@@ -219,6 +231,8 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
 
         reduce(catalystVolume, sumOp<scalar>());
         reduce(integratedCurrent, sumOp<scalar>());
+        reduce(activationPower, sumOp<scalar>());
+        reduce(currentWeightedNernst, sumOp<scalar>());
         reduce(etaWeightedSum, sumOp<scalar>());
         reduce(nernstWeightedSum, sumOp<scalar>());
         reduce(temperatureWeightedSum, sumOp<scalar>());
@@ -245,6 +259,7 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
         const scalar hydrogenFaradaicRate =
             integratedCurrent*hydrogenStoich/(electronCount*dimF.value());
         const scalar safeVolume = max(catalystVolume, VSMALL);
+        const scalar safeCurrent = max(integratedCurrent, VSMALL);
 
         Info<< "AEMEC reaction diagnostic: fluidRegion=" << this->mesh().name()
             << ", phase=" << phase.name()
@@ -252,6 +267,11 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
             << ", reactionCurrent=" << integratedCurrent << " A"
             << ", H2FaradaicRate=" << hydrogenFaradaicRate << " mol/s"
             << ", j0=" << eta_->j0().value() << " A/m3"
+            << ", activationPower=" << activationPower << " W"
+            << ", equivalentActivationVoltage="
+            << activationPower/safeCurrent << " V"
+            << ", currentWeightedNernst="
+            << currentWeightedNernst/safeCurrent << " V"
             << ", eta[min,mean,max]=(" << etaMin << ","
             << etaWeightedSum/safeVolume << "," << etaMax << ") V"
             << ", nernst[min,mean,max]=(" << nernstMin << ","

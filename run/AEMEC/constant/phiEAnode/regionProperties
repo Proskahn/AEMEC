@@ -18,6 +18,7 @@ FoamFile
 
 control           true;
 relax             1.0e-6;
+electricDiagnostics true;
 
 galvanostatic
 {

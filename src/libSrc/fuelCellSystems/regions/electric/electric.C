@@ -618,6 +618,40 @@ void Foam::regionTypes::electric::solve()
 
     if (dict_.lookupOrDefault<Switch>("electricDiagnostics", false))
     {
+        scalar ohmicPower = 0.0;
+        scalar positiveReactionCurrent = 0.0;
+        scalar negativeReactionCurrent = 0.0;
+        const vectorField& currentDensity = i_.primitiveField();
+        const scalarField& conductivity = sigmaField_.primitiveField();
+        const scalarField& reactionSource = j_.primitiveField();
+        const scalarField& cellVolumes = this->V();
+
+        forAll(cellVolumes, cellI)
+        {
+            ohmicPower +=
+                magSqr(currentDensity[cellI])
+               /max(conductivity[cellI], VSMALL)
+               *cellVolumes[cellI];
+            positiveReactionCurrent +=
+                max(reactionSource[cellI], scalar(0))*cellVolumes[cellI];
+            negativeReactionCurrent -=
+                min(reactionSource[cellI], scalar(0))*cellVolumes[cellI];
+        }
+
+        reduce(ohmicPower, sumOp<scalar>());
+        reduce(positiveReactionCurrent, sumOp<scalar>());
+        reduce(negativeReactionCurrent, sumOp<scalar>());
+
+        const scalar reactionCurrentScale = max
+        (
+            positiveReactionCurrent,
+            negativeReactionCurrent
+        );
+        const scalar equivalentOhmicVoltage =
+            reactionCurrentScale > VSMALL
+          ? ohmicPower/reactionCurrentScale
+          : 0.0;
+
         Info<< "AEMEC electric diagnostic: region=" << name()
             << ", sigma[min,mean,max]=(" << min(sigmaField_).value() << ","
             << sigmaField_.weightedAverage(this->V()).value() << ","
@@ -627,7 +661,11 @@ void Foam::regionTypes::electric::solve()
             << max(j_).value() << ") A/m3"
             << ", dJdPhi[min,mean,max]=(" << min(dJdPhi_).value() << ","
             << dJdPhi_.weightedAverage(this->V()).value() << ","
-            << max(dJdPhi_).value() << ") A/(m3 V)" << endl;
+            << max(dJdPhi_).value() << ") A/(m3 V)"
+            << ", ohmicPower=" << ohmicPower << " W"
+            << ", reactionCurrentScale=" << reactionCurrentScale << " A"
+            << ", equivalentOhmicVoltage=" << equivalentOhmicVoltage
+            << " V" << endl;
     }
 
     if (control_)

@@ -34,12 +34,13 @@ Each time step writes these records:
 
 - `AEMEC reaction diagnostic` for the cathode and anode catalyst layers:
   integrated Faradaic current, cathode H2 production rate, configured `j0`,
-  activation-overpotential, Nernst-potential, temperature, water/H2 mole
-  fractions, and gas volume fraction.
-- `AEMEC electric diagnostic` for `phiAnion`: effective anion conductivity
-  (`sigma`) and the mapped reaction-source field `J`.
-- `Hydrogen crossover membrane diagnostic`: the cathode-CL `phiAnion` reaction
-  current and the Faradaic H2 source used by the membrane crossover model.
+  activation heat power and equivalent voltage, current-weighted Nernst
+  potential, temperature, water/H2 mole fractions, and gas volume fraction.
+- `AEMEC electric diagnostic` for `phiEAnode`, `phiECathode`, and `phiAnion`:
+  effective conductivity (`sigma`), mapped reaction-source field `J`, ohmic
+  power, and the corresponding equivalent ohmic voltage.
+- `Hydrogen production partition`: the cathode-CL `phiAnion` reaction current,
+  Faradaic H2 production, membrane crossover, and H2 retained in cathode gas.
 
 For a consistent coupling, the magnitude of the cathode reaction current and
 the `phiAnion` cathode-CL reaction current should agree, and the two derived
