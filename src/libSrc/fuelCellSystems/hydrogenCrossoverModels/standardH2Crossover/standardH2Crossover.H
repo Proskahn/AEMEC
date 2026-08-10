@@ -47,13 +47,6 @@ class standardH2Crossover
     scalar dragSign_;
     scalar relax_;
 
-    void setZoneSource
-    (
-        const word& zoneName,
-        const scalarField& source,
-        scalar sign
-    );
-
     void setZoneUniformSource
     (
         volScalarField& field,

@@ -55,18 +55,6 @@ inline Foam::volScalarField& Foam::hydrogenCrossoverModel::DH2Eff()
 }
 
 
-inline const Foam::volScalarField& Foam::hydrogenCrossoverModel::h2Dmdt() const
-{
-    return h2Dmdt_;
-}
-
-
-inline Foam::volScalarField& Foam::hydrogenCrossoverModel::h2Dmdt()
-{
-    return h2Dmdt_;
-}
-
-
 inline const Foam::volScalarField& Foam::hydrogenCrossoverModel::JH2Diff() const
 {
     return JH2Diff_;

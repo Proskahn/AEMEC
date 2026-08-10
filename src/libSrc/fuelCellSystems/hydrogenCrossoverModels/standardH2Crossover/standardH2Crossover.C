@@ -206,37 +206,6 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::~standardH2Crossover()
 {}
 
 
-void Foam::hydrogenCrossoverModels::standardH2Crossover::setZoneSource
-(
-    const word& zoneName,
-    const scalarField& source,
-    scalar sign
-)
-{
-    if (zoneName == word::null)
-    {
-        return;
-    }
-
-    const label zoneId = mesh_.cellZones().findZoneID(zoneName);
-
-    if (zoneId == -1)
-    {
-        FatalErrorInFunction
-            << "Cannot find hydrogen crossover cellZone " << zoneName
-            << exit(FatalError);
-    }
-
-    const labelList& cells = mesh_.cellZones()[zoneId];
-
-    forAll(cells, i)
-    {
-        const label cellI = cells[i];
-        h2Dmdt_[cellI] += sign*source[cellI];
-    }
-}
-
-
 void Foam::hydrogenCrossoverModels::standardH2Crossover::setZoneUniformSource
 (
     volScalarField& field,
@@ -415,7 +384,7 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::correct()
     JH2Diff_ = mag(DH2Eff_*fvc::grad(cH2_));
 
     const volVectorField& i = mesh_.lookupObject<volVectorField>(iName_);
-    JH2Drag_ = mag(i)*xi_*cH2CathodeInterface_/(F*cElec_);
+    JH2Drag_ = mag(i)*xi_*cH2_/(F*cElec_);
     JH2Conv_ = mag(UMembrane_)*cH2_;
     JH2Cross_ = JH2Diff_ + JH2Drag_ + JH2Conv_;
 
@@ -431,7 +400,6 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
     const volVectorField& i = mesh_.lookupObject<volVectorField>(iName_);
     const volScalarField& j = mesh_.lookupObject<volScalarField>(jName_);
 
-    h2Dmdt_ *= 0.0;
     h2CathodeDmdt_ *= 0.0;
     h2AnodeDmdt_ *= 0.0;
 
@@ -456,18 +424,20 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
         henryAnode_
     );
 
-    volScalarField h2Generation
+    // The Faradaic reaction already produces H2 in the cathode gas species
+    // equation.  Retain its rate only as a partition diagnostic: adding it to
+    // the membrane equation would force all generated H2 through the membrane
+    // in a stationary, closed transport domain.
+    volScalarField h2FaradaicGeneration
     (
         IOobject
         (
-            "h2Generation",
+            "h2FaradaicGeneration",
             mesh_.time().timeName(),
             mesh_
         ),
         mag(j)/(2.0*F)
     );
-
-    setZoneSource(sourceZoneName_, h2Generation, 1.0);
 
     volScalarField h2SinkCoeff
     (
@@ -530,7 +500,6 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
       - fvm::laplacian(DH2Eff_, cH2_, "laplacian(DH2Eff,cH2)")
       + fvm::Sp(h2SinkCoeff, cH2_)
       - h2SinkCoeff*cH2AnodeInterface_
-      - h2Dmdt_
     );
 
     if (cathodeInterfaceType_ == "henry" || cH2Cathode_.value() >= 0.0)
@@ -589,8 +558,8 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
     const scalar anodeGasRate = zoneIntegral(h2AnodeDmdt_, sinkZoneName_);
     const scalar cathodeAnionReactionCurrent =
         zoneIntegral(j, sourceZoneName_);
-    const scalar membraneFaradaicSource =
-        zoneIntegral(h2Dmdt_, sourceZoneName_);
+    const scalar faradaicH2Rate =
+        zoneIntegral(h2FaradaicGeneration, sourceZoneName_);
 
     Info<< "Hydrogen crossover objective: anode gas source rate = "
         << anodeGasRate << " mol/s" << endl;
@@ -599,10 +568,12 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
         << anodeGasRate << " mol/s, imbalance = "
         << cathodeGasRate + anodeGasRate << " mol/s" << endl;
 
-    Info<< "Hydrogen crossover membrane diagnostic: anion reaction current in "
+    Info<< "Hydrogen production partition: anion reaction current in "
         << sourceZoneName_ << " = " << cathodeAnionReactionCurrent << " A"
-        << ", derived Faradaic H2 source = " << membraneFaradaicSource
-        << " mol/s";
+        << ", Faradaic cathode H2 generation = " << faradaicH2Rate
+        << " mol/s, membrane crossover = " << anodeGasRate << " mol/s"
+        << ", retained in cathode gas = "
+        << faradaicH2Rate - anodeGasRate << " mol/s";
 
     if (sinkCoeff_.value() > 0.0 && sinkZoneName_ != word::null)
     {

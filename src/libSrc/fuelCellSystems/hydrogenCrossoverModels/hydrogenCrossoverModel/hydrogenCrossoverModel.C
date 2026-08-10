@@ -108,20 +108,6 @@ Foam::hydrogenCrossoverModel::hydrogenCrossoverModel
         dimensionedScalar("DH2Eff", sqr(dimLength)/dimTime, 0.0),
         zeroGradientFvPatchScalarField::typeName
     ),
-    h2Dmdt_
-    (
-        IOobject
-        (
-            "h2Dmdt",
-            mesh.time().timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedScalar("h2Dmdt", dimMoles/dimVol/dimTime, 0.0),
-        zeroGradientFvPatchScalarField::typeName
-    ),
     JH2Diff_
     (
         IOobject

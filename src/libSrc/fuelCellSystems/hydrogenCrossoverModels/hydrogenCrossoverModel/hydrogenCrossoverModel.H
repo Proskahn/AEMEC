@@ -43,7 +43,6 @@ protected:
     volScalarField cH2CathodeInterface_;
     volScalarField cH2AnodeInterface_;
     volScalarField DH2Eff_;
-    volScalarField h2Dmdt_;
     volScalarField JH2Diff_;
     volScalarField JH2Drag_;
     volScalarField JH2Conv_;
@@ -101,9 +100,6 @@ public:
 
     inline const volScalarField& DH2Eff() const;
     inline volScalarField& DH2Eff();
-
-    inline const volScalarField& h2Dmdt() const;
-    inline volScalarField& h2Dmdt();
 
     inline const volScalarField& JH2Diff() const;
     inline volScalarField& JH2Diff();

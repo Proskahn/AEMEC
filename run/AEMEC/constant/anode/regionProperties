@@ -15,8 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-type          interfaceCompositionPhaseChangeTwoPhaseSystem;
-//type          basicTwoPhaseSystem;
+type          basicTwoPhaseSystem;
 
 phases (gas water);
 
@@ -25,6 +24,10 @@ phases (gas water);
 // equation. Both phases contribute storage, convection, and conductivity.
 thermalEquilibrium true;
 continuous water;
+
+// Keep mechanical physics in the phase equations, but do not deposit
+// gravity, pressure-work, or kinetic-energy terms as temperature sources.
+includeMechanicalWorkInHeatSource false;
 
 LTS
 {
@@ -83,10 +86,6 @@ blending
         minPartlyContinuousAlpha.water 0;
     }
 
-    massTransfer
-    {
-        $heatTransfer;
-    }
 }
 
 surfaceTension
@@ -151,28 +150,6 @@ virtualMass
 //     }
 );
 
-interfaceComposition
-(
-    (gas in water)
-    {
-        type saturated;
-        species ( H2O );
-        Le 1.0;
-        saturationPressure
-        {
-            type ArdenBuck;
-        }
-    }
-
-//     (water in gas)
-//     {
-//         type Henry;
-//         species ( H2O );
-//         k ( 1.492e-2 );
-//         Le 1.0;
-//     }
-);
-
 heatTransfer
 (
     (gas in water)
@@ -188,66 +165,6 @@ heatTransfer
     }
 );
 
-
-heatTransfer.gas
-(
-    (gas in water)
-    {
-        type spherical;
-        residualAlpha 1e-4;
-    }
-
-    (water in gas)
-    {
-        type RanzMarshall;
-        residualAlpha 1e-4;
-    }
-);
-
-heatTransfer.water
-(
-    (gas in water)
-    {
-        type RanzMarshall;
-        residualAlpha 1e-4;
-    }
-
-    (water in gas)
-    {
-        type spherical;
-        residualAlpha 1e-4;
-    }
-);
-
-massTransfer.gas
-(
-    (gas in water)
-    {
-        type spherical;
-        Le 1.0;
-    }
-
-    (water in gas)
-    {
-        type Frossling;
-        Le 1.0;
-    }
-);
-
-massTransfer.water
-(
-    (gas in water)
-    {
-        type Frossling;
-        Le 1.0;
-    }
-
-    (water in gas)
-    {
-        type spherical;
-        Le 1.0;
-    }
-);
 
 phaseTransfer
 (

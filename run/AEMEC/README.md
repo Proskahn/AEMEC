@@ -75,9 +75,14 @@ retain separate phase fractions, velocities, mass fluxes, and species, but
 share the spatially varying parent-mesh temperature. Both phases contribute
 to thermal storage, convection, conductivity, gravity/pressure/kinetic work,
 and reaction heat. The independent dilute-gas enthalpy equation and its
-`residualAlphaEnergy` regularization are not used. The summed interfacial film
-heat supplies the latent-heat source/sink without retaining an internal
-gas-to-liquid sensible-heat exchange term.
+`residualAlphaEnergy` regularization are not used. Both fluid regions use
+`basicTwoPhaseSystem`; interfacial H2O evaporation/condensation and its latent
+heat source are disabled. Electrochemically consumed or produced water is
+still applied directly to the liquid-water phase, while gas products remain
+separate dispersed phases. The phase momentum, pressure, continuity, and
+gravity physics remain active, but `includeMechanicalWorkInHeatSource false`
+prevents their pressure-, kinetic-, and gravitational-work terms from being
+deposited as heat in the global temperature equation.
 
 `isothermalTemperature 313.15` remains as the fallback value used only when
 `solveEnergy` is explicitly disabled for an electrochemical diagnostic.

@@ -508,6 +508,23 @@ def check_static(case: Path, errors: list[str]) -> None:
         text = read(case / "constant" / region / "regionProperties", errors)
         if phase_line not in text:
             errors.append(f"constant/{region}/regionProperties must contain '{phase_line}'")
+        if not has_entry(text, "type", "basicTwoPhaseSystem"):
+            errors.append(
+                f"constant/{region}/regionProperties must use "
+                "basicTwoPhaseSystem with evaporation/condensation disabled"
+            )
+        clean_phase_properties = without_comments(text)
+        for removed_entry in (
+            "interfaceComposition",
+            "massTransfer",
+            "heatTransfer.gas",
+            "heatTransfer.water",
+        ):
+            if re.search(rf"\b{re.escape(removed_entry)}\b", clean_phase_properties):
+                errors.append(
+                    f"constant/{region}/regionProperties must not configure "
+                    f"'{removed_entry}' when evaporation/condensation is disabled"
+                )
         if not has_entry(text, "continuous", "water"):
             errors.append(
                 f"constant/{region}/regionProperties must use liquid water as "
@@ -517,6 +534,11 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(
                 f"constant/{region}/regionProperties must enable "
                 "thermalEquilibrium"
+            )
+        if not has_entry(text, "includeMechanicalWorkInHeatSource", "false"):
+            errors.append(
+                f"constant/{region}/regionProperties must disable mechanical "
+                "work contributions to the temperature source"
             )
         if re.search(r"\bresidualAlphaEnergy\b", without_comments(text)):
             errors.append(
@@ -533,10 +555,10 @@ def check_static(case: Path, errors: list[str]) -> None:
                 "pressureWorkAlphaLimit to 0.05"
             )
         solution = read(case / "system" / region / "fvSolution", errors)
-        if not has_entry(solution, "iDmdt", "0.5"):
+        if re.search(r"\biDmdt\b", without_comments(solution)):
             errors.append(
-                f"system/{region}/fvSolution must relax the explicit "
-                "interfacial mass-transfer update with iDmdt 0.5"
+                f"system/{region}/fvSolution must not configure the removed "
+                "evaporation/condensation iDmdt relaxation"
             )
 
     for relative_path in (

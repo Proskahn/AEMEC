@@ -33,17 +33,24 @@ interface closure rather than a finite-rate gas-to-liquid H2 transfer model.
 
 ## Membrane transport and outputs
 
-The membrane concentration equation contains a Faradaic cathode-side source,
-diffusion, electro-osmotic-drag advection, optional through-membrane
-convection, and an anode-side release. The Faradaic source is
+The membrane concentration equation contains diffusion,
+electro-osmotic-drag advection, optional through-membrane convection, and an
+anode-side release. Its cathode-side dissolved concentration is imposed by the
+configured interface closure; the Faradaic reaction is not added as a second
+membrane source.
+
+The cathode electrochemical reaction already generates
 
 ```text
-h2Generation = abs(J)/(2 F)    [mol/(m3 s)]
+h2FaradaicGeneration = abs(J)/(2 F)    [mol/(m3 s)]
 ```
 
-where `J` is the local volumetric electrochemical current source in
-`cathodeCL`. This is the finite-volume form of the catalyst-layer/membrane
-interface source.
+in the Eulerian gas-species equation. The membrane model retains this quantity
+only as a production-partition diagnostic. Hydrogen that enters the membrane
+is supplied by the cathode Henry-equilibrium concentration and only the
+calculated anode release is subtracted from cathode gas and added to anode gas.
+Consequently, the remaining Faradaic production stays in the cathode fluid
+model instead of being forced through the membrane.
 
 `diffusivityModel` selects the effective diffusivity:
 
@@ -59,7 +66,7 @@ non-negative cathode-to-anode magnitudes:
 
 - `JH2Diff`: diffusive contribution
 - `JH2Drag`: electro-osmotic-drag contribution,
-  `|i|/F * xi * cH2_cathode_interface / cElec`
+  `|i|/F * xi * cH2 / cElec`
 - `JH2Conv`: configured convective contribution, `|UMembrane| * cH2`
 - `JH2Cross`: sum of those three contributions
 
@@ -80,6 +87,16 @@ molar mass, and adds them to the gas mass-fraction equations. Thus the H2
 source is negative in the cathode and positive in the anode with equal global
 molar magnitude, including in decomposed runs; it never depends on matching
 local cell numbers.
+
+The Eulerian--Eulerian coupling used to obtain the interface concentration is
+
+```text
+cH2_interface = henryCoefficient * p * X_H2
+```
+
+where `X_H2` is calculated from the gas-phase species fractions. `alpha.gas`
+is not presently part of this equilibrium closure; gas availability and
+finite-rate gas-to-membrane transfer therefore remain model limitations.
 
 The log prints both the optimizer objective and the balance check:
 

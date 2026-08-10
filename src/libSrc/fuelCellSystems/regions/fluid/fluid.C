@@ -114,30 +114,64 @@ void Foam::regionTypes::fluid::mapToCell
     // Phase model
     phaseModel& phase = phases_->phases()[continuous];
     const bool thermalEquilibrium = phases_->thermalEquilibrium();
+    const bool includeMechanicalWorkInHeatSource =
+        phases_->lookupOrDefault<Switch>
+        (
+            "includeMechanicalWorkInHeatSource",
+            true
+        );
 
     if (phase.isothermal())
     {
         return;
     }
 
-    //- Gravity effect heat, alpha*rho*(U&g)
+    // Accumulate only terms that are to be deposited in the global
+    // temperature equation. Disabling mechanical work here does not alter
+    // the phase momentum, pressure, or continuity equations.
     volScalarField heatSource
     (
-        phase
-      * phase.thermo().rho()
-      * (phase.U()&g)
+        IOobject
+        (
+            "fluidHeatSource",
+            phase.mesh().time().timeName(),
+            phase.mesh(),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        phase.mesh(),
+        dimensionedScalar
+        (
+            "zero",
+            dimEnergy/dimVolume/dimTime,
+            0.0
+        )
     );
 
-    if (thermalEquilibrium)
+    if (includeMechanicalWorkInHeatSource)
     {
-        heatSource += phase.heQdot();
+        // Gravity power plus kinetic- and pressure-work terms.
+        heatSource +=
+            phase
+          * phase.thermo().rho()
+          * (phase.U()&g);
+
+        if (thermalEquilibrium)
+        {
+            heatSource += phase.heQdot();
+        }
     }
 
     forAll(phases_->phases(), phasei)
     {
         phaseModel& phaseiModel = phases_->phases()[phasei];
 
-        if (thermalEquilibrium && phaseiModel.name() != continuous)
+        if
+        (
+            includeMechanicalWorkInHeatSource
+         && thermalEquilibrium
+         && phaseiModel.name() != continuous
+        )
         {
             // In local thermal equilibrium the parent equation is the sum of
             // every phase enthalpy equation, including kinetic/pressure work.

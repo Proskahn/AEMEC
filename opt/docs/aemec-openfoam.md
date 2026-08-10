@@ -28,7 +28,10 @@ The crossover objective is the positive anode sink integral
 `sinkCoeff * max(cH2 - cH2Anode, 0)`. It represents hydrogen transported
 through the membrane and released to the anode; it is not the older Faradaic
 hydrogen-generation diagnostic. It requires a positive `sinkCoeff` and a
-configured `sinkZone`.
+configured `sinkZone`. The full Faradaic source remains in the cathode gas
+species equation. Only this calculated crossover rate is removed from cathode
+gas and added to anode gas, so non-crossing production is retained on the
+cathode side.
 
 Every solver completion also writes
 `logs/trial_XXXX_polarization_curve.csv` and a matching
