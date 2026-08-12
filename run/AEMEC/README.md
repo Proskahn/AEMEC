@@ -101,7 +101,7 @@ make srun
 Then, from the repository root, extract the final point from each voltage hold:
 
 ```bash
-python3 visualization/polarized_curve.py \
+python3 visualization/polarization_curve.py \
     --log run/AEMEC/log.run \
     --scan-mode voltage \
     --hold-duration 15
@@ -117,7 +117,8 @@ python3 visualization/aemec_diagnostics.py \
 ```
 
 This writes `voltage_decomposition.{csv,png}` and
-`hydrogen_crossover.{csv,png}` in `visualization/`. The voltage figure contains
+`hydrogen_crossover.{csv,png}` in `visualization/output/`. The voltage figure
+contains
 the cell voltage, lowest-current reversible baseline, current-dependent Nernst
 shift (a concentration/transport proxy), anode and cathode activation losses,
 electronic and anion ohmic losses, and an explicit unresolved closure curve.

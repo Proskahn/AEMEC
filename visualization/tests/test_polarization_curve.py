@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from visualization.polarized_curve import (
+from visualization.polarization_curve import (
     Sample,
     last_sample_per_target_current,
     last_sample_per_voltage,

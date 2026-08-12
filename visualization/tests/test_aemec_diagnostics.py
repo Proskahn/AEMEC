@@ -12,7 +12,7 @@ from visualization.aemec_diagnostics import (
     plot_hydrogen_crossover,
     plot_voltage_decomposition,
 )
-from visualization.polarized_curve import Sample
+from visualization.polarization_curve import Sample
 
 
 DIAGNOSTIC_LOG = """

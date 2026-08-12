@@ -98,7 +98,7 @@ entry.
 From the repository root, extract the final sample from every voltage hold:
 
 ```bash
-python3 visualization/polarized_curve.py \
+python3 visualization/polarization_curve.py \
     --log run/AEMEC/log.run \
     --scan-mode voltage \
     --hold-duration 15

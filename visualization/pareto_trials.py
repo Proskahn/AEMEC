@@ -118,15 +118,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output PNG path (default: pareto_first_N_trials.png beside the CSV).",
+        help=(
+            "Output PNG path (default: visualization/output/"
+            "pareto_first_N_trials.png)."
+        ),
     )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    output = args.output or args.csv_path.with_name(
-        f"pareto_first_{args.trial_count}_trials.png"
+    output = args.output or (
+        Path("visualization/output")
+        / f"pareto_first_{args.trial_count}_trials.png"
     )
     selected = select_first_trials(load_trials(args.csv_path), args.trial_count)
     plot_trials(selected, output, args.trial_count)

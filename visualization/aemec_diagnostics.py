@@ -21,7 +21,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 try:
-    from visualization.polarized_curve import (
+    from visualization.polarization_curve import (
         DEFAULT_ACTIVE_AREA_CM2,
         Sample,
         last_sample_per_hold,
@@ -31,7 +31,7 @@ try:
         parse_log,
     )
 except ModuleNotFoundError:  # Direct execution from the visualization folder.
-    from polarized_curve import (  # type: ignore[no-redef]
+    from polarization_curve import (  # type: ignore[no-redef]
         DEFAULT_ACTIVE_AREA_CM2,
         Sample,
         last_sample_per_hold,
@@ -587,7 +587,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log", type=Path, default=Path("run/AEMEC/log.run"))
     parser.add_argument(
-        "--output-dir", type=Path, default=Path("visualization")
+        "--output-dir", type=Path, default=Path("visualization/output")
     )
     parser.add_argument(
         "--scan-mode", choices=("auto", "current", "voltage"), default="auto"

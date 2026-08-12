@@ -16,6 +16,9 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# Generated visualization data and figures
+visualization/output/
+
 # Local optimization studies and scratch cases
 opt/results/
 opt/work/

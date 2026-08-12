@@ -17,6 +17,9 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
@@ -308,13 +311,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("visualization/polarized_curve.png"),
+        default=Path("visualization/output/polarization_curve.png"),
         help="Path for the generated PNG plot.",
     )
     parser.add_argument(
         "--csv",
         type=Path,
-        default=Path("visualization/polarized_curve.csv"),
+        default=Path("visualization/output/polarization_curve.csv"),
         help="Path for the extracted data table.",
     )
     parser.add_argument(
