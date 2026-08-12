@@ -658,6 +658,13 @@ def check_static(case: Path, errors: list[str]) -> None:
         "anodeFluidRegion    anode;",
         "hydrogenSpecies     H2;",
         "diffusivityModel    porosityTortuosity;",
+        "faradaicDissolvedFraction  1.0;",
+        "epsilonMembrane 0.2;",
+        "epsilonCathodeCL 0.2;",
+        "epsilonAnodeCL  0.2;",
+        "tauMembrane     1;",
+        "tauCathodeCL    1;",
+        "tauAnodeCL      1;",
         "dragModel       constant;",
         "UMembrane       (0 0 0);",
     ):
@@ -670,10 +677,41 @@ def check_static(case: Path, errors: list[str]) -> None:
             "constant/phiAnion/regionProperties must use the gas phase at both crossover interfaces"
         )
     for interface in ("cathodeInterface", "anodeInterface"):
-        if not has_dictionary_block(anion_properties, interface) or "henryCoefficient" not in anion_properties:
+        try:
+            interface_properties = dictionary_block(anion_properties, interface)
+        except ValueError:
+            interface_properties = ""
             errors.append(
                 f"constant/phiAnion/regionProperties must configure Henry interface '{interface}'"
             )
+        if interface_properties and not has_entry(
+            interface_properties, "type", "henry"
+        ):
+            errors.append(
+                f"constant/phiAnion/regionProperties must set "
+                f"{interface}.type to henry"
+            )
+        if interface_properties and not re.search(
+            r"(?m)^\s*henryCoefficient\s+[-+0-9.eE]+\s*;",
+            interface_properties,
+        ):
+            errors.append(
+                f"constant/phiAnion/regionProperties must set "
+                f"{interface}.henryCoefficient"
+            )
+        if interface_properties and not re.search(
+            r"(?m)^\s*massTransferCoefficient\s+[-+0-9.eE]+\s*;",
+            interface_properties,
+        ):
+            errors.append(
+                f"constant/phiAnion/regionProperties must set "
+                f"{interface}.massTransferCoefficient"
+            )
+    if re.search(r"\bsinkCoeff\b", without_comments(anion_properties)):
+        errors.append(
+            "constant/phiAnion/regionProperties must use per-interface "
+            "massTransferCoefficient entries instead of sinkCoeff"
+        )
 
     anode_thermo = read(case / "constant/anode/thermophysicalProperties.gas", errors)
     if not re.search(r"species\s*\([^)]*\bH2\b", anode_thermo, re.DOTALL):

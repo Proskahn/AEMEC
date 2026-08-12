@@ -1,123 +1,142 @@
-# Membrane hydrogen crossover model
+# Coupled dissolved-hydrogen and gas-crossover model
 
-This note documents the AEM-electrolyzer crossover model configured in
-`constant/phiAnion/regionProperties`. It is a proof-of-concept transport model
-whose parameters need calibration before it is used for quantitative design or
-optimization decisions.
+This note documents the proof-of-concept AEM-electrolyzer model configured in
+`constant/phiAnion/regionProperties`. Its equation structure follows the
+dynamic dissolved-gas balance of Franz et al. (2023), while its AEM diffusion
+and electro-osmotic-drag closures follow Klinger et al. (2025). All material
+and catalyst-layer transfer parameters still require calibration before
+quantitative design or optimization.
 
-## Phases and concentrations
+## Continua and concentrations
 
-The solver keeps these quantities distinct:
+The solver keeps three quantities distinct:
 
-- `cathode/H2.gas` is H2 in the cathode `gas` phase, which also contains H2O vapour.
-- `anode/H2.gas` is H2 in the anode `gas` phase. It begins as a
-  trace component and receives crossover H2.
-- `cH2` is dissolved H2 in the membrane, in `mol/m3`.
+- `cathode/H2.gas` is H2 in the cathode Eulerian gas phase.
+- `anode/H2.gas` is H2 in the anode Eulerian gas phase.
+- `phiAnion/cH2` is dissolved H2 in the connected hydrated-ionomer continuum
+  comprising `cathodeCL`, the membrane, and `anodeCL`. Its unit is mol/m3 of
+  absorbed electrolyte, not mol/m3 of bulk membrane.
 
-At each catalyst-layer/membrane interface the configured `henry` mode imposes
-local equilibrium between gas partial pressure and the membrane dissolved
-concentration:
+Dissolved H2 is a transported scalar, not a third Eulerian fluid phase. The
+gas and liquid phases retain their own Eulerian--Eulerian continuity,
+momentum, and species equations in the fluid regions.
 
-```text
-cH2_interface [mol/m3] = henryCoefficient [mol/(m3 Pa)] * pH2 [Pa]
-```
+## Dissolved-H2 balance
 
-The provided `7.8e-6 mol/(m3 Pa)` is only the former case's nominal scaling
-(`0.78 mol/m3` at `1 bar`), not a validated H2-in-KOH solubility. `fixed`
-interface mode is available for a prescribed dissolved concentration.
-
-The two-phase model's existing interfacial mass transfer is retained for water
-evaporation/condensation. It does not contain a separate dissolved-H2 species
-in the liquid water/KOH phase, so this implementation is a local Henry
-interface closure rather than a finite-rate gas-to-liquid H2 transfer model.
-
-## Membrane transport and outputs
-
-The membrane concentration equation contains diffusion,
-electro-osmotic-drag advection, optional through-membrane convection, and an
-anode-side release. Its cathode-side dissolved concentration is imposed by the
-configured interface closure; the Faradaic reaction is not added as a second
-membrane source.
-
-The cathode electrochemical reaction already generates
+The multidimensional equation is
 
 ```text
-h2FaradaicGeneration = abs(J)/(2 F)    [mol/(m3 s)]
+d(epsilonIon*cH2)/dt
+  + div[(Udrag + UMembrane)*cH2]
+  = div(DH2Eff*grad(cH2))
+  + beta*GammaFaradaic
+  - GammaDissolvedToGas
 ```
 
-in the Eulerian gas-species equation. The membrane model retains this quantity
-only as a production-partition diagnostic. Hydrogen that enters the membrane
-is supplied by the cathode Henry-equilibrium concentration and only the
-calculated anode release is subtracted from cathode gas and added to anode gas.
-Consequently, the remaining Faradaic production stays in the cathode fluid
-model instead of being forced through the membrane.
-
-`diffusivityModel` selects the effective diffusivity:
-
-- `constant`: `D_eff = DelecH2`
-- `porosityTortuosity`: `D_eff = DelecH2 * epsilonM / tau`
-- `bruggeman`: `D_eff = DelecH2 * epsilonM^bruggemanExponent`
-
-The current configuration uses `porosityTortuosity`. `DelecH2` is the base
-diffusivity in `m2/s`.
-
-The model writes the following fields, all in `mol/(m2 s)` and reported as
-non-negative cathode-to-anode magnitudes:
-
-- `JH2Diff`: diffusive contribution
-- `JH2Drag`: electro-osmotic-drag contribution,
-  `|i|/F * xi * cH2 / cElec`
-- `JH2Conv`: configured convective contribution, `|UMembrane| * cH2`
-- `JH2Cross`: sum of those three contributions
-
-`xi` is currently a constant. The `dragModel` dictionary switch is deliberately
-limited to `constant`; hydration- and temperature-dependent correlations are
-future extensions. `UMembrane` is a user-specified, uniform velocity in `m/s`
-and defaults to zero. It is an optional convective closure, not a pressure
-solver: keep it zero unless a validated pressure/permeability model justifies
-the value.
-
-## Conservative species coupling
-
-The anode-side membrane release rate is integrated in `mol/s`. It is then
-placed on the cathode and anode catalyst-layer zones as `h2CathodeDmdt` and
-`h2AnodeDmdt`, respectively. `electroChemicalReaction` maps these fields to
-the two fluid meshes through the shared parent-cell map, multiplies by the H2
-molar mass, and adds them to the gas mass-fraction equations. Thus the H2
-source is negative in the cathode and positive in the anode with equal global
-molar magnitude, including in decomposed runs; it never depends on matching
-local cell numbers.
-
-The Eulerian--Eulerian coupling used to obtain the interface concentration is
+where `beta` is `faradaicDissolvedFraction` and
 
 ```text
-cH2_interface = henryCoefficient * p * X_H2
+Udrag = dragSign * xi*i/(F*cElec)
+GammaDissolvedToGas = kLa*(cH2 - cSat)
+cSat = henryCoefficient*p*XH2
 ```
 
-where `X_H2` is calculated from the gas-phase species fractions. `alpha.gas`
-is not presently part of this equilibrium closure; gas availability and
-finite-rate gas-to-membrane transfer therefore remain model limitations.
+`GammaDissolvedToGas` is active only in the two catalyst layers. It is signed:
+positive values desorb H2 from ionomer to pore gas, while negative values
+absorb H2 from pore gas into the ionomer. Henry's law supplies the equilibrium
+target; it is no longer imposed as a catalyst-layer Dirichlet concentration.
+There is no production or dissolved-to-gas transfer term in the membrane bulk.
 
-The log prints both the optimizer objective and the balance check:
+The default AEM sign is `dragSign = -1` because hydroxide and its dragged water
+move opposite to conventional ionic current. `UMembrane` is an optional
+uniform hydraulic-convection closure and remains zero unless a validated
+pressure/permeability model supplies it.
+
+## Storage and diffusion
+
+`epsilonIonH2` is the hydrated-ionomer/electrolyte fraction used in the
+transient storage term. Separate values are configured for the membrane,
+cathode CL, and anode CL. `diffusivityModel` selects
+
+- `constant`: `DH2Eff = DelecH2`
+- `porosityTortuosity`: `DH2Eff = epsilonIonH2*DelecH2/tau`
+- `bruggeman`: `DH2Eff = epsilonIonH2^bruggemanExponent*DelecH2`
+
+The current case uses `porosityTortuosity`. The configured volume fractions,
+tortuosities, base diffusivity, Henry coefficient, drag coefficient, and both
+`kLa` values are provisional.
+
+## Conservative Faradaic partition and gas coupling
+
+The cathode reaction class initially constructs the full Faradaic gas source
+
+```text
+GammaFaradaic = abs(J)/(2*F)
+```
+
+The crossover model partitions it locally:
+
+```text
+dissolved source       =  beta*GammaFaradaic
+direct Faradaic gas    = (1-beta)*GammaFaradaic
+cathode gas coupling   =  GammaDissolvedToGas - beta*GammaFaradaic
+anode gas coupling     =  GammaDissolvedToGas
+```
+
+Thus `beta = 1` implements the Franz-style assumption that generated H2 first
+enters the dissolved ionomer. `beta = 0` recovers direct Faradaic production
+in the gas phase. An intermediate value is an empirical partition and must be
+validated. No value generates H2 twice.
+
+The local molar gas sources `h2CathodeDmdt` and `h2AnodeDmdt` are mapped to the
+Eulerian gas species equations through shared parent-cell labels and converted
+to mass sources using the H2 molar mass. This works for decomposed cases and
+does not assume matching local cell indices between region meshes.
+
+At every update the source-only conservation identity is
+
+```text
+cathode gas coupling + anode gas coupling + dissolved coupling = 0
+```
+
+The log reports this identity and the non-negative anode desorption rate used
+by the optimizer:
 
 ```text
 Hydrogen crossover objective: anode gas source rate = ... mol/s
-Hydrogen crossover conservation: cathode H2 source = ... mol/s, ... imbalance = ... mol/s
+Hydrogen dissolved-gas coupling conservation: ... imbalance = ... mol/s
 ```
 
-The optimizer parses the first line as the crossover objective. The imbalance
-should be close to round-off.
+## Written diagnostics
+
+- `cH2`: dissolved concentration in the connected CL--membrane--CL ionomer.
+- `epsilonIonH2`: local storage fraction.
+- `DH2Eff`: local effective diffusivity.
+- `h2DissolvedProduction`: Faradaic production assigned to dissolved H2.
+- `h2MassTransferCoeff`: local CL `kLa`, zero in the membrane.
+- `h2DissolvedToGas`: signed CL interphase transfer rate in mol/(m3 s).
+- `cH2CathodeInterface`, `cH2AnodeInterface`: local equilibrium targets.
+- `JH2Diff`, `JH2Drag`, `JH2Conv`: transport-flux magnitudes in mol/(m2 s).
+- `JH2Cross`: sum of those diagnostic magnitudes.
 
 ## Deliberate limitations
 
-- No explicit dissolved-H2 equation exists in the liquid water/KOH phase.
-- H2/O2 recombination and parasitic electrochemical consumption in the
-  membrane are omitted.
-- The optional convective term does not yet calculate membrane permeability
-  from a pressure equation.
-- The membrane is still represented by its resolved through-plane cells; the
-  configured mesh thickness must be the swollen thickness selected for the
-  case.
-- KOH is represented by the fed liquid phase. Explicit KOH concentration,
-  hydroxide concentration, and water crossover balances require additional
-  species and electrolyte-property models.
+- No dissolved-H2 equation exists in the bulk liquid-water/KOH phase. Transfer
+  occurs directly between catalyst-layer ionomer and pore gas.
+- The finite-rate transfer does not yet include interfacial-area or gas-volume
+  availability factors. Both `kLa` values must therefore be treated as
+  effective catalyst-layer coefficients.
+- Dissolved O2, H2/O2 recombination, and parasitic electrochemical consumption
+  are omitted.
+- The optional hydraulic velocity is prescribed rather than calculated from a
+  membrane pressure/permeability equation.
+- KOH and OH- concentrations are not solved explicitly, so `cElec`, ionic
+  conductivity, and drag remain calibrated effective properties.
+- The configured thickness must be the swollen membrane thickness.
+
+Primary model references:
+
+- T. Franz, G. Papakonstantinou, and K. Sundmacher, *Journal of Power Sources*
+  559 (2023) 232582, https://doi.org/10.1016/j.jpowsour.2022.232582.
+- A. Klinger et al., *Advanced Materials Interfaces* 12 (2025) 2400515,
+  https://doi.org/10.1002/admi.202400515.

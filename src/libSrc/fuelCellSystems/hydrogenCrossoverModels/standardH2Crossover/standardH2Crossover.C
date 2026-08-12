@@ -111,17 +111,85 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
     xi_("xi", dimless, dict_),
     cElec_("cElec", dimMoles/dimVol, dict_),
     DelecH2_("DelecH2", sqr(dimLength)/dimTime, dict_),
-    epsilonM_("epsilonM", dimless, dict_),
-    tau_("tau", dimless, dict_),
+    epsilonMembrane_
+    (
+        "epsilonMembrane",
+        dimless,
+        dict_.lookupOrDefault<scalar>
+        (
+            "epsilonMembrane",
+            dict_.lookupOrDefault<scalar>("epsilonM", 0.2)
+        )
+    ),
+    epsilonCathodeCL_
+    (
+        "epsilonCathodeCL",
+        dimless,
+        dict_.lookupOrDefault<scalar>
+        (
+            "epsilonCathodeCL",
+            epsilonMembrane_.value()
+        )
+    ),
+    epsilonAnodeCL_
+    (
+        "epsilonAnodeCL",
+        dimless,
+        dict_.lookupOrDefault<scalar>
+        (
+            "epsilonAnodeCL",
+            epsilonMembrane_.value()
+        )
+    ),
+    tauMembrane_
+    (
+        "tauMembrane",
+        dimless,
+        dict_.lookupOrDefault<scalar>
+        (
+            "tauMembrane",
+            dict_.lookupOrDefault<scalar>("tau", 1.0)
+        )
+    ),
+    tauCathodeCL_
+    (
+        "tauCathodeCL",
+        dimless,
+        dict_.lookupOrDefault<scalar>("tauCathodeCL", tauMembrane_.value())
+    ),
+    tauAnodeCL_
+    (
+        "tauAnodeCL",
+        dimless,
+        dict_.lookupOrDefault<scalar>("tauAnodeCL", tauMembrane_.value())
+    ),
     bruggemanExponent_
     (
         dict_.lookupOrDefault<scalar>("bruggemanExponent", 1.5)
     ),
-    sinkCoeff_
+    kLaCathode_
     (
-        "sinkCoeff",
+        "massTransferCoefficient",
         dimless/dimTime,
-        dict_.lookupOrDefault<scalar>("sinkCoeff", 0.0)
+        interfaceScalar
+        (
+            dict_,
+            "cathodeInterface",
+            "massTransferCoefficient",
+            0.0
+        )
+    ),
+    kLaAnode_
+    (
+        "massTransferCoefficient",
+        dimless/dimTime,
+        interfaceScalar
+        (
+            dict_,
+            "anodeInterface",
+            "massTransferCoefficient",
+            dict_.lookupOrDefault<scalar>("sinkCoeff", 0.0)
+        )
     ),
     cH2Anode_
     (
@@ -165,8 +233,83 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
         dimVelocity,
         dict_.lookupOrDefault<vector>("UMembrane", vector::zero)
     ),
+    faradaicDissolvedFraction_
+    (
+        dict_.lookupOrDefault<scalar>("faradaicDissolvedFraction", 1.0)
+    ),
     dragSign_(dict_.lookupOrDefault<scalar>("dragSign", 1.0)),
-    relax_(dict_.lookupOrDefault<scalar>("relax", 1.0))
+    relax_(dict_.lookupOrDefault<scalar>("relax", 1.0)),
+    epsilonIon_
+    (
+        IOobject
+        (
+            "epsilonIonH2",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        epsilonMembrane_,
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    h2MassTransferCoeff_
+    (
+        IOobject
+        (
+            "h2MassTransferCoeff",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "h2MassTransferCoeff",
+            dimless/dimTime,
+            0.0
+        ),
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    h2DissolvedToGas_
+    (
+        IOobject
+        (
+            "h2DissolvedToGas",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "h2DissolvedToGas",
+            dimMoles/dimVol/dimTime,
+            0.0
+        ),
+        zeroGradientFvPatchScalarField::typeName
+    ),
+    h2DissolvedProduction_
+    (
+        IOobject
+        (
+            "h2DissolvedProduction",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            "h2DissolvedProduction",
+            dimMoles/dimVol/dimTime,
+            0.0
+        ),
+        zeroGradientFvPatchScalarField::typeName
+    )
 {
     if
     (
@@ -199,6 +342,38 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
             << "Hydrogen interface type must be fixed or henry"
             << exit(FatalError);
     }
+
+    if
+    (
+        epsilonMembrane_.value() <= 0.0
+     || epsilonMembrane_.value() > 1.0
+     || epsilonCathodeCL_.value() <= 0.0
+     || epsilonCathodeCL_.value() > 1.0
+     || epsilonAnodeCL_.value() <= 0.0
+     || epsilonAnodeCL_.value() > 1.0
+     || tauMembrane_.value() <= 0.0
+     || tauCathodeCL_.value() <= 0.0
+     || tauAnodeCL_.value() <= 0.0
+    )
+    {
+        FatalErrorInFunction
+            << "Hydrated-ionomer volume fractions must be in (0,1] and "
+            << "tortuosities must be positive" << exit(FatalError);
+    }
+
+    if
+    (
+        kLaCathode_.value() < 0.0
+     || kLaAnode_.value() < 0.0
+     || faradaicDissolvedFraction_ < 0.0
+     || faradaicDissolvedFraction_ > 1.0
+    )
+    {
+        FatalErrorInFunction
+            << "CL mass-transfer coefficients must be non-negative and "
+            << "faradaicDissolvedFraction must be in [0,1]"
+            << exit(FatalError);
+    }
 }
 
 
@@ -206,14 +381,14 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::~standardH2Crossover()
 {}
 
 
-void Foam::hydrogenCrossoverModels::standardH2Crossover::setZoneUniformSource
+void Foam::hydrogenCrossoverModels::standardH2Crossover::setZoneValue
 (
     volScalarField& field,
     const word& zoneName,
-    scalar rate
+    scalar value
 )
 {
-    if (zoneName == word::null || mag(rate) <= VSMALL)
+    if (zoneName == word::null)
     {
         return;
     }
@@ -228,25 +403,9 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::setZoneUniformSource
     }
 
     const labelList& cells = mesh_.cellZones()[zoneId];
-    scalar volume = 0.0;
-
     forAll(cells, i)
     {
-        volume += mesh_.V()[cells[i]];
-    }
-    reduce(volume, sumOp<scalar>());
-
-    if (volume <= VSMALL)
-    {
-        FatalErrorInFunction
-            << "Hydrogen crossover cellZone " << zoneName
-            << " has zero volume" << exit(FatalError);
-    }
-
-    const scalar volumetricRate = rate/volume;
-    forAll(cells, i)
-    {
-        field[cells[i]] += volumetricRate;
+        field[cells[i]] = value;
     }
 }
 
@@ -262,13 +421,12 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::updateInterfaceConcentr
     const dimensionedScalar& henryCoefficient
 )
 {
-    concentration = fixedConcentration;
-
-    if (interfaceType == "fixed")
-    {
-        concentration.correctBoundaryConditions();
-        return;
-    }
+    concentration = dimensionedScalar
+    (
+        "zero",
+        concentration.dimensions(),
+        0.0
+    );
 
     const label zoneId = mesh_.cellZones().findZoneID(zoneName);
     if (zoneId == -1)
@@ -276,6 +434,18 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::updateInterfaceConcentr
         FatalErrorInFunction
             << "Cannot find hydrogen interface cellZone " << zoneName
             << exit(FatalError);
+    }
+
+    const labelList& cells = mesh_.cellZones()[zoneId];
+
+    if (interfaceType == "fixed")
+    {
+        forAll(cells, i)
+        {
+            concentration[cells[i]] = fixedConcentration.value();
+        }
+        concentration.correctBoundaryConditions();
+        return;
     }
 
     const regionType& fluidRegion = mesh_.time().lookupObject<regionType>
@@ -305,8 +475,6 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::updateInterfaceConcentr
     (
         mesh_.name()
     );
-    const labelList& cells = mesh_.cellZones()[zoneId];
-
     forAll(cells, i)
     {
         const label membraneCell = cells[i];
@@ -329,6 +497,30 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::updateInterfaceConcentr
     }
 
     concentration.correctBoundaryConditions();
+}
+
+
+void Foam::hydrogenCrossoverModels::standardH2Crossover::
+setZoneTransportProperties
+(
+    const word& zoneName,
+    scalar epsilon,
+    scalar tau
+)
+{
+    setZoneValue(epsilonIon_, zoneName, epsilon);
+
+    scalar diffusivity = DelecH2_.value();
+    if (diffusivityModel_ == "porosityTortuosity")
+    {
+        diffusivity *= epsilon/tau;
+    }
+    else if (diffusivityModel_ == "bruggeman")
+    {
+        diffusivity *= pow(epsilon, bruggemanExponent_);
+    }
+
+    setZoneValue(DH2Eff_, zoneName, diffusivity);
 }
 
 
@@ -367,18 +559,36 @@ Foam::scalar Foam::hydrogenCrossoverModels::standardH2Crossover::zoneIntegral
 
 void Foam::hydrogenCrossoverModels::standardH2Crossover::correct()
 {
+    epsilonIon_ = epsilonMembrane_;
+
     if (diffusivityModel_ == "constant")
     {
         DH2Eff_ = DelecH2_;
     }
     else if (diffusivityModel_ == "porosityTortuosity")
     {
-        DH2Eff_ = epsilonM_/tau_*DelecH2_;
+        DH2Eff_ = epsilonMembrane_/tauMembrane_*DelecH2_;
     }
     else
     {
-        DH2Eff_ = pow(epsilonM_.value(), bruggemanExponent_)*DelecH2_;
+        DH2Eff_ =
+            pow(epsilonMembrane_.value(), bruggemanExponent_)*DelecH2_;
     }
+
+    setZoneTransportProperties
+    (
+        sourceZoneName_,
+        epsilonCathodeCL_.value(),
+        tauCathodeCL_.value()
+    );
+    setZoneTransportProperties
+    (
+        sinkZoneName_,
+        epsilonAnodeCL_.value(),
+        tauAnodeCL_.value()
+    );
+
+    epsilonIon_.correctBoundaryConditions();
     DH2Eff_.correctBoundaryConditions();
 
     JH2Diff_ = mag(DH2Eff_*fvc::grad(cH2_));
@@ -402,6 +612,9 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
 
     h2CathodeDmdt_ *= 0.0;
     h2AnodeDmdt_ *= 0.0;
+    h2DissolvedProduction_ *= 0.0;
+    h2DissolvedToGas_ *= 0.0;
+    h2MassTransferCoeff_ *= 0.0;
 
     updateInterfaceConcentration
     (
@@ -424,10 +637,10 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
         henryAnode_
     );
 
-    // The Faradaic reaction already produces H2 in the cathode gas species
-    // equation.  Retain its rate only as a partition diagnostic: adding it to
-    // the membrane equation would force all generated H2 through the membrane
-    // in a stationary, closed transport domain.
+    // The electrochemical reaction class initially assembles the full
+    // Faradaic H2 source in the cathode gas equation. The gas coupling below
+    // subtracts the selected dissolved fraction locally, so the same H2 is
+    // not generated twice.
     volScalarField h2FaradaicGeneration
     (
         IOobject
@@ -436,39 +649,51 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
             mesh_.time().timeName(),
             mesh_
         ),
-        mag(j)/(2.0*F)
-    );
-
-    volScalarField h2SinkCoeff
-    (
-        IOobject
-        (
-            "h2SinkCoeff",
-            mesh_.time().timeName(),
-            mesh_
-        ),
         mesh_,
-        dimensionedScalar("h2SinkCoeff", dimless/dimTime, 0.0)
+        dimensionedScalar
+        (
+            "h2FaradaicGeneration",
+            dimMoles/dimVol/dimTime,
+            0.0
+        )
     );
 
-    if (sinkCoeff_.value() > 0.0 && sinkZoneName_ != word::null)
+    const label cathodeZoneId =
+        mesh_.cellZones().findZoneID(sourceZoneName_);
+    const label anodeZoneId =
+        mesh_.cellZones().findZoneID(sinkZoneName_);
+
+    if (cathodeZoneId == -1 || anodeZoneId == -1)
     {
-        const label zoneId = mesh_.cellZones().findZoneID(sinkZoneName_);
-
-        if (zoneId == -1)
-        {
-            FatalErrorInFunction
-                << "Cannot find hydrogen crossover sink cellZone "
-                << sinkZoneName_ << exit(FatalError);
-        }
-
-        const labelList& cells = mesh_.cellZones()[zoneId];
-
-        forAll(cells, iCell)
-        {
-            h2SinkCoeff[cells[iCell]] = sinkCoeff_.value();
-        }
+        FatalErrorInFunction
+            << "Cannot find coupled dissolved-H2 catalyst zones "
+            << sourceZoneName_ << " and " << sinkZoneName_
+            << exit(FatalError);
     }
+
+    const labelList& cathodeCells = mesh_.cellZones()[cathodeZoneId];
+    const labelList& anodeCells = mesh_.cellZones()[anodeZoneId];
+
+    forAll(cathodeCells, cellI)
+    {
+        const label cell = cathodeCells[cellI];
+        h2FaradaicGeneration[cell] = mag(j[cell])/(2.0*F.value());
+        h2DissolvedProduction_[cell] =
+            faradaicDissolvedFraction_*h2FaradaicGeneration[cell];
+        h2MassTransferCoeff_[cell] = kLaCathode_.value();
+    }
+
+    forAll(anodeCells, cellI)
+    {
+        h2MassTransferCoeff_[anodeCells[cellI]] = kLaAnode_.value();
+    }
+
+    h2DissolvedProduction_.correctBoundaryConditions();
+    h2MassTransferCoeff_.correctBoundaryConditions();
+
+    // Update the region-dependent ionomer storage and diffusivity before
+    // assembling the dissolved-species equation.
+    correct();
 
     surfaceScalarField phiDrag
     (
@@ -494,94 +719,93 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
 
     tmp<fvScalarMatrix> h2Eqn
     (
-        fvm::ddt(cH2_)
+        fvm::ddt(epsilonIon_, cH2_)
       + fvm::div(phiDrag, cH2_, "div(phiH2Drag,cH2)")
       + fvm::div(phiConv, cH2_, "div(phiH2Conv,cH2)")
       - fvm::laplacian(DH2Eff_, cH2_, "laplacian(DH2Eff,cH2)")
-      + fvm::Sp(h2SinkCoeff, cH2_)
-      - h2SinkCoeff*cH2AnodeInterface_
+      + fvm::Sp(h2MassTransferCoeff_, cH2_)
+     ==
+        h2DissolvedProduction_
+      + h2MassTransferCoeff_
+       *(cH2CathodeInterface_ + cH2AnodeInterface_)
     );
-
-    if (cathodeInterfaceType_ == "henry" || cH2Cathode_.value() >= 0.0)
-    {
-        const label zoneId = mesh_.cellZones().findZoneID(sourceZoneName_);
-
-        if (zoneId != -1)
-        {
-            const labelList& cells = mesh_.cellZones()[zoneId];
-
-            forAll(cells, iCell)
-            {
-                const label cellI = cells[iCell];
-                h2Eqn->setReference
-                (
-                    cellI,
-                    cH2CathodeInterface_[cellI],
-                    true
-                );
-            }
-        }
-    }
 
     h2Eqn->relax(relax_);
     h2Eqn->solve();
-    cH2_.max(dimensionedScalar("zero", cH2_.dimensions(), 0.0));
     cH2_.correctBoundaryConditions();
 
     correct();
 
-    scalar h2CrossoverRate = 0.0;
-    if (sinkCoeff_.value() > 0.0 && sinkZoneName_ != word::null)
-    {
-        // The implicit anode-side release represents H2 transferred from the
-        // membrane into the anode.  The same positive molar rate is removed
-        // from cathode H2 and added to anode H2 below.
-        tmp<volScalarField> tH2ReleaseRate
-        (
-            h2SinkCoeff
-           *max
-            (
-                cH2_ - cH2AnodeInterface_,
-                dimensionedScalar("zero", cH2_.dimensions(), 0.0)
-            )
+    // Positive values are desorption from hydrated ionomer to pore gas;
+    // negative values are absorption from pore gas into the ionomer.
+    h2DissolvedToGas_ =
+        h2MassTransferCoeff_
+       *(
+            cH2_
+          - cH2CathodeInterface_
+          - cH2AnodeInterface_
         );
-        h2CrossoverRate = zoneIntegral(tH2ReleaseRate(), sinkZoneName_);
+
+    forAll(cathodeCells, cellI)
+    {
+        const label cell = cathodeCells[cellI];
+        h2CathodeDmdt_[cell] =
+            h2DissolvedToGas_[cell] - h2DissolvedProduction_[cell];
     }
 
-    setZoneUniformSource(h2CathodeDmdt_, sourceZoneName_, -h2CrossoverRate);
-    setZoneUniformSource(h2AnodeDmdt_, sinkZoneName_, h2CrossoverRate);
+    forAll(anodeCells, cellI)
+    {
+        const label cell = anodeCells[cellI];
+        h2AnodeDmdt_[cell] = h2DissolvedToGas_[cell];
+    }
+
+    h2DissolvedToGas_.correctBoundaryConditions();
     h2CathodeDmdt_.correctBoundaryConditions();
     h2AnodeDmdt_.correctBoundaryConditions();
 
+    const scalar faradaicH2Rate =
+        zoneIntegral(h2FaradaicGeneration, sourceZoneName_);
+    const scalar dissolvedProductionRate =
+        zoneIntegral(h2DissolvedProduction_, sourceZoneName_);
+    const scalar cathodeTransferRate =
+        zoneIntegral(h2DissolvedToGas_, sourceZoneName_);
+    const scalar anodeTransferRate =
+        zoneIntegral(h2DissolvedToGas_, sinkZoneName_);
     const scalar cathodeGasRate =
         zoneIntegral(h2CathodeDmdt_, sourceZoneName_);
     const scalar anodeGasRate = zoneIntegral(h2AnodeDmdt_, sinkZoneName_);
     const scalar cathodeAnionReactionCurrent =
         zoneIntegral(j, sourceZoneName_);
-    const scalar faradaicH2Rate =
-        zoneIntegral(h2FaradaicGeneration, sourceZoneName_);
+    const scalar dissolvedCouplingRate =
+        dissolvedProductionRate - cathodeTransferRate - anodeTransferRate;
+    const scalar couplingImbalance =
+        cathodeGasRate + anodeGasRate + dissolvedCouplingRate;
+    const scalar h2CrossoverRate = max(anodeTransferRate, scalar(0));
+
+    tmp<volScalarField> tDissolvedInventory(epsilonIon_*cH2_);
+    const scalar dissolvedInventory =
+        fvc::domainIntegrate(tDissolvedInventory()).value();
 
     Info<< "Hydrogen crossover objective: anode gas source rate = "
-        << anodeGasRate << " mol/s" << endl;
-    Info<< "Hydrogen crossover conservation: cathode H2 source = "
-        << cathodeGasRate << " mol/s, anode H2 source = "
-        << anodeGasRate << " mol/s, imbalance = "
-        << cathodeGasRate + anodeGasRate << " mol/s" << endl;
+        << h2CrossoverRate << " mol/s" << endl;
+    Info<< "Hydrogen dissolved-gas coupling conservation: cathode gas = "
+        << cathodeGasRate << " mol/s, anode gas = " << anodeGasRate
+        << " mol/s, dissolved field = " << dissolvedCouplingRate
+        << " mol/s, imbalance = " << couplingImbalance << " mol/s"
+        << endl;
 
     Info<< "Hydrogen production partition: anion reaction current in "
         << sourceZoneName_ << " = " << cathodeAnionReactionCurrent << " A"
         << ", Faradaic cathode H2 generation = " << faradaicH2Rate
-        << " mol/s, membrane crossover = " << anodeGasRate << " mol/s"
-        << ", retained in cathode gas = "
-        << faradaicH2Rate - anodeGasRate << " mol/s";
-
-    if (sinkCoeff_.value() > 0.0 && sinkZoneName_ != word::null)
-    {
-        Info<< ", retained/released near " << sinkZoneName_
-            << " = " << zoneIntegral(cH2_, sinkZoneName_) << " mol";
-    }
-
-    Info<< endl;
+        << " mol/s, initially dissolved = " << dissolvedProductionRate
+        << " mol/s, direct Faradaic gas = "
+        << faradaicH2Rate - dissolvedProductionRate
+        << " mol/s, cathode dissolved-to-gas transfer = "
+        << cathodeTransferRate
+        << " mol/s, anode dissolved-to-gas transfer = "
+        << anodeTransferRate
+        << " mol/s, dissolved inventory = " << dissolvedInventory << " mol"
+        << endl;
 }
 
 // ************************************************************************* //

@@ -70,6 +70,11 @@ hydrogenCrossover
         anodeFluidRegion    anode;
         hydrogenSpecies     H2;
 
+        // Franz-style production partition: Faradaic H2 first enters the
+        // dissolved-ionomer field. The identical local amount is removed
+        // from the gas reaction source, so H2 is generated only once.
+        faradaicDissolvedFraction  1.0;
+
         // J_H2,drag = i/F*xi*cH2*/cElec.  The constant drag coefficient is
         // the initial extension point for hydration/temperature correlations.
         dragModel       constant;
@@ -79,17 +84,22 @@ hydrogenCrossover
         // drag closure. Calibrate it with the selected KOH concentration.
         cElec           52000;
 
-        // Select one of: constant, porosityTortuosity, bruggeman.
-        // DelecH2 is D_H2^0 [m2/s].
+        // Select one of: constant, porosityTortuosity, bruggeman. The
+        // hydrated-ionomer fraction is also the storage coefficient in
+        // d(epsilonIon*cH2)/dt. These proof-of-concept values require
+        // membrane- and CL-specific calibration.
         diffusivityModel    porosityTortuosity;
         DelecH2         4.5e-9;
-        epsilonM        0.2;
-        tau             1;
+        epsilonMembrane 0.2;
+        epsilonCathodeCL 0.2;
+        epsilonAnodeCL  0.2;
+        tauMembrane     1;
+        tauCathodeCL    1;
+        tauAnodeCL      1;
         bruggemanExponent 1.5;
 
-        // Fallback dissolved H2 concentrations [mol/m3] for fixed interface
-        // mode. The selected Henry interfaces below instead use c = H*p_H2,
-        // where H is entered in mol/(m3 Pa), and are the active settings.
+        // Initial concentration and fallback equilibrium concentrations
+        // [mol/m3 of absorbed electrolyte] for fixed interface mode.
         cH2Initial      0.78;   // 1 bar-side initial dissolved H2 [mol/m3]
         cH2Anode        0.78;   // 1 bar anode-side dissolved H2 [mol/m3]
         cH2Cathode      7.8;    // 10 bar cathode-side dissolved H2 [mol/m3]
@@ -98,8 +108,11 @@ hydrogenCrossover
         {
             type                henry;
             gasPhase            gas;
-            // c_H2,dissolved [mol/m3] = H [mol/(m3 Pa)] * p_H2 [Pa].
+            // Equilibrium target c_sat = H*p_g*X_H2. It is used in the
+            // signed finite-rate term kLa*(cH2-c_sat), not imposed as a
+            // Dirichlet value in the catalyst layer.
             henryCoefficient    7.8e-6;
+            massTransferCoefficient 1.0; // kLa [1/s], calibrate for cathode CL
         }
 
         anodeInterface
@@ -110,15 +123,12 @@ hydrogenCrossover
             // of the anode gas phase and rises through conservative
             // crossover coupling.
             henryCoefficient    7.8e-6;
+            massTransferCoefficient 1.0; // kLa [1/s], calibrate for anode CL
         }
 
         // Optional through-membrane convective velocity [m/s].  Keep zero
         // unless a validated pressure/permeability closure is supplied.
         UMembrane       (0 0 0);
-
-        // Optional implicit anode-side release/sink for stationary
-        // closed-submesh runs.
-        sinkCoeff       1.0;
 
         // The inherited ionic-current orientation is anode-to-cathode;
         // reverse it for cathode-to-anode hydrogen drag.

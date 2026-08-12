@@ -40,12 +40,17 @@ Each time step writes these records:
   effective conductivity (`sigma`), mapped reaction-source field `J`, ohmic
   power, and the corresponding equivalent ohmic voltage.
 - `Hydrogen production partition`: the cathode-CL `phiAnion` reaction current,
-  Faradaic H2 production, membrane crossover, and H2 retained in cathode gas.
+  Faradaic H2 production, initially dissolved/direct-gas partition, signed
+  cathode/anode dissolved-to-gas transfer, and dissolved inventory.
+- `Hydrogen dissolved-gas coupling conservation`: the cathode-gas, anode-gas,
+  and dissolved-field source contributions and their algebraic imbalance.
 
 For a consistent coupling, the magnitude of the cathode reaction current and
 the `phiAnion` cathode-CL reaction current should agree, and the two derived
-Faradaic H2 rates should agree. A nonzero fluid-side cathode H2 rate together
-with a zero membrane-source rate identifies a mapping or update-order defect.
+Faradaic H2 rates should agree. With `faradaicDissolvedFraction = 1`, the
+direct Faradaic gas contribution should be zero after local cancellation. The
+dissolved-gas coupling imbalance should remain near round-off; a larger value
+identifies a source mapping or update-order defect.
 
 This AEM proof-of-concept uses an effective anion-potential field with constant
 conductivity; it does not solve an explicit OH- concentration. Consequently,

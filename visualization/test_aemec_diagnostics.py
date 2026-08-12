@@ -23,7 +23,7 @@ AEMEC electric diagnostic: region=phiEAnode, sigma[min,mean,max]=(1,2,3), J[min,
 AEMEC electric diagnostic: region=phiECathode, sigma[min,mean,max]=(1,2,3), J[min,mean,max]=(0,0,1) A/m3, dJdPhi[min,mean,max]=(0,0,1) A/(m3 V), ohmicPower=0.0024 W, reactionCurrentScale=0.08 A, equivalentOhmicVoltage=0.03 V
 AEMEC electric diagnostic: region=phiAnion, sigma[min,mean,max]=(1,2,3), J[min,mean,max]=(-1,0,1) A/m3, dJdPhi[min,mean,max]=(0,0,1) A/(m3 V), ohmicPower=0.008 W, reactionCurrentScale=0.08 A, equivalentOhmicVoltage=0.1 V
 Hydrogen crossover objective: anode gas source rate = 4e-8 mol/s
-Hydrogen production partition: anion reaction current in cathodeCL = -0.08 A, Faradaic cathode H2 generation = 4.1457e-7 mol/s, membrane crossover = 4e-8 mol/s, retained in cathode gas = 3.7457e-7 mol/s
+Hydrogen production partition: anion reaction current in cathodeCL = -0.08 A, Faradaic cathode H2 generation = 4.1457e-7 mol/s, initially dissolved = 3e-7 mol/s, direct Faradaic gas = 1.1457e-7 mol/s, cathode dissolved-to-gas transfer = 2.6e-7 mol/s, anode dissolved-to-gas transfer = 4e-8 mol/s, dissolved inventory = 2e-9 mol
 Controlled boundary current (A) at interconnect0: signed = -0.08, magnitude = 0.08, current density = -1000 A/m2, voltage = 1.70
 End
 """
@@ -63,6 +63,18 @@ class AemecDiagnosticPlotTests(unittest.TestCase):
             self.assertAlmostEqual(
                 crossover_points[0].crossover_fraction_percent,
                 100.0*4e-8/4.1457e-7,
+            )
+            self.assertAlmostEqual(
+                crossover_points[0].cathode_gas_release_rate_mol_s,
+                3.7457e-7,
+            )
+            self.assertAlmostEqual(
+                crossover_points[0].dissolved_production_rate_mol_s,
+                3e-7,
+            )
+            self.assertAlmostEqual(
+                crossover_points[0].anode_transfer_rate_mol_s,
+                4e-8,
             )
 
             voltage_plot = root/"voltage.png"

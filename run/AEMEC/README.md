@@ -53,12 +53,16 @@ validated kinetics and transport limitations before quantitative use.
 
 Hydrogen crossover is defined from `cathodeCL` to `anodeCL`; the anode gas
 phase therefore contains a trace `H2` component. The crossover model reports
-separate `JH2Diff`, `JH2Drag`, `JH2Conv`, and `JH2Cross` fields, then removes
-the resulting molar rate from cathode gas H2 and adds the identical rate to
-anode gas H2. See [the membrane-crossover model](docs/membrane-crossover.md)
-for the assumptions, dictionary contract, and remaining limitations. Validate
-diffusion/drag parameters and the printed conservation line at a reference
-thickness before running an optimization.
+separate `JH2Diff`, `JH2Drag`, `JH2Conv`, and `JH2Cross` fields. A connected
+dissolved-H2 field spans `cathodeCL`, the membrane, and `anodeCL`; each CL is
+coupled locally and bidirectionally to its Eulerian gas phase through
+`kLa*(cH2 - H*p*XH2)`. The default Franz-style partition places Faradaic H2 in
+the dissolved field and removes that same local amount from the direct gas
+reaction source, preventing double production. See
+[the coupled crossover model](docs/membrane-crossover.md) for the equations,
+dictionary contract, and remaining limitations. Validate the storage,
+diffusion, drag, Henry, and CL mass-transfer parameters plus the printed
+conservation line before running an optimization.
 
 The default `phiEAnode` configuration is a potentiostatic polarization scan.
 It holds `1.3` through `2.3 V` in `0.1 V` increments for 15 s each and records
@@ -119,10 +123,11 @@ shift (a concentration/transport proxy), anode and cathode activation losses,
 electronic and anion ohmic losses, and an explicit unresolved closure curve.
 Ohmic voltage is evaluated as `integral(i^2/sigma dV)/I`; activation and Nernst
 terms are current-weighted over their catalyst layers. The crossover figure
-shows the Faradaic H2-production, cathode-retained, and membrane-crossover
-rates together with crossover as a percentage of instantaneous production.
+shows Faradaic H2 generation, the initially dissolved share, signed cathode
+dissolved-to-gas transfer, net cathode gas release, and anode gas release
+together with crossover as a percentage of instantaneous production.
 That percentage is omitted near open circuit if crossover is supplied by the
-existing cathode inventory and exceeds instantaneous production.
+existing dissolved-H2 inventory and exceeds instantaneous production.
 
 After changing C++ source, rebuild once with `./src/Allwmake` before these
 case commands. You do not rebuild the solver between optimization trials;

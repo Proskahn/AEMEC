@@ -417,11 +417,11 @@ Foam::combustionModels::electroChemicalReaction<ReactionThermo>::R
 
     iDmdt = wSpecie;
 
-    // Hydrogen that leaves the cathode membrane interface and reaches the
-    // anode must be coupled to both gas-phase species equations.  The source
-    // fields live on the anion/electrolyte mesh, so map via the common master
-    // cell labels.  This is valid for decomposed cases and deliberately does
-    // not assume local cell indices agree between regions.
+    // Couple the local cathode/anode dissolved-H2 partition and interphase
+    // transfer terms to their gas-species equations. The source fields live
+    // on the anion/electrolyte mesh, so map via common master-cell labels.
+    // This is valid for decomposed cases and deliberately does not assume
+    // local cell indices agree between regions.
     const word anionRegionKey =
         eta_->regions().found("anion") ? "anion" : "ion";
     const regionType& anionPhase = eta_->region

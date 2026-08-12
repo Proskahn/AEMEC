@@ -37,7 +37,8 @@ protected:
     word anodeFluidRegion_;
     word hydrogenSpecies_;
 
-    //- Dissolved hydrogen concentration in the membrane [mol/m3].
+    //- Dissolved hydrogen concentration in the hydrated ionomer of the
+    //  catalyst layers and membrane [mol/m3 of absorbed electrolyte].
     volScalarField cH2_;
     //- Equilibrium dissolved H2 concentration at each membrane interface.
     volScalarField cH2CathodeInterface_;
@@ -48,8 +49,9 @@ protected:
     volScalarField JH2Conv_;
     volScalarField JH2Cross_;
 
-    //- Conservative molar source terms mapped into the cathode/anode H2 gas
-    //  species equations.  Their global integrals are equal and opposite.
+    //- Molar source terms mapped into the cathode/anode H2 gas species
+    //  equations. Together with the dissolved-field source/sink, they form a
+    //  conservative local partition and interphase-transfer coupling.
     volScalarField h2CathodeDmdt_;
     volScalarField h2AnodeDmdt_;
 

@@ -24,14 +24,15 @@ each voltage hold, finds the two adjacent current-density samples surrounding
 1 A/cm2, and applies linear interpolation. It rejects the trial rather than
 extrapolating when the simulated curve does not bracket 1 A/cm2.
 
-The crossover objective is the positive anode sink integral
-`sinkCoeff * max(cH2 - cH2Anode, 0)`. It represents hydrogen transported
-through the membrane and released to the anode; it is not the older Faradaic
-hydrogen-generation diagnostic. It requires a positive `sinkCoeff` and a
-configured `sinkZone`. The full Faradaic source remains in the cathode gas
-species equation. Only this calculated crossover rate is removed from cathode
-gas and added to anode gas, so non-crossing production is retained on the
-cathode side.
+The crossover objective is the positive part of the signed anode catalyst-layer
+desorption integral,
+`integral[kLa_anode*(cH2 - H_anode*p*XH2) dV]`. The connected dissolved field
+spans both catalyst layers and the membrane. With the default
+`faradaicDissolvedFraction = 1`, Faradaic H2 first enters that field and the
+same local amount is subtracted from the direct cathode-gas reaction source.
+Both CL gas-transfer terms are applied locally with equal and opposite terms
+in the dissolved equation. The printed three-continuum coupling imbalance
+must remain near round-off.
 
 Every solver completion also writes
 `logs/trial_XXXX_polarization_curve.csv` and a matching

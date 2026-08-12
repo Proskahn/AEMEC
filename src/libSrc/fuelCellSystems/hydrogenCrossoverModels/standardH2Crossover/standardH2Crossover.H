@@ -34,24 +34,40 @@ class standardH2Crossover
     dimensionedScalar xi_;
     dimensionedScalar cElec_;
     dimensionedScalar DelecH2_;
-    dimensionedScalar epsilonM_;
-    dimensionedScalar tau_;
+    dimensionedScalar epsilonMembrane_;
+    dimensionedScalar epsilonCathodeCL_;
+    dimensionedScalar epsilonAnodeCL_;
+    dimensionedScalar tauMembrane_;
+    dimensionedScalar tauCathodeCL_;
+    dimensionedScalar tauAnodeCL_;
     scalar bruggemanExponent_;
-    dimensionedScalar sinkCoeff_;
+    dimensionedScalar kLaCathode_;
+    dimensionedScalar kLaAnode_;
     dimensionedScalar cH2Anode_;
     dimensionedScalar cH2Cathode_;
     dimensionedScalar henryCathode_;
     dimensionedScalar henryAnode_;
     dimensionedVector UMembrane_;
 
+    scalar faradaicDissolvedFraction_;
     scalar dragSign_;
     scalar relax_;
 
-    void setZoneUniformSource
+    //- Hydrated-ionomer volume fraction used for dissolved-H2 storage.
+    volScalarField epsilonIon_;
+
+    //- Finite-rate CL transfer coefficient and signed dissolved-to-gas rate.
+    volScalarField h2MassTransferCoeff_;
+    volScalarField h2DissolvedToGas_;
+
+    //- Fraction of Faradaic cathode H2 initially placed in the dissolved field.
+    volScalarField h2DissolvedProduction_;
+
+    void setZoneValue
     (
         volScalarField& field,
         const word& zoneName,
-        scalar rate
+        scalar value
     );
 
     void updateInterfaceConcentration
@@ -63,6 +79,13 @@ class standardH2Crossover
         const word& interfaceType,
         const dimensionedScalar& fixedConcentration,
         const dimensionedScalar& henryCoefficient
+    );
+
+    void setZoneTransportProperties
+    (
+        const word& zoneName,
+        scalar epsilon,
+        scalar tau
     );
 
     scalar zoneIntegral(const volScalarField& field, const word& zoneName) const;

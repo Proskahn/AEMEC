@@ -73,7 +73,16 @@ OLD_FARADAIC_RE = re.compile(
     rf"Hydrogen crossover membrane diagnostic:.*?"
     rf"derived Faradaic H2 source = ({FLOAT_PATTERN})\s*mol/s"
 )
-PARTITION_RE = re.compile(
+COUPLED_PARTITION_RE = re.compile(
+    rf"Hydrogen production partition:.*?"
+    rf"Faradaic cathode H2 generation = ({FLOAT_PATTERN})\s*mol/s.*?"
+    rf"initially dissolved = ({FLOAT_PATTERN})\s*mol/s.*?"
+    rf"direct Faradaic gas = ({FLOAT_PATTERN})\s*mol/s.*?"
+    rf"cathode dissolved-to-gas transfer = ({FLOAT_PATTERN})\s*mol/s.*?"
+    rf"anode dissolved-to-gas transfer = ({FLOAT_PATTERN})\s*mol/s.*?"
+    rf"dissolved inventory = ({FLOAT_PATTERN})\s*mol"
+)
+LEGACY_PARTITION_RE = re.compile(
     rf"Hydrogen production partition:.*?"
     rf"Faradaic cathode H2 generation = ({FLOAT_PATTERN})\s*mol/s.*?"
     rf"membrane crossover = ({FLOAT_PATTERN})\s*mol/s.*?"
@@ -104,7 +113,12 @@ class TimeDiagnostics:
     electric: dict[str, ElectricDiagnostic] = field(default_factory=dict)
     crossover_rate_mol_s: float | None = None
     faradaic_h2_rate_mol_s: float | None = None
-    retained_h2_rate_mol_s: float | None = None
+    dissolved_production_rate_mol_s: float | None = None
+    direct_faradaic_gas_rate_mol_s: float | None = None
+    cathode_transfer_rate_mol_s: float | None = None
+    anode_transfer_rate_mol_s: float | None = None
+    cathode_gas_release_rate_mol_s: float | None = None
+    dissolved_inventory_mol: float | None = None
 
 
 @dataclass(frozen=True)
@@ -126,8 +140,13 @@ class CrossoverPoint:
     current_density_a_cm2: float
     cell_voltage_v: float
     faradaic_h2_rate_mol_s: float
+    dissolved_production_rate_mol_s: float
+    direct_faradaic_gas_rate_mol_s: float
+    cathode_transfer_rate_mol_s: float
+    cathode_gas_release_rate_mol_s: float
+    anode_transfer_rate_mol_s: float
+    dissolved_inventory_mol: float
     crossover_rate_mol_s: float
-    retained_h2_rate_mol_s: float
     crossover_fraction_percent: float
 
 
@@ -196,11 +215,39 @@ def parse_diagnostics(log_path: Path) -> dict[float, TimeDiagnostics]:
                 )
                 continue
 
-            partition_match = PARTITION_RE.search(line)
+            partition_match = COUPLED_PARTITION_RE.search(line)
+            if partition_match:
+                current.faradaic_h2_rate_mol_s = float(partition_match.group(1))
+                current.dissolved_production_rate_mol_s = float(
+                    partition_match.group(2)
+                )
+                current.direct_faradaic_gas_rate_mol_s = float(
+                    partition_match.group(3)
+                )
+                current.cathode_transfer_rate_mol_s = float(
+                    partition_match.group(4)
+                )
+                current.anode_transfer_rate_mol_s = float(
+                    partition_match.group(5)
+                )
+                current.dissolved_inventory_mol = float(partition_match.group(6))
+                current.cathode_gas_release_rate_mol_s = (
+                    current.direct_faradaic_gas_rate_mol_s
+                    + current.cathode_transfer_rate_mol_s
+                )
+                current.crossover_rate_mol_s = max(
+                    current.anode_transfer_rate_mol_s, 0.0
+                )
+                continue
+
+            partition_match = LEGACY_PARTITION_RE.search(line)
             if partition_match:
                 current.faradaic_h2_rate_mol_s = float(partition_match.group(1))
                 current.crossover_rate_mol_s = float(partition_match.group(2))
-                current.retained_h2_rate_mol_s = float(partition_match.group(3))
+                current.anode_transfer_rate_mol_s = current.crossover_rate_mol_s
+                current.cathode_gas_release_rate_mol_s = float(
+                    partition_match.group(3)
+                )
                 continue
 
             crossover_match = CROSSOVER_OBJECTIVE_RE.search(line)
@@ -323,12 +370,14 @@ def build_crossover_points(
                 else 0.0
             )
             faradaic = current_a/(2.0*FARADAY_C_PER_MOL)
-        retained = diagnostic.retained_h2_rate_mol_s
-        if retained is None:
-            retained = faradaic - crossover
-        # At (near) open circuit, crossover can be supplied by hydrogen already
-        # present in the cathode rather than by the instantaneous Faradaic
-        # production.  A "fraction of production" is not meaningful when the
+        cathode_gas_release = diagnostic.cathode_gas_release_rate_mol_s
+        if cathode_gas_release is None:
+            # Compatibility fallback for logs written before the dissolved-H2
+            # inventory and signed CL transfer rates were reported.
+            cathode_gas_release = faradaic - crossover
+        # At (near) open circuit, crossover can be supplied by the existing
+        # dissolved-H2 inventory rather than by instantaneous Faradaic
+        # production. A "fraction of production" is not meaningful when the
         # crossover rate exceeds that production rate, so leave it undefined.
         fraction = (
             100.0*crossover/faradaic
@@ -342,8 +391,33 @@ def build_crossover_points(
                 current_density_a_cm2=abs(sample.current_density_a_cm2),
                 cell_voltage_v=sample.voltage_v,
                 faradaic_h2_rate_mol_s=faradaic,
+                dissolved_production_rate_mol_s=(
+                    diagnostic.dissolved_production_rate_mol_s
+                    if diagnostic.dissolved_production_rate_mol_s is not None
+                    else math.nan
+                ),
+                direct_faradaic_gas_rate_mol_s=(
+                    diagnostic.direct_faradaic_gas_rate_mol_s
+                    if diagnostic.direct_faradaic_gas_rate_mol_s is not None
+                    else math.nan
+                ),
+                cathode_transfer_rate_mol_s=(
+                    diagnostic.cathode_transfer_rate_mol_s
+                    if diagnostic.cathode_transfer_rate_mol_s is not None
+                    else math.nan
+                ),
+                cathode_gas_release_rate_mol_s=cathode_gas_release,
+                anode_transfer_rate_mol_s=(
+                    diagnostic.anode_transfer_rate_mol_s
+                    if diagnostic.anode_transfer_rate_mol_s is not None
+                    else crossover
+                ),
+                dissolved_inventory_mol=(
+                    diagnostic.dissolved_inventory_mol
+                    if diagnostic.dissolved_inventory_mol is not None
+                    else math.nan
+                ),
                 crossover_rate_mol_s=crossover,
-                retained_h2_rate_mol_s=retained,
                 crossover_fraction_percent=fraction,
             )
         )
@@ -421,40 +495,65 @@ def plot_hydrogen_crossover(points: list[CrossoverPoint], path: Path) -> None:
         constrained_layout=True,
     )
     rate_series = (
-        [point.faradaic_h2_rate_mol_s for point in points],
-        [point.retained_h2_rate_mol_s for point in points],
-        [point.crossover_rate_mol_s for point in points],
+        (
+            "Faradaic H₂ generation",
+            [point.faradaic_h2_rate_mol_s for point in points],
+            "o",
+            1.9,
+        ),
+        (
+            "Initially dissolved",
+            [point.dissolved_production_rate_mol_s for point in points],
+            "D",
+            1.3,
+        ),
+        (
+            "Cathode dissolved→gas transfer",
+            [point.cathode_transfer_rate_mol_s for point in points],
+            "v",
+            1.3,
+        ),
+        (
+            "Net cathode gas release",
+            [point.cathode_gas_release_rate_mol_s for point in points],
+            "s",
+            1.7,
+        ),
+        (
+            "Anode gas release (crossover)",
+            [point.crossover_rate_mol_s for point in points],
+            "^",
+            1.7,
+        ),
     )
-    rate_ax.plot(
-        current,
-        [rate if rate > 0.0 else math.nan for rate in rate_series[0]],
-        marker="o",
-        linewidth=1.9,
-        label="Faradaic H₂ production",
-    )
-    rate_ax.plot(
-        current,
-        [rate if rate > 0.0 else math.nan for rate in rate_series[1]],
-        marker="s",
-        linewidth=1.7,
-        label="Retained at cathode",
-    )
-    rate_ax.plot(
-        current,
-        [rate if rate > 0.0 else math.nan for rate in rate_series[2]],
-        marker="^",
-        linewidth=1.7,
-        label="Membrane crossover",
-    )
+    for label, values, marker, linewidth in rate_series:
+        if any(math.isfinite(rate) for rate in values):
+            rate_ax.plot(
+                current,
+                values,
+                marker=marker,
+                linewidth=linewidth,
+                label=label,
+            )
     rate_ax.set_ylabel("H₂ rate [mol/s]")
     rate_ax.set_title("AEMEC hydrogen production and crossover")
     positive_rates = [
         rate
-        for values in rate_series
+        for _, values, _, _ in rate_series
         for rate in values
         if rate > 0.0 and math.isfinite(rate)
     ]
-    if positive_rates and max(positive_rates)/min(positive_rates) > 100.0:
+    finite_rates = [
+        rate
+        for _, values, _, _ in rate_series
+        for rate in values
+        if math.isfinite(rate)
+    ]
+    if (
+        positive_rates
+        and len(positive_rates) == len(finite_rates)
+        and max(positive_rates)/min(positive_rates) > 100.0
+    ):
         rate_ax.set_yscale("log")
     else:
         rate_ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
