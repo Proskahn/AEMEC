@@ -64,12 +64,13 @@ dictionary contract, and remaining limitations. Validate the storage,
 diffusion, drag, Henry, and CL mass-transfer parameters plus the printed
 conservation line before running an optimization.
 
-The default `phiEAnode` configuration is a potentiostatic polarization scan.
-It holds `1.3` through `2.3 V` in `0.1 V` increments for 15 s each and records
-the resulting collector current density. Each optimization trial uses this
-same voltage sweep and linearly interpolates the voltage and crossover rate at
-`1 A/cm2`; it does not enable galvanostatic feedback. See
-[polarization control](docs/polarization-control.md).
+The default `phiEAnode` configuration on the `crossover` branch is a 20 s
+galvanostatic experiment at `1 A/cm2` (`-10000 A/m2` in the solver's signed
+electrolysis convention). The collector voltage starts from a 2 V guess and is
+adjusted from the post-solve boundary-current measurement. The optimization
+adapter still uses the retained `1.3--2.3 V` table: it explicitly disables
+galvanostatic feedback in each scratch case and interpolates the voltage and
+crossover rate at `1 A/cm2`. See [polarization control](docs/polarization-control.md).
 
 The current branch uses a non-isothermal, one-temperature
 Eulerian--Eulerian model. `constant/cellProperties` enables the global

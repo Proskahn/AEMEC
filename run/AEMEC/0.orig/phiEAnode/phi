@@ -19,7 +19,7 @@ FoamFile
 
 dimensions      [1 2 -3 0 0 -1 0];
 
-internalField   uniform 1.3; // first voltage-table value
+internalField   uniform 2.0; // initial guess for 1 A/cm2 current control
 
 boundaryField
 {

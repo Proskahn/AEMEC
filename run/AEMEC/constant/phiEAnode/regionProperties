@@ -22,15 +22,13 @@ electricDiagnostics true;
 
 galvanostatic
 {
-    active      false;
+    active      true;
     region      phiEAnode;
     patchName   interconnect0;
     maxVoltageStep 0.002;  // Maximum controller movement per outer iteration [V]
 
-    // Default potentiostatic polarization scan: impose each collector
-    // voltage for 15 s in 0.1 V increments and measure the resulting current
-    // density. The denser curve brackets the 1 A/cm2 optimization point for
-    // linear interpolation without galvanostatic feedback.
+    // Retained for the optimization adapter. It explicitly disables
+    // galvanostatic control in its scratch case before using this table.
     voltage
     {
         type    table;
@@ -61,49 +59,29 @@ galvanostatic
         );
     }
 
-    // Optional galvanostatic fallback. Electrolysis current is negative in
-    // this solver convention; 2000 A/m2 = 0.2 A/cm2.
+    // Fixed 1 A/cm2 crossover experiment. Electrolysis current is negative
+    // in this solver convention, so 1 A/cm2 = -10000 A/m2.
     ibar
     {
         type    table;
         values
         (
-            (0        0)
-            (15       0)
-            (15.001   -2000)
-            (30       -2000)
-            (30.001   -4000)
-            (45       -4000)
-            (45.001   -6000)
-            (60       -6000)
-            (60.001   -8000)
-            (75       -8000)
-            (75.001   -10000)
-            (90       -10000)
-            (90.001   -12000)
-            (105      -12000)
-            (105.001  -14000)
-            (120      -14000)
-            (120.001  -16000)
-            (135      -16000)
-            (135.001  -18000)
-            (150      -18000)
-            (150.001  -20000)
-            (165      -20000)
+            (0     -10000)
+            (20    -10000)
         );
     }
 
-    // Optional convergence-based current scan. It is inactive during the
-    // default voltage-table sweep.
+    // Treat the single target as accepted only after the full 20 s experiment
+    // and a stable final current/voltage window.
     polarizationCurve
     {
-        active                      false;
-        targets                     (0 -2000 -4000 -6000 -8000 -10000 -12000 -14000 -16000 -18000 -20000);
-        minimumHoldDuration         15;
-        targetCurrentTolerance      0.05;
+        active                      true;
+        targets                     (-10000);
+        minimumHoldDuration         20;
+        targetCurrentTolerance      0.01;
         currentScale                100;
         voltageTolerance            0.002;
-        currentStabilityTolerance   0.02;
+        currentStabilityTolerance   0.01;
         stabilitySamples            5;
     }
 }

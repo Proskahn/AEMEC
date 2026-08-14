@@ -157,7 +157,7 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("polarizationCurve", anode_controller)
         self.assertRegex(
             anode_controller,
-            r"galvanostatic\s*\{\s*active\s+false\s*;",
+            r"galvanostatic\s*\{\s*active\s+true\s*;",
         )
         self.assertRegex(
             anode_controller,
@@ -165,15 +165,16 @@ class AemecCaseTests(unittest.TestCase):
         )
         self.assertRegex(
             anode_controller,
-            r"polarizationCurve\s*\{\s*active\s+false\s*;",
+            r"polarizationCurve\s*\{\s*active\s+true\s*;",
         )
+        self.assertIn("targets                     (-10000);", anode_controller)
+        self.assertIn("minimumHoldDuration         20;", anode_controller)
+        self.assertIn("targetCurrentTolerance      0.01;", anode_controller)
+        self.assertIn("currentStabilityTolerance   0.01;", anode_controller)
+        self.assertIn("(0     -10000)", anode_controller)
+        self.assertIn("(20    -10000)", anode_controller)
         self.assertIn("(15.001  1.4)", anode_controller)
         self.assertIn("(165     2.3)", anode_controller)
-        self.assertIn(
-            "targets                     (0 -2000 -4000 -6000 -8000 -10000 -12000 -14000 -16000 -18000 -20000);",
-            anode_controller,
-        )
-        self.assertIn("minimumHoldDuration         15;", anode_controller)
         self.assertIn("stabilitySamples            5;", anode_controller)
         self.assertRegex(anode_collector, r"name\s+interconnect0\s*;")
         self.assertRegex(anode_collector, r"set\s+interconnect0\s*;")

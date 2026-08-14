@@ -23,6 +23,10 @@ visualization/output/
 opt/results/
 opt/work/
 
+# Local crossover experiment results and scratch cases
+crossover_experiements/results/
+crossover_experiements/work/
+
 # OpenFOAM build products
 **/lnInclude/
 **/Make/linux*/

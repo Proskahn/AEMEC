@@ -22,14 +22,14 @@ startTime       0;
 
 stopAt          endTime;
 
-// Eleven prescribed voltage levels, each held for 15 s.
-endTime         165;
+// Fixed-current crossover experiment at 1 A/cm2.
+endTime         20;
 
 deltaT          0.1;
 
 writeControl    runTime;
 
-writeInterval   165;
+writeInterval   20;
 
 purgeWrite      0;
 

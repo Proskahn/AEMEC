@@ -747,11 +747,11 @@ def check_static(case: Path, errors: list[str]) -> None:
                 "galvanostatic current scan must enable polarizationCurve feedback"
             )
         for entry in (
-            "targets                     (0 -2000 -4000 -6000 -8000 -10000 -12000 -14000 -16000 -18000 -20000);",
-            "minimumHoldDuration         15;",
-            "targetCurrentTolerance      0.05;",
+            "targets                     (-10000);",
+            "minimumHoldDuration         20;",
+            "targetCurrentTolerance      0.01;",
             "voltageTolerance            0.002;",
-            "currentStabilityTolerance   0.02;",
+            "currentStabilityTolerance   0.01;",
             "stabilitySamples            5;",
         ):
             if entry not in anode_controller:
@@ -766,6 +766,23 @@ def check_static(case: Path, errors: list[str]) -> None:
         if "maxVoltageStep 0.002;" not in anode_controller:
             errors.append(
                 "constant/phiEAnode/regionProperties must use maxVoltageStep 0.002 for the current scan"
+            )
+
+        try:
+            ibar_block = dictionary_block(anode_controller, "ibar")
+        except ValueError as error:
+            errors.append(f"constant/phiEAnode/regionProperties: {error}")
+            ibar_block = ""
+        ibar_pairs = [
+            (float(time_value), float(current_value))
+            for time_value, current_value in re.findall(
+                r"\(\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)\s*\)",
+                ibar_block,
+            )
+        ]
+        if ibar_pairs != [(0.0, -10000.0), (20.0, -10000.0)]:
+            errors.append(
+                "galvanostatic ibar must hold -10000 A/m2 from 0 to 20 s"
             )
 
     voltage_type: str | None = None
