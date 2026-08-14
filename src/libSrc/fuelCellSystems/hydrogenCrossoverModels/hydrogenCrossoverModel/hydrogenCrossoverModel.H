@@ -46,7 +46,6 @@ protected:
     volScalarField DH2Eff_;
     volScalarField JH2Diff_;
     volScalarField JH2Drag_;
-    volScalarField JH2Conv_;
     volScalarField JH2Cross_;
 
     //- Molar source terms mapped into the cathode/anode H2 gas species
@@ -108,9 +107,6 @@ public:
 
     inline const volScalarField& JH2Drag() const;
     inline volScalarField& JH2Drag();
-
-    inline const volScalarField& JH2Conv() const;
-    inline volScalarField& JH2Conv();
 
     inline const volScalarField& JH2Cross() const;
     inline volScalarField& JH2Cross();

@@ -53,7 +53,7 @@ validated kinetics and transport limitations before quantitative use.
 
 Hydrogen crossover is defined from `cathodeCL` to `anodeCL`; the anode gas
 phase therefore contains a trace `H2` component. The crossover model reports
-separate `JH2Diff`, `JH2Drag`, `JH2Conv`, and `JH2Cross` fields. A connected
+separate `JH2Diff`, `JH2Drag`, and `JH2Cross` fields. A connected
 dissolved-H2 field spans `cathodeCL`, the membrane, and `anodeCL`; each CL is
 coupled locally and bidirectionally to its Eulerian gas phase through
 `kLa*(cH2 - H*p*XH2)`. The default Franz-style partition places Faradaic H2 in

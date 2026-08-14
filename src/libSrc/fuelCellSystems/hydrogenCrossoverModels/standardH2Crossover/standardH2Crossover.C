@@ -108,8 +108,9 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
     (
         interfaceWord(dict_, "anodeInterface", "gasPhase", "gas")
     ),
-    xi_("xi", dimless, dict_),
-    cElec_("cElec", dimMoles/dimVol, dict_),
+    nDrag_("nDrag", dimless, dict_),
+    cH2O_("cH2O", dimMoles/dimVol, dict_),
+    zIon_(dict_.lookupOrDefault<scalar>("zIon", -1.0)),
     DelecH2_("DelecH2", sqr(dimLength)/dimTime, dict_),
     epsilonMembrane_
     (
@@ -227,17 +228,10 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
             0.0
         )
     ),
-    UMembrane_
-    (
-        "UMembrane",
-        dimVelocity,
-        dict_.lookupOrDefault<vector>("UMembrane", vector::zero)
-    ),
     faradaicDissolvedFraction_
     (
         dict_.lookupOrDefault<scalar>("faradaicDissolvedFraction", 1.0)
     ),
-    dragSign_(dict_.lookupOrDefault<scalar>("dragSign", 1.0)),
     relax_(dict_.lookupOrDefault<scalar>("relax", 1.0)),
     epsilonIon_
     (
@@ -367,11 +361,15 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
      || kLaAnode_.value() < 0.0
      || faradaicDissolvedFraction_ < 0.0
      || faradaicDissolvedFraction_ > 1.0
+     || nDrag_.value() < 0.0
+     || cH2O_.value() <= 0.0
+     || mag(zIon_) <= SMALL
     )
     {
         FatalErrorInFunction
             << "CL mass-transfer coefficients must be non-negative and "
-            << "faradaicDissolvedFraction must be in [0,1]"
+            << "faradaicDissolvedFraction must be in [0,1]; nDrag must be "
+            << "non-negative, cH2O positive, and zIon non-zero"
             << exit(FatalError);
     }
 }
@@ -594,13 +592,15 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::correct()
     JH2Diff_ = mag(DH2Eff_*fvc::grad(cH2_));
 
     const volVectorField& i = mesh_.lookupObject<volVectorField>(iName_);
-    JH2Drag_ = mag(i)*xi_*cH2_/(F*cElec_);
-    JH2Conv_ = mag(UMembrane_)*cH2_;
-    JH2Cross_ = JH2Diff_ + JH2Drag_ + JH2Conv_;
+    JH2Drag_ = mag(i)*nDrag_*cH2_/(mag(zIon_)*F*cH2O_);
+    JH2Cross_ = mag
+    (
+       -DH2Eff_*fvc::grad(cH2_)
+      + nDrag_*cH2_/(zIon_*F*cH2O_)*i
+    );
 
     JH2Diff_.correctBoundaryConditions();
     JH2Drag_.correctBoundaryConditions();
-    JH2Conv_.correctBoundaryConditions();
     JH2Cross_.correctBoundaryConditions();
 }
 
@@ -703,25 +703,13 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
             mesh_.time().timeName(),
             mesh_
         ),
-        dragSign_*xi_/(F*cElec_)*(fvc::interpolate(i) & mesh_.Sf())
-    );
-
-    surfaceScalarField phiConv
-    (
-        IOobject
-        (
-            "phiH2Conv",
-            mesh_.time().timeName(),
-            mesh_
-        ),
-        UMembrane_ & mesh_.Sf()
+        nDrag_/(zIon_*F*cH2O_)*(fvc::interpolate(i) & mesh_.Sf())
     );
 
     tmp<fvScalarMatrix> h2Eqn
     (
         fvm::ddt(epsilonIon_, cH2_)
       + fvm::div(phiDrag, cH2_, "div(phiH2Drag,cH2)")
-      + fvm::div(phiConv, cH2_, "div(phiH2Conv,cH2)")
       - fvm::laplacian(DH2Eff_, cH2_, "laplacian(DH2Eff,cH2)")
       + fvm::Sp(h2MassTransferCoeff_, cH2_)
      ==

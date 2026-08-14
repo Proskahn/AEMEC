@@ -37,6 +37,9 @@ class HydrogenCrossoverSourceTests(unittest.TestCase):
         self.assertIn("h2DissolvedProduction_", source)
         self.assertIn("cH2CathodeInterface_ + cH2AnodeInterface_", source)
         self.assertIn("cH2_\n          - cH2CathodeInterface_", source)
+        self.assertIn('fvm::div(phiDrag, cH2_, "div(phiH2Drag,cH2)")', source)
+        self.assertNotIn("phiH2Conv", source)
+        self.assertNotIn("UMembrane_", source)
         self.assertNotIn("h2Eqn->setReference", source)
         self.assertNotIn("cH2_.max", source)
 
@@ -58,9 +61,16 @@ class HydrogenCrossoverSourceTests(unittest.TestCase):
             / "standardH2Crossover/standardH2Crossover.C"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("JH2Drag_ = mag(i)*xi_*cH2_/(F*cElec_);", source)
+        self.assertIn(
+            "JH2Drag_ = mag(i)*nDrag_*cH2_/(mag(zIon_)*F*cH2O_);",
+            source,
+        )
+        self.assertIn("JH2Cross_ = mag", source)
+        self.assertIn("-DH2Eff_*fvc::grad(cH2_)", source)
+        self.assertIn("nDrag_*cH2_/(zIon_*F*cH2O_)*i", source)
+        self.assertNotIn("JH2Cross_ = JH2Diff_ + JH2Drag_", source)
         self.assertNotIn(
-            "JH2Drag_ = mag(i)*xi_*cH2CathodeInterface_/(F*cElec_);",
+            "JH2Drag_ = mag(i)*nDrag_*cH2CathodeInterface_",
             source,
         )
 

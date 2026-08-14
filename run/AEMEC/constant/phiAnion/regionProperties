@@ -75,14 +75,15 @@ hydrogenCrossover
         // from the gas reaction source, so H2 is generated only once.
         faradaicDissolvedFraction  1.0;
 
-        // J_H2,drag = i/F*xi*cH2*/cElec.  The constant drag coefficient is
-        // the initial extension point for hydration/temperature correlations.
+        // J_H2,drag = nDrag*cH2*iIon/(zIon*F*cH2O). The constant drag
+        // coefficient is the initial extension point for correlations.
         dragModel       constant;
-        xi              1;
+        nDrag           1;
+        zIon            -1;    // OH- charge number sets drag direction
 
-        // Nominal aqueous-carrier molar concentration [mol/m3] used by the
-        // drag closure. Calibrate it with the selected KOH concentration.
-        cElec           52000;
+        // Effective water molar concentration [mol/m3] in hydrated ionomer.
+        // This provisional value requires AEM/KOH-specific calibration.
+        cH2O            52000;
 
         // Select one of: constant, porosityTortuosity, bruggeman. The
         // hydrated-ionomer fraction is also the storage coefficient in
@@ -126,13 +127,6 @@ hydrogenCrossover
             massTransferCoefficient 1.0; // kLa [1/s], calibrate for anode CL
         }
 
-        // Optional through-membrane convective velocity [m/s].  Keep zero
-        // unless a validated pressure/permeability closure is supplied.
-        UMembrane       (0 0 0);
-
-        // The inherited ionic-current orientation is anode-to-cathode;
-        // reverse it for cathode-to-anode hydrogen drag.
-        dragSign        -1;
         relax           0.7;
     }
 }

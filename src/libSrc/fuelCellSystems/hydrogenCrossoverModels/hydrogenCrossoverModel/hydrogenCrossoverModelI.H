@@ -79,18 +79,6 @@ inline Foam::volScalarField& Foam::hydrogenCrossoverModel::JH2Drag()
 }
 
 
-inline const Foam::volScalarField& Foam::hydrogenCrossoverModel::JH2Conv() const
-{
-    return JH2Conv_;
-}
-
-
-inline Foam::volScalarField& Foam::hydrogenCrossoverModel::JH2Conv()
-{
-    return JH2Conv_;
-}
-
-
 inline const Foam::volScalarField& Foam::hydrogenCrossoverModel::JH2Cross() const
 {
     return JH2Cross_;

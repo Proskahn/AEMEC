@@ -7,7 +7,6 @@
 #define standardH2Crossover_H
 
 #include "hydrogenCrossoverModel.H"
-#include "dimensionedVector.H"
 
 namespace Foam
 {
@@ -31,8 +30,9 @@ class standardH2Crossover
     word cathodeGasPhase_;
     word anodeGasPhase_;
 
-    dimensionedScalar xi_;
-    dimensionedScalar cElec_;
+    dimensionedScalar nDrag_;
+    dimensionedScalar cH2O_;
+    scalar zIon_;
     dimensionedScalar DelecH2_;
     dimensionedScalar epsilonMembrane_;
     dimensionedScalar epsilonCathodeCL_;
@@ -47,10 +47,7 @@ class standardH2Crossover
     dimensionedScalar cH2Cathode_;
     dimensionedScalar henryCathode_;
     dimensionedScalar henryAnode_;
-    dimensionedVector UMembrane_;
-
     scalar faradaicDissolvedFraction_;
-    scalar dragSign_;
     scalar relax_;
 
     //- Hydrated-ionomer volume fraction used for dissolved-H2 storage.

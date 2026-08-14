@@ -27,16 +27,26 @@ The multidimensional equation is
 
 ```text
 d(epsilonIon*cH2)/dt
-  + div[(Udrag + UMembrane)*cH2]
+  + div(Udrag*cH2)
   = div(DH2Eff*grad(cH2))
   + beta*GammaFaradaic
   - GammaDissolvedToGas
 ```
 
+Equivalently, the dissolved-hydrogen molar flux is
+
+```text
+N_H2,diss = -DH2Eff*grad(cH2)
+           + nDrag*cH2*iIon/(zIon*F*cH2O)
+```
+
+There is no independent hydraulic or bulk-convection contribution to this
+flux.
+
 where `beta` is `faradaicDissolvedFraction` and
 
 ```text
-Udrag = dragSign * xi*i/(F*cElec)
+Udrag = nDrag*iIon/(zIon*F*cH2O)
 GammaDissolvedToGas = kLa*(cH2 - cSat)
 cSat = henryCoefficient*p*XH2
 ```
@@ -47,10 +57,10 @@ absorb H2 from pore gas into the ionomer. Henry's law supplies the equilibrium
 target; it is no longer imposed as a catalyst-layer Dirichlet concentration.
 There is no production or dissolved-to-gas transfer term in the membrane bulk.
 
-The default AEM sign is `dragSign = -1` because hydroxide and its dragged water
-move opposite to conventional ionic current. `UMembrane` is an optional
-uniform hydraulic-convection closure and remains zero unless a validated
-pressure/permeability model supplies it.
+The default charge number is `zIon = -1` because hydroxide and its dragged
+water move opposite to conventional ionic current. The dissolved-gas flux
+contains only molecular diffusion and electro-osmotic drag; no membrane
+convection term is included.
 
 ## Storage and diffusion
 
@@ -116,8 +126,9 @@ Hydrogen dissolved-gas coupling conservation: ... imbalance = ... mol/s
 - `h2MassTransferCoeff`: local CL `kLa`, zero in the membrane.
 - `h2DissolvedToGas`: signed CL interphase transfer rate in mol/(m3 s).
 - `cH2CathodeInterface`, `cH2AnodeInterface`: local equilibrium targets.
-- `JH2Diff`, `JH2Drag`, `JH2Conv`: transport-flux magnitudes in mol/(m2 s).
-- `JH2Cross`: sum of those diagnostic magnitudes.
+- `JH2Diff`, `JH2Drag`: transport-flux magnitudes in mol/(m2 s).
+- `JH2Cross`: magnitude of the signed vector sum of diffusion and drag. It is
+  not the sum of their separate magnitudes, so opposing contributions cancel.
 
 ## Deliberate limitations
 
@@ -128,9 +139,7 @@ Hydrogen dissolved-gas coupling conservation: ... imbalance = ... mol/s
   effective catalyst-layer coefficients.
 - Dissolved O2, H2/O2 recombination, and parasitic electrochemical consumption
   are omitted.
-- The optional hydraulic velocity is prescribed rather than calculated from a
-  membrane pressure/permeability equation.
-- KOH and OH- concentrations are not solved explicitly, so `cElec`, ionic
+- KOH, OH-, and water concentrations are not solved explicitly, so `cH2O`, ionic
   conductivity, and drag remain calibrated effective properties.
 - The configured thickness must be the swollen membrane thickness.
 

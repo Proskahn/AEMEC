@@ -136,20 +136,6 @@ Foam::hydrogenCrossoverModel::hydrogenCrossoverModel
         dimensionedScalar("JH2Drag", dimMoles/sqr(dimLength)/dimTime, 0.0),
         zeroGradientFvPatchScalarField::typeName
     ),
-    JH2Conv_
-    (
-        IOobject
-        (
-            "JH2Conv",
-            mesh.time().timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedScalar("JH2Conv", dimMoles/sqr(dimLength)/dimTime, 0.0),
-        zeroGradientFvPatchScalarField::typeName
-    ),
     JH2Cross_
     (
         IOobject

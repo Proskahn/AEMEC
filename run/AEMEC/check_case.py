@@ -609,12 +609,16 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(f"{relative_path} must declare 'object {field_name};'")
 
     anion_schemes = read(case / "system/phiAnion/fvSchemes", errors)
-    for entry in ("div(phiH2Drag,cH2)", "div(phiH2Conv,cH2)"):
-        if entry not in anion_schemes:
-            errors.append(
-                "system/phiAnion/fvSchemes is missing the hydrogen-transport "
-                f"convection scheme '{entry}'"
-            )
+    if "div(phiH2Drag,cH2)" not in anion_schemes:
+        errors.append(
+            "system/phiAnion/fvSchemes is missing the electro-osmotic-drag "
+            "scheme 'div(phiH2Drag,cH2)'"
+        )
+    if "div(phiH2Conv,cH2)" in anion_schemes:
+        errors.append(
+            "system/phiAnion/fvSchemes must not retain the removed membrane-"
+            "convection scheme 'div(phiH2Conv,cH2)'"
+        )
 
     anion_properties = read(case / "constant/phiAnion/regionProperties", errors)
     if "lambdaSigma" in anion_properties or "lambdaName" in anion_properties:
@@ -666,11 +670,19 @@ def check_static(case: Path, errors: list[str]) -> None:
         "tauCathodeCL    1;",
         "tauAnodeCL      1;",
         "dragModel       constant;",
-        "UMembrane       (0 0 0);",
+        "nDrag           1;",
+        "zIon            -1;",
+        "cH2O            52000;",
     ):
         if entry not in anion_properties:
             errors.append(
                 f"constant/phiAnion/regionProperties is missing crossover entry '{entry}'"
+            )
+    for removed_entry in ("UMembrane", "dragSign", "cElec", "xi"):
+        if re.search(rf"(?m)^\s*{removed_entry}\s+", anion_properties):
+            errors.append(
+                "constant/phiAnion/regionProperties must not retain removed "
+                f"crossover entry '{removed_entry}'"
             )
     if anion_properties.count("gasPhase            gas;") != 2:
         errors.append(
