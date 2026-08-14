@@ -1,27 +1,25 @@
 # AEMEC membrane-thickness optimization
 
-This directory composes a reusable black-box optimization library with an
-AEMEC/OpenFOAM case adapter. The public entry point remains:
+This directory contains a reusable black-box optimization package and its
+AEMEC/OpenFOAM adapter. The public entry point remains:
 
 ```bash
 python3 opt/run_optimization.py --iterations 50
 ```
 
-Documentation is separated by concern:
+The directory has four clear roles:
 
-- [Architecture](docs/architecture.md) — module boundaries and extension points.
-- [Optimizer library](docs/optimizer.md) — model-independent search, persistence,
-  failure handling, and Pareto selection.
-- [AEMEC OpenFOAM adapter](docs/aemec-openfoam.md) — geometry, voltage-sweep
-  interpolation, and objective validation.
-- [Runbook](docs/runbook.md) — setup, commands, outputs, validation, and
-  troubleshooting.
+- `aemec_opt/` — importable optimizer, OpenFOAM adapter, CLI, and reporting code.
+- `scripts/` — post-processing commands for completed studies.
+- `tests/` — unit and case-contract tests.
+- `docs/` — [architecture](docs/architecture.md) and the operational
+  [runbook](docs/runbook.md).
 
 The source case is never modified: every evaluation receives a fresh scratch
 copy under `opt/work/`.
 
 Every solver run retains its raw log, a compact per-trial polarization-curve
 CSV, and a PNG plot of that curve. Existing study logs can be converted with
-`opt/export_trial_curves.py` without rerunning the CFD simulations.
-Use `opt/plot_membrane_polarization_curves.py` to overlay polarization and
-H2-crossover behavior for selected membrane thicknesses from those stored CSVs.
+`opt/scripts/export_trial_curves.py` without rerunning the CFD simulations.
+Use `opt/scripts/plot_membrane_polarization_curves.py` to overlay polarization
+and H2-crossover behavior for selected membrane thicknesses.

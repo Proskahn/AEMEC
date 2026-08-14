@@ -17,7 +17,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import optuna
 
-from optimization_lib import OptimizationError, pareto_mask
+from .engine import OptimizationError, pareto_mask
 
 
 @dataclass(frozen=True)

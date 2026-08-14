@@ -3,14 +3,14 @@
 
 The implementation is deliberately split by responsibility:
 
-* :mod:`optimization_lib` is model-neutral Optuna lifecycle and Pareto logic.
-* :mod:`aemec_case` owns OpenFOAM/AEMEC geometry, execution, and objectives.
-* :mod:`reporting` renders configured CSV and Pareto artifacts.
-* :mod:`cli` composes those layers for this AEMEC case.
+* :mod:`aemec_opt.engine` is model-neutral Optuna lifecycle and Pareto logic.
+* :mod:`aemec_opt.case` owns OpenFOAM/AEMEC geometry, execution, and objectives.
+* :mod:`aemec_opt.reporting` renders configured CSV and Pareto artifacts.
+* :mod:`aemec_opt.cli` composes those layers for this AEMEC case.
 """
 
-from cli import build_parser, main, run_optimization
-from optimization_lib import OptimizationError
+from aemec_opt.cli import build_parser, main, run_optimization
+from aemec_opt.engine import OptimizationError
 
 __all__ = ("OptimizationError", "build_parser", "main", "run_optimization")
 

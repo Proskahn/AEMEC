@@ -5,7 +5,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from plot_membrane_polarization_curves import load_selected_curves, plot_curves
+from scripts.plot_membrane_polarization_curves import (
+    load_selected_curves,
+    plot_curves,
+)
 
 
 class MembranePolarizationCurvePlotTests(unittest.TestCase):

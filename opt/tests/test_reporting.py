@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from reporting import ReportSpec, TrialRecord, write_results
+from aemec_opt.reporting import ReportSpec, TrialRecord, write_results
 
 
 class ReportingTests(unittest.TestCase):

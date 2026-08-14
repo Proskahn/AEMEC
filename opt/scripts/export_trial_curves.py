@@ -5,10 +5,15 @@ from __future__ import annotations
 
 import argparse
 import csv
+import sys
 from pathlib import Path
 from typing import Sequence
 
-from aemec_case import (
+# Allow this file to remain directly executable from the repository root.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from aemec_opt.case import (
     AemecEvaluationConfig,
     write_polarization_curve_csv,
     write_polarization_curve_plot,

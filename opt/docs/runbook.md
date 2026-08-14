@@ -68,7 +68,7 @@ Backfill curve CSV and PNG files for an existing study without rerunning
 OpenFOAM:
 
 ```bash
-python3 opt/export_trial_curves.py \
+python3 opt/scripts/export_trial_curves.py \
   opt/results/aemec-production-20-553c273e
 ```
 
@@ -79,7 +79,7 @@ Overlay the stored polarization and H2-crossover curves for the 20, 40, 60,
 and 80 um membrane trials:
 
 ```bash
-python3 opt/plot_membrane_polarization_curves.py \
+python3 opt/scripts/plot_membrane_polarization_curves.py \
   opt/results/aemec-production-20-553c273e
 ```
 

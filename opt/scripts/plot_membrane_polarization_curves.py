@@ -100,7 +100,8 @@ def _load_curve(
     )
     if not curve_path.is_file():
         raise ValueError(
-            f"curve CSV not found: {curve_path}; run opt/export_trial_curves.py first"
+            f"curve CSV not found: {curve_path}; "
+            "run opt/scripts/export_trial_curves.py first"
         )
     with curve_path.open(newline="", encoding="utf-8") as input_file:
         rows = list(csv.DictReader(input_file))

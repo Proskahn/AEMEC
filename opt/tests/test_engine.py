@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from optimization_lib import (
+from aemec_opt.engine import (
     ObjectiveResult,
     OptimizationError,
     SearchConfig,

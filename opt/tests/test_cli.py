@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from cli import build_parser
+from aemec_opt.cli import build_parser
 from run_optimization import OptimizationError, main
 
 

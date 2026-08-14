@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from aemec_case import (
+from aemec_opt.case import (
     AemecEvaluationConfig,
     AemecOpenFoamEvaluator,
     OptimizationError,
@@ -22,10 +22,10 @@ from aemec_case import (
     write_polarization_curve_csv,
     write_polarization_curve_plot,
 )
-from export_trial_curves import main as export_trial_curves
+from scripts.export_trial_curves import main as export_trial_curves
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def copy_controls(case: Path) -> None:

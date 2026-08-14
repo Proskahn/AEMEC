@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
-from optimization_lib import ObjectiveResult, OptimizationError
+from .engine import ObjectiveResult, OptimizationError
 
 
 # Version 6 derives the 1 A/cm2 objective from a potentiostatic polarization

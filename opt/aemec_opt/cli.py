@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
-from aemec_case import (
+from .case import (
     AemecEvaluationConfig,
     AemecOpenFoamEvaluator,
     DEFAULT_CROSSOVER_STABILITY_RELATIVE_TOLERANCE,
@@ -20,7 +20,7 @@ from aemec_case import (
     case_fingerprint,
     validate_path_layout,
 )
-from optimization_lib import (
+from .engine import (
     OptimizationError,
     SearchConfig,
     completed_trial_count,
@@ -28,7 +28,7 @@ from optimization_lib import (
     run_study,
     study_artifact_directory,
 )
-from reporting import ReportSpec, completed_records, write_results
+from .reporting import ReportSpec, completed_records, write_results
 
 
 DEFAULT_ITERATIONS = 50
@@ -79,7 +79,7 @@ def parse_command(value: str) -> tuple[str, ...]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(
         description="Run a resumable AEMEC membrane-thickness Pareto optimization."
     )
