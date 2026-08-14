@@ -349,6 +349,12 @@ Foam::regionTypes::electric::electric
                             << "Invalid polarizationCurve configuration in "
                             << this->name() << exit(FatalError);
                     }
+
+                    // The first target is active from the case start.  Seed
+                    // the comparison value here so its hold timer is not
+                    // restarted one deltaT late by the first control update.
+                    previousTargetCurrentDensity_ =
+                        polarizationTargets_[targetIndex_];
                 }
             }
         }

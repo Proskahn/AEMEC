@@ -27,7 +27,14 @@ command skips completed cases and retries incomplete or failed ones. Use
 `--fail-fast` when debugging, or `--timeout-minutes N` to limit each mesh and
 solver command.
 
+Older controller binaries started the first target's hold timer at the first
+0.1 s update rather than at the case start. Consequently, a 20 s minimum hold
+could report `accepted: false` at the 20 s cutoff even with `stability samples:
+5/5`. The runner now recognizes that exact legacy condition and reconstructs
+the CSV, summary, and plots directly from the completed solver log. A failed
+case with fewer than 5/5 final stable samples is not recovered because its
+endpoint is genuinely unsettled.
+
 The study manifest fingerprints the source case and records every command and
 scientific setting. If those inputs change, select new work and output
 directories instead of silently mixing incompatible results.
-

@@ -8,6 +8,9 @@ The source case under `run/AEMEC` is never modified by this workflow. Every
 thickness receives a clean OpenFOAM case under `crossover_experiements/work/`.
 The runner can resume completed cases and keeps the raw mesh and solver logs,
 parsed time-series CSV files, per-case metadata, a combined summary, and plots.
+It also recovers a normally completed solver log from an older controller
+binary without rerunning the CFD case when the final record contains the full
+stable-sample window.
 
 ## Run the study
 
@@ -59,4 +62,3 @@ python3 crossover_experiements/scripts/plot_results.py
 
 See [the runbook](docs/runbook.md) for failure recovery and
 [the architecture note](docs/architecture.md) for the data flow.
-

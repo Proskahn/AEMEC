@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -80,6 +81,22 @@ class RunnerTests(unittest.TestCase):
             ):
                 self.assertTrue(path.is_file(), path)
 
+            # Simulate the legacy one-step-late hold timer: the solver ended
+            # normally with a complete 5/5 stability window, but its final
+            # accepted flag was false and the old runner marked the case failed.
+            solver_path = output / "logs/20um_solver.log"
+            solver_path.write_text(
+                solver_path.read_text(encoding="utf-8").replace(
+                    "accepted: true", "accepted: false"
+                ),
+                encoding="utf-8",
+            )
+            (output / "data/20um_timeseries.csv").unlink()
+            metadata_path = output / "cases/20um.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata.update(status="failed", error="legacy timer rejection")
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
             calls.clear()
             resumed = ExperimentRunner(
                 source_case=DEFAULT_SOURCE_CASE,
@@ -95,8 +112,11 @@ class RunnerTests(unittest.TestCase):
             ):
                 self.assertEqual(resumed.run(), 0)
             self.assertEqual(calls, [])
+            recovered = json.loads(metadata_path.read_text(encoding="utf-8"))
+            self.assertEqual(recovered["status"], "completed")
+            self.assertTrue(recovered["recovered_from_solver_log"])
+            self.assertIn("old binary", recovered["quality_warning"])
 
 
 if __name__ == "__main__":
     unittest.main()
-

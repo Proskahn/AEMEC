@@ -191,6 +191,10 @@ class AemecCaseTests(unittest.TestCase):
             / "src/libSrc/fuelCellSystems/regions/electric/electric.C"
         ).read_text(encoding="utf-8")
         self.assertIn("time().stopAt(Time::saWriteNow);", controller_source)
+        self.assertIn(
+            "previousTargetCurrentDensity_ =\n                        polarizationTargets_[targetIndex_];",
+            controller_source,
+        )
 
     def test_ionic_poisson_solve_uses_one_reference_cell(self) -> None:
         electric_source = (

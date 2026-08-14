@@ -166,7 +166,7 @@ class ExperimentRunner:
             summary = summarize_samples(
                 thickness_um, samples, self.config.final_window_s
             )
-            self._validate_scientific_endpoint(summary)
+            self._validate_scientific_endpoint(summary, samples)
         except OptimizationError:
             return None
         return samples, summary
@@ -184,7 +184,11 @@ class ExperimentRunner:
                 + "\n  ".join(str(path) for path in missing)
             )
 
-    def _validate_scientific_endpoint(self, summary: ExperimentSummary) -> None:
+    def _validate_scientific_endpoint(
+        self,
+        summary: ExperimentSummary,
+        samples: Sequence[ExperimentSample],
+    ) -> str | None:
         target_a_cm2 = self.config.target_current_density_a_m2 / 1.0e4
         relative_error = abs(
             summary.mean_current_density_magnitude_a_cm2 - target_a_cm2
@@ -196,9 +200,82 @@ class ExperimentRunner:
                 f"limit={self.config.target_current_tolerance:.6g}"
             )
         if summary.final_controller_accepted is False:
-            raise OptimizationError(
-                "The galvanostatic controller did not accept a stable endpoint by 20 s"
+            final_control = next(
+                (
+                    sample
+                    for sample in reversed(samples)
+                    if sample.stable_samples is not None
+                    and sample.required_stable_samples is not None
+                ),
+                None,
             )
+            if (
+                final_control is not None
+                and final_control.stable_samples is not None
+                and final_control.required_stable_samples is not None
+                and final_control.stable_samples
+                >= final_control.required_stable_samples
+            ):
+                return (
+                    "Controller reported a complete stable window but an old "
+                    "binary started the initial hold timer one time step late; "
+                    "the final endpoint was accepted by the workflow."
+                )
+            raise OptimizationError(
+                "The galvanostatic controller did not reach a stable endpoint by "
+                f"20 s (final stability count: "
+                f"{None if final_control is None else final_control.stable_samples}/"
+                f"{None if final_control is None else final_control.required_stable_samples})"
+            )
+        return None
+
+    def _recover_completed_solver_log(
+        self, thickness_um: float, paths: dict[str, Path]
+    ) -> tuple[list[ExperimentSample], ExperimentSummary] | None:
+        """Recover durable data from a prior run that solved but failed validation."""
+        if self.overwrite or self.dry_run or not paths["solver_log"].is_file():
+            return None
+        try:
+            solver_output = paths["solver_log"].read_text(
+                encoding="utf-8", errors="replace"
+            )
+            if not NORMAL_END_RE.search(solver_output):
+                return None
+            samples = parse_experiment_log(solver_output)
+            validate_completed_run(
+                samples, self.config.duration_s, self.config.delta_t_s
+            )
+            summary = summarize_samples(
+                thickness_um, samples, self.config.final_window_s
+            )
+            warning = self._validate_scientific_endpoint(summary, samples)
+        except (OSError, OptimizationError):
+            return None
+
+        write_timeseries_csv(paths["data"], samples)
+        try:
+            metadata = json.loads(paths["metadata"].read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            metadata = {
+                "schema_version": SCHEMA_VERSION,
+                "thickness_um": thickness_um,
+                "work_case": str(paths["work"]),
+                "mesh_log": str(paths["mesh_log"]),
+                "solver_log": str(paths["solver_log"]),
+                "timeseries_csv": str(paths["data"]),
+            }
+        metadata.update(
+            status="completed",
+            recovered_from_solver_log=True,
+            recovered_at_utc=_utc_now(),
+            sample_count=len(samples),
+            summary=asdict(summary),
+        )
+        metadata.pop("error", None)
+        if warning:
+            metadata["quality_warning"] = warning
+        _write_json(paths["metadata"], metadata)
+        return samples, summary
 
     def _run_case(
         self, thickness_um: float, paths: dict[str, Path]
@@ -242,8 +319,8 @@ class ExperimentRunner:
             samples = parse_experiment_log(solver_output)
             validate_completed_run(samples, self.config.duration_s, self.config.delta_t_s)
             summary = summarize_samples(thickness_um, samples, self.config.final_window_s)
-            self._validate_scientific_endpoint(summary)
             write_timeseries_csv(paths["data"], samples)
+            warning = self._validate_scientific_endpoint(summary, samples)
             metadata.update(
                 status="completed",
                 completed_at_utc=_utc_now(),
@@ -251,6 +328,8 @@ class ExperimentRunner:
                 sample_count=len(samples),
                 summary=asdict(summary),
             )
+            if warning:
+                metadata["quality_warning"] = warning
             _write_json(paths["metadata"], metadata)
             return samples, summary
         except Exception as exc:
@@ -277,6 +356,13 @@ class ExperimentRunner:
             if existing is not None:
                 print(f"[resume] {thickness_um:g} µm already completed")
                 samples, summary = existing
+                samples_by_thickness[thickness_um] = samples
+                summaries.append(summary)
+                continue
+            recovered = self._recover_completed_solver_log(thickness_um, paths)
+            if recovered is not None:
+                print(f"[recover] {thickness_um:g} µm from completed solver log")
+                samples, summary = recovered
                 samples_by_thickness[thickness_um] = samples
                 summaries.append(summary)
                 continue
