@@ -12,6 +12,7 @@ from .project import OptimizationError, rewrite_block_mesh_thickness
 
 FLOAT_PATTERN = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
 DEFAULT_THICKNESSES_UM = (20.0, 40.0, 60.0, 80.0)
+DEFAULT_CURRENT_TARGETS_A_CM2 = tuple(index / 5.0 for index in range(11))
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,76 @@ class ExperimentConfig:
         settings["signed_target_current_density_a_m2"] = (
             self.signed_target_current_density_a_m2
         )
+        return settings
+
+
+@dataclass(frozen=True)
+class CurrentSweepConfig:
+    """Scientific settings for the 0--2 A/cm2 crossover sweep."""
+
+    current_targets_a_cm2: tuple[float, ...] = DEFAULT_CURRENT_TARGETS_A_CM2
+    membrane_thickness_um: float = 30.0
+    membrane_area_m2: float = 8.0e-5
+    minimum_hold_s: float = 20.0
+    maximum_duration_s: float = 400.0
+    delta_t_s: float = 0.1
+    initial_voltage_v: float = 1.3
+    target_current_tolerance: float = 0.01
+    current_stability_tolerance: float = 0.01
+    voltage_tolerance_v: float = 0.002
+    stability_samples: int = 5
+    final_window_s: float = 5.0
+    zero_current_scale_a_m2: float = 100.0
+
+    @property
+    def signed_targets_a_m2(self) -> tuple[float, ...]:
+        return tuple(-value * 1.0e4 for value in self.current_targets_a_cm2)
+
+    def validate(self) -> None:
+        targets = tuple(float(value) for value in self.current_targets_a_cm2)
+        if not targets or any(not math.isfinite(value) or value < 0 for value in targets):
+            raise OptimizationError("Current-density targets must be finite and non-negative")
+        if any(current <= previous for previous, current in zip(targets, targets[1:])):
+            raise OptimizationError("Current-density targets must increase strictly")
+        if not math.isclose(targets[0], 0.0, abs_tol=1.0e-12):
+            raise OptimizationError("The crossover current sweep must start at 0 A/cm2")
+        if not math.isclose(targets[-1], 2.0, abs_tol=1.0e-12):
+            raise OptimizationError("The crossover current sweep must end at 2 A/cm2")
+        for name, value in (
+            ("membrane thickness", self.membrane_thickness_um),
+            ("membrane area", self.membrane_area_m2),
+            ("minimum hold", self.minimum_hold_s),
+            ("maximum duration", self.maximum_duration_s),
+            ("time step", self.delta_t_s),
+            ("initial voltage", self.initial_voltage_v),
+            ("final averaging window", self.final_window_s),
+            ("zero-current scale", self.zero_current_scale_a_m2),
+        ):
+            if not math.isfinite(value) or value <= 0:
+                raise OptimizationError(f"Sweep {name} must be positive")
+        required_hold_time = len(targets) * self.minimum_hold_s
+        if self.maximum_duration_s < required_hold_time:
+            raise OptimizationError(
+                "Maximum sweep duration must cover every minimum target hold"
+            )
+        if self.final_window_s > self.minimum_hold_s:
+            raise OptimizationError("Final averaging window cannot exceed a target hold")
+        for name, value in (
+            ("target-current tolerance", self.target_current_tolerance),
+            ("current-stability tolerance", self.current_stability_tolerance),
+        ):
+            if not 0 < value < 1:
+                raise OptimizationError(f"The {name} must be in (0, 1)")
+        if not math.isfinite(self.voltage_tolerance_v) or self.voltage_tolerance_v < 0:
+            raise OptimizationError("Voltage tolerance cannot be negative")
+        if self.stability_samples <= 0:
+            raise OptimizationError("Stability sample count must be positive")
+
+    def settings(self) -> dict[str, object]:
+        self.validate()
+        settings = asdict(self)
+        settings["current_targets_a_cm2"] = list(self.current_targets_a_cm2)
+        settings["signed_targets_a_m2"] = list(self.signed_targets_a_m2)
         return settings
 
 
@@ -181,6 +252,56 @@ def _configure_electrical_control(path: Path, config: ExperimentConfig) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _configure_current_sweep_control(path: Path, config: CurrentSweepConfig) -> None:
+    text = path.read_text(encoding="utf-8")
+    text = text.replace(
+        "// Fixed 1 A/cm2 crossover experiment. Electrolysis current is negative\n"
+        "    // in this solver convention, so 1 A/cm2 = -10000 A/m2.",
+        "// Fallback table for the 0--2 A/cm2 current sweep. The active\n"
+        "    // polarization targets below use the negative electrolysis sign.",
+    )
+    text = text.replace(
+        "// Treat the single target as accepted only after the full 20 s experiment\n"
+        "    // and a stable final current/voltage window.",
+        "// Accept each current target after its minimum hold and stable final window.",
+    )
+    galvanostatic_start, galvanostatic_end = _block_span(text, "galvanostatic")
+    text = _replace_scalar_in_span(
+        text, galvanostatic_start, galvanostatic_end, "active", "true"
+    )
+    galvanostatic_start, galvanostatic_end = _block_span(text, "galvanostatic")
+    ibar_start, ibar_end = _block_span(
+        text, "ibar", galvanostatic_start, galvanostatic_end
+    )
+    text = _replace_table_values(
+        text,
+        ibar_start,
+        ibar_end,
+        (
+            (0.0, config.signed_targets_a_m2[0]),
+            (config.maximum_duration_s, config.signed_targets_a_m2[-1]),
+        ),
+    )
+    target_values = " ".join(format_number(value) for value in config.signed_targets_a_m2)
+    replacements = (
+        ("active", "true"),
+        ("targets", f"({target_values})"),
+        ("minimumHoldDuration", format_number(config.minimum_hold_s)),
+        ("targetCurrentTolerance", format_number(config.target_current_tolerance)),
+        ("currentScale", format_number(config.zero_current_scale_a_m2)),
+        ("voltageTolerance", format_number(config.voltage_tolerance_v)),
+        ("currentStabilityTolerance", format_number(config.current_stability_tolerance)),
+        ("stabilitySamples", str(config.stability_samples)),
+    )
+    for keyword, value in replacements:
+        galvanostatic_start, galvanostatic_end = _block_span(text, "galvanostatic")
+        curve_start, curve_end = _block_span(
+            text, "polarizationCurve", galvanostatic_start, galvanostatic_end
+        )
+        text = _replace_scalar_in_span(text, curve_start, curve_end, keyword, value)
+    path.write_text(text, encoding="utf-8")
+
+
 def _replace_control_value(path: Path, keyword: str, value: float) -> None:
     if not path.is_file():
         return
@@ -228,3 +349,30 @@ def configure_case(case_path: Path, thickness_um: float, config: ExperimentConfi
             case_path / directory / "phiEAnode" / "phi", config.initial_voltage_v
         )
 
+
+def configure_current_sweep_case(case_path: Path, config: CurrentSweepConfig) -> None:
+    """Configure one continuation run across all requested current targets."""
+    config.validate()
+    rewrite_block_mesh_thickness(
+        case_path / "system/blockMeshDict", config.membrane_thickness_um
+    )
+    _configure_current_sweep_control(
+        case_path / "constant/phiEAnode/regionProperties", config
+    )
+    for filename in ("controlDict.run", "controlDict"):
+        path = case_path / "system" / filename
+        _replace_control_value(path, "endTime", config.maximum_duration_s)
+        _replace_control_value(path, "deltaT", config.delta_t_s)
+        _replace_control_value(path, "writeInterval", config.maximum_duration_s)
+    for directory in ("0.orig", "0"):
+        potential_path = case_path / directory / "phiEAnode" / "phi"
+        _replace_initial_field(potential_path, config.initial_voltage_v)
+        if potential_path.is_file():
+            potential_text = potential_path.read_text(encoding="utf-8")
+            potential_path.write_text(
+                potential_text.replace(
+                    "// initial guess for 1 A/cm2 current control",
+                    "// initial guess for the zero-current sweep start",
+                ),
+                encoding="utf-8",
+            )

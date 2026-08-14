@@ -32,3 +32,17 @@ hydrogen production reference is calculated from Faraday's law,
 `100 n_cross/n_H2`. `reporting.py` reads only these normalized records, which
 makes plotting independent of OpenFOAM.
 
+## Current-density sweep
+
+`current_sweep_runner.py` uses one continuation case rather than 11 unrelated
+initial states. The controller advances through 0, 0.2, ..., 2 A/cm² only after
+the current and voltage are stable and the minimum 20 s hold is complete. The
+maximum 400 s end time is a safety bound; the controller requests an ordinary
+OpenFOAM stop immediately after accepting 2 A/cm².
+
+The solver diagnostic is an integrated anode hydrogen crossover rate in mol/s.
+`current_sweep.py` divides that value by the 8.0e-5 m² membrane area to produce
+the area-averaged flux density in mol/(m² s). It verifies the configured area
+against the collector-area ratio `|I/j|` printed in the solver log. The zero-
+current point has a valid crossover flux but no Faradaic crossover percentage,
+because hydrogen production is zero there.
