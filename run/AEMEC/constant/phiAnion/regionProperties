@@ -113,7 +113,11 @@ hydrogenCrossover
             // signed finite-rate term kLa*(cH2-c_sat), not imposed as a
             // Dirichlet value in the catalyst layer.
             henryCoefficient    7.8e-6;
-            massTransferCoefficient 1.0; // kLa [1/s], calibrate for cathode CL
+            // Effective volumetric coefficient kLa [1/s]. The selected value
+            // lies within the 540--6500 1/s range fitted by Franz et al. for
+            // Nafion cathode catalyst layers and remains an AEM sensitivity
+            // assumption until matching permeation data are available.
+            massTransferCoefficient 1500;
         }
 
         anodeInterface

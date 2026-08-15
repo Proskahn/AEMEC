@@ -73,8 +73,12 @@ cathode CL, and anode CL. `diffusivityModel` selects
 - `bruggeman`: `DH2Eff = epsilonIonH2^bruggemanExponent*DelecH2`
 
 The current case uses `porosityTortuosity`. The configured volume fractions,
-tortuosities, base diffusivity, Henry coefficient, drag coefficient, and both
-`kLa` values are provisional.
+tortuosities, base diffusivity, Henry coefficient, and drag coefficient are
+provisional. The cathode CL uses `kLa = 1500 1/s`, selected inside the
+`540--6500 1/s` effective volumetric range fitted by Franz et al. for Nafion
+cathode catalyst layers. It remains an AEM sensitivity assumption rather than
+an AEM-specific calibration. The anode CL value `kLa = 1 1/s` is unchanged and
+remains provisional.
 
 ## Conservative Faradaic partition and gas coupling
 

@@ -688,7 +688,11 @@ def check_static(case: Path, errors: list[str]) -> None:
         errors.append(
             "constant/phiAnion/regionProperties must use the gas phase at both crossover interfaces"
         )
-    for interface in ("cathodeInterface", "anodeInterface"):
+    interface_mass_transfer_coefficients = {
+        "cathodeInterface": "1500",
+        "anodeInterface": "1.0",
+    }
+    for interface, expected_coefficient in interface_mass_transfer_coefficients.items():
         try:
             interface_properties = dictionary_block(anion_properties, interface)
         except ValueError:
@@ -712,12 +716,12 @@ def check_static(case: Path, errors: list[str]) -> None:
                 f"{interface}.henryCoefficient"
             )
         if interface_properties and not re.search(
-            r"(?m)^\s*massTransferCoefficient\s+[-+0-9.eE]+\s*;",
+            rf"(?m)^\s*massTransferCoefficient\s+{re.escape(expected_coefficient)}\s*;",
             interface_properties,
         ):
             errors.append(
                 f"constant/phiAnion/regionProperties must set "
-                f"{interface}.massTransferCoefficient"
+                f"{interface}.massTransferCoefficient to {expected_coefficient} 1/s"
             )
     if re.search(r"\bsinkCoeff\b", without_comments(anion_properties)):
         errors.append(
