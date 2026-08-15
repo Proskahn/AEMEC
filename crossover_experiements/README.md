@@ -98,7 +98,7 @@ The default output directory is
 `crossover_experiements/results/current-sweep-0-to-2Acm2/` and contains:
 
 ```text
-current_sweep.csv             accepted-point flux, voltage, and current data
+current_sweep.csv             accepted stable-window flux, voltage, and current data
 data/timeseries.csv           transient rate and flux-density history
 current_sweep.png             flux, voltage, and crossover fraction vs current
 current_sweep_timeseries.png  target/measured current and flux vs time

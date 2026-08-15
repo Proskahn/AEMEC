@@ -168,16 +168,29 @@ def summarize_current_sweep(
                 f"Current target {target:g} A/cm2 was not accepted before the sweep ended"
             )
         endpoint = accepted[-1]
-        window_start = max(target_samples[0].time_s, endpoint.time_s - config.final_window_s)
-        window = [
+        required_samples = (
+            endpoint.required_stable_samples or config.stability_samples
+        )
+        eligible = [
             sample
             for sample in target_samples
-            if window_start - 1.0e-12 <= sample.time_s <= endpoint.time_s + 1.0e-12
+            if sample.time_s <= endpoint.time_s + 1.0e-12
         ]
-        if len(window) < config.stability_samples:
+        if len(eligible) < required_samples:
             raise OptimizationError(
-                f"Current target {target:g} A/cm2 has only {len(window)} final-window samples"
+                f"Current target {target:g} A/cm2 has only {len(eligible)} samples "
+                f"before acceptance; {required_samples} are required"
             )
+        if endpoint.stable_samples is not None and endpoint.stable_samples < required_samples:
+            raise OptimizationError(
+                f"Current target {target:g} A/cm2 was marked accepted with only "
+                f"{endpoint.stable_samples}/{required_samples} stable samples"
+            )
+        # The controller accepts a target after this exact number of consecutive
+        # stable samples.  Averaging an arbitrary time interval before acceptance
+        # would mix in the preceding voltage/current convergence transient.
+        window = eligible[-required_samples:]
+        window_start = window[0].time_s
         measured = [sample.current_density_magnitude_a_cm2 for sample in window]
         voltage = [sample.voltage_v for sample in window]
         rates = [sample.crossover_rate_mol_s for sample in window]
@@ -187,7 +200,7 @@ def summarize_current_sweep(
         relative_error = abs(mean_measured - target) / target_scale_a_cm2
         if relative_error > config.target_current_tolerance:
             raise OptimizationError(
-                f"Final-window current at {target:g} A/cm2 has relative error "
+                f"Accepted stability-window current at {target:g} A/cm2 has relative error "
                 f"{relative_error:.6g}; limit={config.target_current_tolerance:.6g}"
             )
         production_flux = target * 1.0e4 / (2.0 * FARADAY_CONSTANT_C_MOL)
@@ -224,4 +237,3 @@ def write_current_sweep_points(path: Path, points: Sequence[CurrentSweepPoint]) 
         writer.writeheader()
         for point in points:
             writer.writerow(point.row())
-

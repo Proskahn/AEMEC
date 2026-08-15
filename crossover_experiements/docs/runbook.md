@@ -49,6 +49,10 @@ It uses a 30 µm membrane, 8.0e-5 m² active area, 0.2 A/cm² current increments
 CSV data; a normally ended log containing all accepted targets can also be
 recovered automatically. If a target is not accepted before the safety limit,
 `case.json` identifies it and the partial flux time series remains available.
+Accepted-point statistics use the controller's final five consecutive stable
+samples; they do not include the preceding target-convergence transient. After
+a post-processing-only failure, repeat the same command to reconstruct the
+summary and plots from the completed solver log without rerunning OpenFOAM.
 
 Use a different output/work pair whenever changing the step, thickness, area,
 hold duration, or maximum duration. This prevents incompatible sweep data from

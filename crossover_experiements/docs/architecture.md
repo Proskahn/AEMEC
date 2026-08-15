@@ -43,6 +43,9 @@ OpenFOAM stop immediately after accepting 2 A/cm².
 The solver diagnostic is an integrated anode hydrogen crossover rate in mol/s.
 `current_sweep.py` divides that value by the 8.0e-5 m² membrane area to produce
 the area-averaged flux density in mol/(m² s). It verifies the configured area
-against the collector-area ratio `|I/j|` printed in the solver log. The zero-
-current point has a valid crossover flux but no Faradaic crossover percentage,
-because hydrogen production is zero there.
+against the collector-area ratio `|I/j|` printed in the solver log. Each
+accepted target is summarized over the controller's final consecutive stable
+samples. Earlier samples from the current/voltage convergence transient are
+retained in the time series but are not mixed into the accepted endpoint. The
+zero-current point has a valid crossover flux but no Faradaic crossover
+percentage, because hydrogen production is zero there.

@@ -78,6 +78,39 @@ class CurrentSweepTests(unittest.TestCase):
         self.assertIsNone(points[0].crossover_fraction_percent)
         self.assertGreater(points[-1].hydrogen_production_flux_density_mol_m2_s, 0)
 
+    def test_summary_uses_controller_stability_samples_not_transient(self) -> None:
+        config = CurrentSweepConfig()
+        samples = sweep_samples(config)
+        target = config.current_targets_a_cm2[1]
+        signed_target = config.signed_targets_a_m2[1]
+        first_stable_time = min(
+            sample.time_s
+            for sample in samples
+            if sample.target_current_density_a_m2 == signed_target
+        )
+        for sample_index in range(5):
+            measured = signed_target * 0.97
+            samples.append(
+                ExperimentSample(
+                    time_s=first_stable_time - 0.5 + 0.1 * sample_index,
+                    current_a=measured * config.membrane_area_m2,
+                    current_density_a_m2=measured,
+                    voltage_v=1.3 + 0.3 * target,
+                    crossover_rate_mol_s=(1.0 + target) * 1.0e-8,
+                    target_current_density_a_m2=signed_target,
+                    current_relative_error=0.02,
+                    stable_samples=0,
+                    required_stable_samples=config.stability_samples,
+                    accepted=False,
+                )
+            )
+
+        point = summarize_current_sweep(samples, config)[1]
+
+        self.assertEqual(point.window_sample_count, config.stability_samples)
+        self.assertAlmostEqual(point.window_start_s, first_stable_time)
+        self.assertAlmostEqual(point.mean_measured_current_density_a_cm2, target)
+
     def test_csv_round_trip_and_figures(self) -> None:
         config = CurrentSweepConfig()
         samples = sweep_samples(config)
@@ -100,4 +133,3 @@ class CurrentSweepTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
