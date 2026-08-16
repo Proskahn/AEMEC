@@ -27,6 +27,10 @@ opt/work/
 crossover_experiements/results/
 crossover_experiements/work/
 
+# Local polarization-curve results and scratch case
+polarization_curve/results/
+polarization_curve/work/
+
 # OpenFOAM build products
 **/lnInclude/
 **/Make/linux*/

@@ -24,6 +24,13 @@ python3 visualization/aemec_diagnostics.py \
     --scan-mode voltage
 ```
 
+To run the complete retained 165 s voltage sweep in an isolated case and
+generate all three plots together, use:
+
+```bash
+python3 polarization_curve/run_polarization_curve.py
+```
+
 Plot optimization trials with:
 
 ```bash
