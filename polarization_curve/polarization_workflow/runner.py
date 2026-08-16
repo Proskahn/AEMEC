@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import queue
+import shlex
+import signal
 import shutil
+import subprocess
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,12 +20,12 @@ from typing import Sequence
 # sys.path for direct execution through polarization_curve/run_polarization_curve.py.
 from .project import (
     AemecEvaluationConfig,
+    FATAL_OUTPUT_RE,
     NORMAL_END_RE,
     OptimizationError,
     case_fingerprint,
     configure_voltage_sweep,
     copy_clean_case,
-    run_command,
     validate_path_layout,
 )
 
@@ -69,6 +75,121 @@ def _write_json(path: Path, payload: object) -> None:
         json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     temporary.replace(path)
+
+
+def _terminate_process_group(process: subprocess.Popen[str]) -> None:
+    if process.poll() is None:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    try:
+        process.wait(timeout=5.0)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+
+
+def run_command_live(
+    command: Sequence[str],
+    cwd: Path,
+    log_path: Path,
+    timeout_s: float | None,
+) -> None:
+    """Run a command while teeing every output line to the terminal and log."""
+    if not command:
+        raise OptimizationError("An empty external command was provided")
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    display = shlex.join(command)
+    started = time.monotonic()
+    try:
+        process = subprocess.Popen(
+            list(command),
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            errors="replace",
+            bufsize=1,
+            start_new_session=True,
+        )
+    except FileNotFoundError as exc:
+        log_path.write_text(
+            f"$ {display}\nCommand not found: {command[0]}\n", encoding="utf-8"
+        )
+        raise OptimizationError(
+            f"Cannot run {command[0]!r}; source the OpenFOAM environment first"
+        ) from exc
+
+    lines: queue.Queue[str | None] = queue.Queue()
+
+    def read_output() -> None:
+        assert process.stdout is not None
+        try:
+            for line in process.stdout:
+                lines.put(line)
+        finally:
+            process.stdout.close()
+            lines.put(None)
+
+    reader = threading.Thread(target=read_output, daemon=True)
+    reader.start()
+    fatal_marker: str | None = None
+    timed_out = False
+
+    with log_path.open("w", encoding="utf-8", buffering=1) as log_file:
+        log_file.write(f"$ {display}\n")
+        print(f"$ {display}", flush=True)
+        try:
+            while True:
+                if (
+                    not timed_out
+                    and process.poll() is None
+                    and timeout_s is not None
+                    and time.monotonic() - started > timeout_s
+                ):
+                    timed_out = True
+                    _terminate_process_group(process)
+                try:
+                    line = lines.get(timeout=0.2)
+                except queue.Empty:
+                    if timed_out and not reader.is_alive():
+                        break
+                    continue
+                if line is None:
+                    break
+                log_file.write(line)
+                print(line, end="", flush=True)
+                if fatal_marker is None:
+                    match = FATAL_OUTPUT_RE.search(line)
+                    if match:
+                        fatal_marker = match.group(0)
+        except KeyboardInterrupt:
+            _terminate_process_group(process)
+            log_file.write("\n# interrupted by user\n")
+            raise
+        finally:
+            if process.poll() is None:
+                process.wait()
+            elapsed = time.monotonic() - started
+            log_file.write(f"\n# elapsed_s={elapsed:.6f}\n")
+
+    if timed_out:
+        raise OptimizationError(
+            f"Command timed out after {timeout_s:g} s: {display}. See {log_path}"
+        )
+    if process.returncode != 0:
+        raise OptimizationError(
+            f"Command exited with status {process.returncode}: {display}. "
+            f"See {log_path}"
+        )
+    if fatal_marker is not None:
+        raise OptimizationError(
+            f"Command output contains {fatal_marker!r}: {display}. See {log_path}"
+        )
 
 
 def generate_visualizations(
@@ -162,6 +283,45 @@ def generate_visualizations(
     return generated
 
 
+def verify_completed_voltage_sweep(
+    log_path: Path,
+    expected_holds: Sequence[object],
+    delta_t_s: float,
+    active_area_cm2: float,
+) -> dict[str, object]:
+    """Prove that a fresh solver log reached every configured voltage hold."""
+    samples = parse_log(log_path, active_area_cm2)
+    selected = last_sample_per_voltage(samples, voltage_precision=6)
+    expected_voltages = [float(getattr(hold, "voltage_v")) for hold in expected_holds]
+    expected_end = float(getattr(expected_holds[-1], "end_s"))
+    actual_voltages = [sample.voltage_v for sample in selected]
+    final_times = [sample.time for sample in selected if sample.time is not None]
+    final_time = max(final_times) if final_times else None
+    if len(selected) != len(expected_holds):
+        raise OptimizationError(
+            "Fresh solver log does not contain one endpoint for every voltage "
+            f"hold: expected {len(expected_holds)}, found {len(selected)}"
+        )
+    if any(
+        not math.isclose(actual, expected, rel_tol=0.0, abs_tol=1.0e-6)
+        for actual, expected in zip(actual_voltages, expected_voltages)
+    ):
+        raise OptimizationError(
+            "Fresh solver log voltage endpoints do not match the configured table"
+        )
+    if final_time is None or final_time < expected_end - 0.5 * delta_t_s:
+        raise OptimizationError(
+            "Fresh solver log ended before the configured final time: "
+            f"expected {expected_end:g} s, found {final_time}"
+        )
+    return {
+        "verified_fresh_solver_log": True,
+        "final_time_s": final_time,
+        "voltage_endpoint_count": len(selected),
+        "voltage_endpoints_v": actual_voltages,
+    }
+
+
 class PolarizationCurveRunner:
     """Prepare an isolated case, run the old voltage table, and plot it."""
 
@@ -174,7 +334,7 @@ class PolarizationCurveRunner:
         solver_command: Sequence[str],
         timeout_s: float | None = None,
         active_area_cm2: float = DEFAULT_ACTIVE_AREA_CM2,
-        overwrite: bool = False,
+        overwrite: bool = True,
         dry_run: bool = False,
         postprocess_only: bool = False,
     ) -> None:
@@ -219,6 +379,8 @@ class PolarizationCurveRunner:
             "schema_version": SCHEMA_VERSION,
             "description": RUN_DESCRIPTION,
             "status": "preparing",
+            "fresh_solve": True,
+            "postprocess_only": False,
             "started_at_utc": _utc_now(),
             "source_case": str(self.source_case),
             "source_case_fingerprint": case_fingerprint(self.source_case),
@@ -233,8 +395,8 @@ class PolarizationCurveRunner:
             if not self.overwrite:
                 raise OptimizationError(
                     f"Output directory already exists: {self.output_dir}. "
-                    "Use --overwrite for a fresh run or --postprocess-only "
-                    "to regenerate figures from its solver log."
+                    "Remove --keep-existing for a fresh run or use "
+                    "--postprocess-only to regenerate figures from its solver log."
                 )
             entries = list(self.output_dir.iterdir())
             if entries:
@@ -303,6 +465,7 @@ class PolarizationCurveRunner:
             manifest = {"schema_version": SCHEMA_VERSION}
         manifest.update(
             status="completed",
+            postprocess_only=True,
             postprocessed_at_utc=_utc_now(),
             products=products,
         )
@@ -319,6 +482,11 @@ class PolarizationCurveRunner:
         started = time.monotonic()
         try:
             self._prepare_work_case()
+            print(
+                "[fresh] copied source setup without prior time directories, "
+                "mesh, processor data, or solver logs",
+                flush=True,
+            )
             sweep = configure_voltage_sweep(
                 self.work_case, AemecEvaluationConfig()
             )
@@ -368,7 +536,7 @@ class PolarizationCurveRunner:
 
             _write_json(self.paths["manifest"], manifest)
             print(f"[mesh] {self.work_case}")
-            run_command(
+            run_command_live(
                 self.mesh_command,
                 self.work_case,
                 self.paths["mesh_log"],
@@ -379,18 +547,34 @@ class PolarizationCurveRunner:
             manifest["status"] = "solving"
             _write_json(self.paths["manifest"], manifest)
             print(f"[solve] 165 s voltage sweep -> {self.paths['solver_log']}")
-            output = run_command(
+            run_command_live(
                 self.solver_command,
                 self.work_case,
                 self.paths["solver_log"],
                 self.timeout_s,
             )
-            if not NORMAL_END_RE.search(output):
+            solver_log = self.paths["solver_log"].read_text(
+                encoding="utf-8", errors="replace"
+            )
+            if not NORMAL_END_RE.search(solver_log):
                 raise OptimizationError(
                     "Solver output does not contain the normal OpenFOAM 'End'"
                 )
+            verification = verify_completed_voltage_sweep(
+                self.paths["solver_log"],
+                sweep.holds,
+                sweep.delta_t_s,
+                self.active_area_cm2,
+            )
+            print(
+                "[verify] fresh solve reached "
+                f"t={verification['final_time_s']} s with "
+                f"{verification['voltage_endpoint_count']} voltage endpoints",
+                flush=True,
+            )
 
             manifest["status"] = "postprocessing"
+            manifest["solver_verification"] = verification
             _write_json(self.paths["manifest"], manifest)
             products = self._postprocess()
             manifest.update(

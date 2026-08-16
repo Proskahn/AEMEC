@@ -17,16 +17,22 @@ Source the OpenFOAM environment, then run from the repository root:
 python3 polarization_curve/run_polarization_curve.py
 ```
 
+The normal command always performs a fresh solve. It replaces only a previous
+result directory carrying this workflow's ownership manifest, copies the
+source case without old time directories or logs, remeshes, and runs
+`openFuelCell`. OpenFOAM output is written to `logs/solver.log` and displayed
+live in the terminal, including each `Time = ...` line.
+
 Inspect the configured scratch case without running OpenFOAM:
 
 ```bash
 python3 polarization_curve/run_polarization_curve.py --dry-run
 ```
 
-Replace a previous run explicitly:
+Refuse to replace an existing result directory:
 
 ```bash
-python3 polarization_curve/run_polarization_curve.py --overwrite
+python3 polarization_curve/run_polarization_curve.py --keep-existing
 ```
 
 If OpenFOAM completed but plotting was interrupted, regenerate the products

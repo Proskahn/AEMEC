@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import json
+import io
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from polarization_curve.polarization_workflow.runner import (
     PolarizationCurveRunner,
     generate_visualizations,
+    run_command_live,
+    verify_completed_voltage_sweep,
 )
 
 
@@ -76,6 +81,85 @@ class PolarizationCurveRunnerTests(unittest.TestCase):
             original_control,
             (source / "system/controlDict.run").read_text(encoding="utf-8"),
         )
+
+    def test_default_dry_run_replaces_only_its_own_previous_run(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            arguments = dict(
+                source_case=ROOT / "run/AEMEC",
+                work_dir=root / "work",
+                output_dir=root / "results",
+                mesh_command=("make", "mesh"),
+                solver_command=("openFuelCell",),
+                dry_run=True,
+            )
+            self.assertEqual(PolarizationCurveRunner(**arguments).run(), 0)
+            first_manifest = json.loads(
+                (root / "results/run.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(PolarizationCurveRunner(**arguments).run(), 0)
+            second_manifest = json.loads(
+                (root / "results/run.json").read_text(encoding="utf-8")
+            )
+
+        self.assertTrue(second_manifest["fresh_solve"])
+        self.assertNotEqual(
+            first_manifest["started_at_utc"], second_manifest["started_at_utc"]
+        )
+
+    def test_external_command_is_teed_live_to_terminal_and_log(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "solver.log"
+            terminal = io.StringIO()
+            command = (
+                sys.executable,
+                "-u",
+                "-c",
+                "print('Time = 0.1'); print('Time = 0.2'); print('End')",
+            )
+            with redirect_stdout(terminal):
+                run_command_live(command, root, log, timeout_s=10.0)
+
+            terminal_text = terminal.getvalue()
+            log_text = log.read_text(encoding="utf-8")
+
+        self.assertIn("Time = 0.1", terminal_text)
+        self.assertIn("Time = 0.2", terminal_text)
+        self.assertIn("Time = 0.1", log_text)
+        self.assertIn("Time = 0.2", log_text)
+        self.assertIn("# elapsed_s=", log_text)
+
+    def test_completed_sweep_requires_all_endpoints_and_final_time(self) -> None:
+        class Hold:
+            def __init__(self, voltage_v: float, end_s: float) -> None:
+                self.voltage_v = voltage_v
+                self.end_s = end_s
+
+        holds = [Hold(1.3 + 0.1 * index, 15.0 * (index + 1)) for index in range(11)]
+        lines: list[str] = []
+        for index, hold in enumerate(holds):
+            lines.extend(
+                (
+                    f"Time = {hold.end_s}",
+                    "Controlled boundary current (A) at interconnect0: "
+                    f"signed = {-0.01 * index}, magnitude = {0.01 * index}, "
+                    f"current density = {-125.0 * index} A/m2, "
+                    f"voltage = {hold.voltage_v}",
+                )
+            )
+        lines.append("End")
+
+        with tempfile.TemporaryDirectory() as directory:
+            log = Path(directory) / "solver.log"
+            log.write_text("\n".join(lines), encoding="utf-8")
+            verification = verify_completed_voltage_sweep(
+                log, holds, delta_t_s=0.1, active_area_cm2=0.8
+            )
+
+        self.assertTrue(verification["verified_fresh_solver_log"])
+        self.assertEqual(verification["final_time_s"], 165.0)
+        self.assertEqual(verification["voltage_endpoint_count"], 11)
 
     def test_all_visualization_products_are_generated_from_one_log(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

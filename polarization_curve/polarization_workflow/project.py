@@ -17,6 +17,7 @@ if str(OPT_ROOT) not in sys.path:
 
 from aemec_opt.case import (  # noqa: E402
     AemecEvaluationConfig,
+    FATAL_OUTPUT_RE,
     NORMAL_END_RE,
     case_fingerprint,
     configure_voltage_sweep,
@@ -37,6 +38,7 @@ __all__ = [
     "DEFAULT_OUTPUT_DIR",
     "DEFAULT_SOURCE_CASE",
     "DEFAULT_WORK_DIR",
+    "FATAL_OUTPUT_RE",
     "NORMAL_END_RE",
     "OptimizationError",
     "case_fingerprint",

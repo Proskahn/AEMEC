@@ -36,9 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--timeout-minutes", type=float, default=None)
     parser.add_argument(
-        "--overwrite",
+        "--keep-existing",
         action="store_true",
-        help="Replace an existing result directory with a fresh run",
+        help=(
+            "Refuse to replace an existing workflow-owned result directory; "
+            "the default is always a fresh solve"
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -68,7 +71,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else 60.0 * args.timeout_minutes
             ),
             active_area_cm2=args.active_area_cm2,
-            overwrite=args.overwrite,
+            overwrite=not args.keep_existing,
             dry_run=args.dry_run,
             postprocess_only=args.postprocess_only,
         )
