@@ -446,20 +446,13 @@ def plot_voltage_decomposition(points: list[VoltagePoint], path: Path) -> None:
         raise ValueError("no complete voltage-decomposition points are available")
 
     current = [point.current_density_a_cm2 for point in points]
-    reversible_reference = points[0].reversible_voltage_v
     series = (
         ("Cell voltage", [point.cell_voltage_v for point in points], "o", 2.4),
         (
-            "Reversible baseline (lowest current)",
-            [reversible_reference]*len(points),
-            None,
-            1.8,
-        ),
-        (
-            "Nernst shift (transport proxy)",
-            [point.reversible_voltage_v - reversible_reference for point in points],
+            "Reversible voltage",
+            [point.reversible_voltage_v for point in points],
             "s",
-            1.6,
+            1.8,
         ),
         ("Anode activation", [point.anode_activation_v for point in points], "^", 1.6),
         ("Cathode activation", [point.cathode_activation_v for point in points], "v", 1.6),

@@ -120,9 +120,9 @@ python3 visualization/aemec_diagnostics.py \
 This writes `voltage_decomposition.{csv,png}` and
 `hydrogen_crossover.{csv,png}` in `visualization/output/`. The voltage figure
 contains
-the cell voltage, lowest-current reversible baseline, current-dependent Nernst
-shift (a concentration/transport proxy), anode and cathode activation losses,
-electronic and anion ohmic losses, and an explicit unresolved closure curve.
+the cell voltage, current-dependent reversible voltage, anode and cathode
+activation losses, electronic and anion ohmic losses, and an explicit
+unresolved closure curve.
 Ohmic voltage is evaluated as `integral(i^2/sigma dV)/I`; activation and Nernst
 terms are current-weighted over their catalyst layers. The crossover figure
 shows Faradaic H2 generation, the initially dissolved share, signed cathode
