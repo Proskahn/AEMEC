@@ -25,8 +25,8 @@ def plot_current_sweep(path: Path, points: Sequence[CurrentSweepPoint]) -> None:
         raise OptimizationError("No accepted current-sweep points are available to plot")
     ordered = sorted(points, key=lambda point: point.target_current_density_a_cm2)
     current = [point.target_current_density_a_cm2 for point in ordered]
-    figure, axes = plt.subplots(1, 3, figsize=(13.2, 4.15), constrained_layout=True)
-    axes[0].errorbar(
+    figure, axis = plt.subplots(figsize=(7.0, 4.8), constrained_layout=True)
+    axis.errorbar(
         current,
         [point.mean_crossover_flux_density_mol_m2_s for point in ordered],
         yerr=[point.crossover_flux_density_std_mol_m2_s for point in ordered],
@@ -35,27 +35,9 @@ def plot_current_sweep(path: Path, points: Sequence[CurrentSweepPoint]) -> None:
         capsize=3,
         color="#1769aa",
     )
-    axes[0].set_ylabel(r"H$_2$ crossover flux [mol m$^{-2}$ s$^{-1}$]")
-    axes[1].plot(
-        current,
-        [point.mean_voltage_v for point in ordered],
-        marker="o",
-        linewidth=1.8,
-        color="#b54a3a",
-    )
-    axes[1].set_ylabel("Cell voltage [V]")
-    fraction_points = [point for point in ordered if point.crossover_fraction_percent is not None]
-    axes[2].plot(
-        [point.target_current_density_a_cm2 for point in fraction_points],
-        [point.crossover_fraction_percent for point in fraction_points],
-        marker="o",
-        linewidth=1.8,
-        color="#348a4f",
-    )
-    axes[2].set_ylabel("Crossover / H₂ production [%]")
-    for axis in axes:
-        axis.set_xlabel(r"Target current density [A cm$^{-2}$]")
-        _style(axis)
+    axis.set_xlabel(r"Current density [A cm$^{-2}$]")
+    axis.set_ylabel(r"H$_2$ crossover flux [mol m$^{-2}$ s$^{-1}$]")
+    _style(axis)
     figure.suptitle("Hydrogen crossover from 0 to 2 A/cm²")
     path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(path, dpi=220)
@@ -108,4 +90,3 @@ def write_current_sweep_reports(
     plot_current_sweep_timeseries(
         output_dir / "current_sweep_timeseries.png", samples, membrane_area_m2
     )
-

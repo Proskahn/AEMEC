@@ -100,7 +100,7 @@ The default output directory is
 ```text
 current_sweep.csv             accepted stable-window flux, voltage, and current data
 data/timeseries.csv           transient rate and flux-density history
-current_sweep.png             flux, voltage, and crossover fraction vs current
+current_sweep.png             hydrogen crossover flux vs current density
 current_sweep_timeseries.png  target/measured current and flux vs time
 logs/solver.log               complete OpenFOAM diagnostics
 ```
