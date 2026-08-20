@@ -653,7 +653,7 @@ def check_static(case: Path, errors: list[str]) -> None:
         errors.append(
             "system/phiAnion/fvSolution must use the DICPCG solver for phi"
         )
-    for zone, conductivity in (("anodeCL", "1.10"), ("cathodeCL", "1.10"), ("membrane", "11.4")):
+    for zone, conductivity in (("anodeCL", "1.10"), ("cathodeCL", "1.10"), ("membrane", "8.0")):
         if not has_dictionary_block(anion_properties, zone) or f"sigma               {conductivity};" not in anion_properties:
             errors.append(f"constant/phiAnion/regionProperties is missing effective conductivity {conductivity} for '{zone}'")
 

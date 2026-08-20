@@ -138,10 +138,10 @@ hydrogenCrossover
 
 sigma
 {
-    // Effective OH- conductivity.  These baseline values reproduce the
-    // former lambda=20 PEM correlation at 313.15 K: 11.4 in the membrane
-    // and 1.10 after the porous-CL ionomer correction.  Calibrate them for
-    // the selected AEM ionomer and electrolyte concentration.
+    // Effective OH- conductivity.  The membrane uses a selected AEM value
+    // of 8.0 S/m, while the porous catalyst layers retain the provisional
+    // effective value of 1.10 S/m.  Calibrate them for the selected AEM
+    // ionomer, temperature, hydration, and electrolyte concentration.
     anodeCL
     {
         sigmaModel          constantSigma;
@@ -170,7 +170,7 @@ sigma
         constantSigmaCoeffs
         {
             cellZone            membrane;
-            sigma               11.4;  // S/m
+            sigma               8.0;   // S/m
         }
     }
 }
