@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare polarization and H2 crossover for selected membrane thicknesses."""
+"""Overlay polarization curves for selected membrane thicknesses."""
 
 from __future__ import annotations
 
@@ -25,7 +25,6 @@ class TrialCurve:
     membrane_thickness_um: float
     current_density_a_cm2: tuple[float, ...]
     cell_voltage_v: tuple[float, ...]
-    crossover_rate_mol_s: tuple[float, ...]
 
 
 def _format_thickness(value: float) -> str:
@@ -110,28 +109,22 @@ def _load_curve(
 
     current_density: list[float] = []
     voltage: list[float] = []
-    crossover_rate: list[float] = []
     for row in rows:
         try:
             current = float(row["final_current_density_magnitude_a_cm2"])
             cell_voltage = float(row["cell_voltage_v"])
-            crossover = float(row["final_crossover_rate_mol_s"])
         except (KeyError, TypeError, ValueError) as exc:
-            raise ValueError(f"invalid I-V or crossover data in: {curve_path}") from exc
-        if not all(
-            math.isfinite(value) for value in (current, cell_voltage, crossover)
-        ):
-            raise ValueError(f"non-finite I-V or crossover data in: {curve_path}")
+            raise ValueError(f"invalid polarization data in: {curve_path}") from exc
+        if not all(math.isfinite(value) for value in (current, cell_voltage)):
+            raise ValueError(f"non-finite polarization data in: {curve_path}")
         current_density.append(current)
         voltage.append(cell_voltage)
-        crossover_rate.append(crossover)
 
     return TrialCurve(
         trial_number,
         membrane_thickness_um,
         tuple(current_density),
         tuple(voltage),
-        tuple(crossover_rate),
     )
 
 
@@ -157,43 +150,23 @@ def plot_curves(curves: Sequence[TrialCurve], output_path: Path) -> None:
         raise ValueError("no polarization curves were provided")
 
     markers = ("o", "s", "^", "D", "v", "P", "X")
-    figure, (voltage_axes, crossover_axes) = plt.subplots(
-        2,
-        1,
-        figsize=(7.4, 8.0),
-        sharex=True,
-        constrained_layout=True,
-    )
+    figure, voltage_axes = plt.subplots(figsize=(7.4, 5.2), constrained_layout=True)
     for index, curve in enumerate(curves):
-        voltage_line = voltage_axes.plot(
+        voltage_axes.plot(
             curve.current_density_a_cm2,
             curve.cell_voltage_v,
             marker=markers[index % len(markers)],
             linewidth=1.8,
             markersize=5,
             label=f"{curve.membrane_thickness_um:g} µm",
-        )[0]
-        crossover_axes.plot(
-            curve.current_density_a_cm2,
-            curve.crossover_rate_mol_s,
-            color=voltage_line.get_color(),
-            marker=markers[index % len(markers)],
-            linewidth=1.8,
-            markersize=5,
         )
 
-    figure.suptitle("Membrane-Thickness Performance Comparison")
+    voltage_axes.set_xlabel(r"$|j|$ [A/cm$^2$]")
     voltage_axes.set_ylabel("Cell voltage [V]")
-    voltage_axes.set_title("Polarization")
+    voltage_axes.set_title("Membrane-Thickness Polarization Curves")
     voltage_axes.grid(True, which="major", alpha=0.3)
     voltage_axes.legend(title="Membrane thickness")
-
-    crossover_axes.set_xlabel(r"$|j|$ [A/cm$^2$]")
-    crossover_axes.set_ylabel(r"H$_2$ crossover rate [mol/s]")
-    crossover_axes.set_title(r"H$_2$ crossover")
-    crossover_axes.grid(True, which="major", alpha=0.3)
-    crossover_axes.ticklabel_format(axis="x", style="plain")
-    crossover_axes.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    voltage_axes.ticklabel_format(axis="x", style="plain")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path, dpi=220)
     plt.close(figure)
@@ -225,7 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help=(
             "Output PNG path (default: "
-            "selected_polarization_and_crossover_curves.png in study)."
+            "selected_polarization_curves.png in study)."
         ),
     )
     return parser
@@ -238,7 +211,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     output_path = (
         args.output.resolve()
         if args.output is not None
-        else study_dir / "selected_polarization_and_crossover_curves.png"
+        else study_dir / "selected_polarization_curves.png"
     )
     try:
         curves = load_selected_curves(
