@@ -26,12 +26,13 @@ Class
 
 Description
     Electric conductivity in porous materials.
-    If this is the electrode, the occupiation of Nafion should be taken into account.
+    Porous transport layers use a Bruggeman correction:
     \f[
-        \sigma = \sigma_0 * (1 - porosity)
+        \sigma = \sigma_0 * (1 - porosity)^{1.5}
     \f]
     
-    otherwise:
+    If this is the catalyst layer, the occupancy of ionomer is also taken into
+    account:
 
     \f[
         \sigma = \sigma_0 * ((1 - porosity) * porNaf)^1.5

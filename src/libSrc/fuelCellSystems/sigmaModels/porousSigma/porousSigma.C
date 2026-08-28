@@ -81,7 +81,7 @@ void Foam::sigmaModels::porousSigma::correct
         {
             const label cellI = cells[i];
 
-            sigmaField[cellI] = sigma_*(1.0 - porosity_);
+            sigmaField[cellI] = sigma_*pow(scalar(1) - porosity_, 1.5);
 
             if(catalyst_)
             {
