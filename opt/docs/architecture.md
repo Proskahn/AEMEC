@@ -6,7 +6,8 @@ small public surface.
 | Module | Responsibility | May depend on |
 | --- | --- | --- |
 | `aemec_opt/engine.py` | Resumable multi-objective study, completed-trial budget, trial failures, and generic Pareto selection | Python standard library, Optuna |
-| `aemec_opt/reporting.py` | CSV and two-objective Pareto plots | `engine.py`, Matplotlib |
+| `aemec_opt/knee.py` | Normalized Chebyshev and bend-angle knee selection | `engine.py`, Python standard library |
+| `aemec_opt/reporting.py` | CSV and annotated two-objective Pareto plots | `engine.py`, `knee.py`, Matplotlib |
 | `aemec_opt/case.py` | AEMEC geometry edits, OpenFOAM execution, log parsing, and objective validation | `engine.py`, Python standard library |
 | `aemec_opt/cli.py` | AEMEC command-line configuration and composition | all package modules |
 | `run_optimization.py` | Stable executable facade | `aemec_opt.cli` |
@@ -31,7 +32,12 @@ incompatible studies from silently sharing a database.
 
 The reporting layer writes all completed records to
 `optimization_results.csv`, non-dominated records to `pareto_front.csv`, and a
-two-objective plot to `pareto_front.png`.
+two-objective plot to `pareto_front.png`. Objective values are normalized over
+the Pareto front with zero at the ideal point. `knee_points.csv` records the
+point minimizing normalized Chebyshev distance and, when one exceeds the
+configured positive-angle threshold, the maximum bend-angle point. The bend
+angle uses the two normalized extreme trade-off points as its left and right
+references.
 
 ## AEMEC adapter
 

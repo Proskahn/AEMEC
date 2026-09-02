@@ -5,7 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from aemec_opt.reporting import ReportSpec, TrialRecord, write_results
+from aemec_opt.reporting import (
+    ReportSpec,
+    TrialRecord,
+    find_pareto_knee_points,
+    write_results,
+)
 
 
 class ReportingTests(unittest.TestCase):
@@ -28,10 +33,34 @@ class ReportingTests(unittest.TestCase):
             write_results(records, output, spec, ("minimize", "minimize"))
             self.assertTrue((output / "optimization_results.csv").is_file())
             self.assertTrue((output / "pareto_front.csv").is_file())
+            self.assertTrue((output / "knee_points.csv").is_file())
             self.assertTrue((output / "pareto_front.png").is_file())
             with (output / "pareto_front.csv").open(newline="") as handle:
                 rows = list(csv.DictReader(handle))
             self.assertEqual([row["trial"] for row in rows], ["0", "1"])
+
+    def test_selects_distinct_chebyshev_and_bend_angle_knees(self) -> None:
+        objective_values = (
+            (0.0, 10.0),
+            (2.0, 9.0),
+            (4.0, 6.0),
+            (5.5, 5.5),
+            (6.5, 2.0),
+            (10.0, 0.0),
+            (8.0, 8.0),  # Dominated and therefore excluded before selection.
+        )
+        records = tuple(
+            TrialRecord(index, 10.0 + index, values, {})
+            for index, values in enumerate(objective_values)
+        )
+        knees = find_pareto_knee_points(
+            records,
+            ("minimize", "minimize"),
+        )
+        self.assertEqual(
+            {knee.method: knee.record.number for knee in knees},
+            {"chebyshev": 3, "bend_angle": 4},
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover

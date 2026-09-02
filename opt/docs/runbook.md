@@ -53,8 +53,9 @@ current coefficient-of-variation limit and command timeout.
 
 Each study writes a settings-specific directory under `opt/results/` containing
 `optimization.db`, `optimization_results.csv`, `pareto_front.csv`,
-`pareto_front.png`, and `logs/trial_*`. Each completed solver call has both its
-raw `trial_XXXX_solver.log` and a compact
+`knee_points.csv`, `pareto_front.png`, and `logs/trial_*`. The Pareto plot marks
+the normalized Chebyshev knee and the bend-angle knee. Each completed solver
+call has both its raw `trial_XXXX_solver.log` and a compact
 `trial_XXXX_polarization_curve.csv` plus its matching
 `trial_XXXX_polarization_curve.png`. Results are checkpointed after every
 completed evaluation.
@@ -85,6 +86,21 @@ python3 opt/scripts/plot_membrane_polarization_curves.py \
 
 The comparison is written as `selected_polarization_curves.png` in the study
 directory. Use `--thicknesses` to select a different set.
+
+Recompute knee points and update `pareto_front.png` for an existing study
+without rerunning OpenFOAM:
+
+```bash
+python3 opt/scripts/find_knee_points.py \
+  opt/results/aemec-production-20-553c273e
+```
+
+The command uses the two extreme normalized Pareto points for the bend-angle
+references. By default, it accepts the maximum bend angle only when it is
+positive. Set a stricter predefined threshold with, for example,
+`--bend-angle-threshold-deg 5`. If the front contains fewer than three distinct
+trade-off points, or no bend exceeds the threshold, no bend-angle knee is
+reported or plotted.
 
 Re-run the same command to resume until its completed-trial budget is reached.
 Use a new `--study-name` after changing bounds, source case, operating settings,

@@ -23,3 +23,14 @@ CSV, and a PNG plot of that curve. Existing study logs can be converted with
 `opt/scripts/export_trial_curves.py` without rerunning the CFD simulations.
 Use `opt/scripts/plot_membrane_polarization_curves.py` to overlay polarization
 curves for selected membrane thicknesses.
+
+The standard Pareto report also writes `knee_points.csv` and marks the
+normalized Chebyshev and bend-angle knee points on `pareto_front.png`. Rebuild
+these artifacts for an existing study, optionally with a nonzero bend-angle
+threshold, with:
+
+```bash
+python3 opt/scripts/find_knee_points.py \
+  opt/results/aemec-production-20-553c273e \
+  --bend-angle-threshold-deg 5
+```

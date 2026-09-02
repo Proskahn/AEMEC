@@ -203,6 +203,7 @@ def run_optimization(args: argparse.Namespace):
     write_results(records, output_dir, AEMEC_REPORT, search.directions)
     print(f"\nCompleted CFD evaluations: {len(records)}")
     print(f"Results CSV: {output_dir / 'optimization_results.csv'}")
+    print(f"Knee points: {output_dir / 'knee_points.csv'}")
     print(f"Pareto plot: {output_dir / 'pareto_front.png'}")
     return study
 
