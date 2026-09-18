@@ -77,7 +77,13 @@ activationOverpotentialModel
     // 20 um catalyst layer gives j0~=1.7e6 A/m3 (Nature Communications 13,
     // 2022, DOI: 10.1038/s41467-022-33216-w).  Re-scale this value when the
     // actual Pt loading or ECSA is specified.
-    j0              1.7e6;
+    // The measured 298.15 K baseline is shifted to the common model reference
+    // temperature of 313.15 K using the provisional AEMWE HER activation
+    // energy from Yang et al. (J. Electrochem. Soc. 172, 114503, 2025,
+    // DOI: 10.1149/1945-7111/ae188f).  This preserves the Arrhenius curve.
+    j0Ref           3.011934e6;
+    TRef            313.15;
+    Ea              29600;  // J/mol
     // Numerical safeguard for this proof-of-concept case [A/m3].  For the
     // 20 um catalyst layer, 2e9 A/m3 corresponds to a 4 A/cm2 ceiling, above
     // the intended polarization range.  It is not a physical limiting current.

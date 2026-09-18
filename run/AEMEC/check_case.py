@@ -907,10 +907,11 @@ def check_static(case: Path, errors: list[str]) -> None:
             "potentiostatic voltage table must end at system/controlDict.run endTime"
         )
 
-    for relative_path in (
-        "constant/anode/combustionProperties.gas",
-        "constant/cathode/combustionProperties.gas",
-    ):
+    kinetics = (
+        ("constant/anode/combustionProperties.gas", "3.153334e2", "50000"),
+        ("constant/cathode/combustionProperties.gas", "3.011934e6", "29600"),
+    )
+    for relative_path, j0_ref, activation_energy in kinetics:
         text = read(case / relative_path, errors)
         if "jMax            2.0e9;" not in text or "exponentLimit   50;" not in text:
             errors.append(
@@ -926,6 +927,23 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(
                 f"{relative_path} must use relax 1.0 with the current-balance root solve"
             )
+        try:
+            kinetics_block = dictionary_block(
+                text, "activationOverpotentialModel"
+            )
+        except ValueError as error:
+            errors.append(f"{relative_path}: {error}")
+            kinetics_block = ""
+        for entry, value in (
+            ("j0Ref", j0_ref),
+            ("TRef", "313.15"),
+            ("Ea", activation_energy),
+        ):
+            if kinetics_block and not has_entry(kinetics_block, entry, value):
+                errors.append(
+                    f"{relative_path} must set temperature-dependent kinetics "
+                    f"entry {entry} to {value}"
+                )
 
     cathode_reaction = read(
         case / "constant/cathode/combustionProperties.gas", errors

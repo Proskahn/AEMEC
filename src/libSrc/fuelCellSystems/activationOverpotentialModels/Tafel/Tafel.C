@@ -161,7 +161,7 @@ void Foam::activationOverpotentialModels::Tafel<Thermo>::correct()
         //- Buttler-volmer relation
         j[fluidId] = Foam::max
         (
-            this->j0_.value()*
+            this->exchangeCurrentDensity(T[fluidId])*
             coeff[fluidId]*
             Foam::pow(s[fluidId], this->gamma_)*
             (

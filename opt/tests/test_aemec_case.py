@@ -154,6 +154,12 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("internalField   uniform 3.0;", ionic_potential)
         self.assertIn("relax           1.0;", anode_reaction)
         self.assertIn("relax           1.0;", cathode_reaction)
+        self.assertIn("j0Ref           3.153334e2;", anode_reaction)
+        self.assertIn("TRef            313.15;", anode_reaction)
+        self.assertIn("Ea              50000;", anode_reaction)
+        self.assertIn("j0Ref           3.011934e6;", cathode_reaction)
+        self.assertIn("TRef            313.15;", cathode_reaction)
+        self.assertIn("Ea              29600;", cathode_reaction)
         self.assertIn("electrochemicalDiagnostics true;", anode_reaction)
         self.assertIn("electrochemicalDiagnostics true;", cathode_reaction)
         self.assertIn("electricDiagnostics true;", anode_controller)
@@ -239,6 +245,10 @@ class AemecCaseTests(unittest.TestCase):
             / "src/libSrc/fuelCellSystems/activationOverpotentialModels/ButlerVolmer/ButlerVolmer.C"
         ).read_text(encoding="utf-8")
         self.assertIn("dSIdPhiAnion[anionId] = dSourceDphi;", butler_volmer)
+        self.assertIn(
+            "this->exchangeCurrentDensity(T[fluidId])",
+            butler_volmer,
+        )
         self.assertNotRegex(
             electric_source,
             r"for\s*\([^)]*nCells\(\)[^)]*\)\s*\{[^}]*setReference",
@@ -253,6 +263,17 @@ class AemecCaseTests(unittest.TestCase):
             constant_sigma,
         )
         self.assertNotIn("dimless/dimLength", constant_sigma)
+
+        activation_model = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/activationOverpotentialModels"
+            / "ActivationOverpotentialModel/activationOverpotentialModel.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "-Ea_.value()/constant::physicoChemical::R.value()",
+            activation_model,
+        )
+        self.assertIn("1.0/T - 1.0/TRef_.value()", activation_model)
 
         arrhenius_sigma = (
             ROOT
