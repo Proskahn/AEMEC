@@ -32,11 +32,18 @@ Description
     by an electrode during that reaction.
 
     \f[
-        j = j_0 \prod_i\left(\frac{p_i}{p_{ref}}\right)^\ksi (1-s)^\gamma
+        j = j_0(T) \prod_i\left(\frac{p_i}{p_{ref}}\right)^\ksi (1-s)^\gamma
         \left(
             \exp{\frac{n\alpha F}{RT}\eta}
           - \exp{-\frac{n(1 - \alpha)F}{RT}\eta}
         \right)
+    \f]
+
+    with
+
+    \f[
+        j_0(T) = j_{0,ref}\exp\left[-\frac{E_a}{R}
+        \left(\frac{1}{T} - \frac{1}{T_{ref}}\right)\right].
     \f]
 
 SourceFiles

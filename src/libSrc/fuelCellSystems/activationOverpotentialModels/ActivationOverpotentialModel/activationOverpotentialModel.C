@@ -109,7 +109,24 @@ Foam::activationOverpotentialModel::activationOverpotentialModel
     relax_(dict_.lookupOrDefault<scalar>("relax", 1.0)),
     alpha_(dict_.lookupOrDefault<scalar>("alpha", 0.5)),
     gamma_(dict_.lookupOrDefault<scalar>("gamma", 1.0)),
-    j0_("j0", dimCurrent/dimVolume, dict_),
+    j0Ref_
+    (
+        dict_.found("j0Ref") ? "j0Ref" : "j0",
+        dimCurrent/dimVolume,
+        dict_
+    ),
+    TRef_
+    (
+        "TRef",
+        dimTemperature,
+        dict_.lookupOrDefault<scalar>("TRef", 313.15)
+    ),
+    Ea_
+    (
+        "Ea",
+        dimEnergy/dimMoles,
+        dict_.lookupOrDefault<scalar>("Ea", 0.0)
+    ),
 
     j_
     (
@@ -129,7 +146,32 @@ Foam::activationOverpotentialModel::activationOverpotentialModel
             0.0
         )
     )
-{}
+{
+    if (dict_.found("j0") && dict_.found("j0Ref"))
+    {
+        FatalIOErrorInFunction(dict_)
+            << "Specify only j0Ref (preferred) or the legacy j0 entry, not "
+            << "both" << exit(FatalIOError);
+    }
+
+    if (j0Ref_.value() < 0)
+    {
+        FatalIOErrorInFunction(dict_)
+            << j0Ref_.name() << " must be non-negative" << exit(FatalIOError);
+    }
+
+    if (TRef_.value() <= 0)
+    {
+        FatalIOErrorInFunction(dict_)
+            << "TRef must be greater than zero Kelvin" << exit(FatalIOError);
+    }
+
+    if (Ea_.value() < 0)
+    {
+        FatalIOErrorInFunction(dict_)
+            << "Ea must be non-negative" << exit(FatalIOError);
+    }
+}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
@@ -138,6 +180,27 @@ Foam::activationOverpotentialModel::~activationOverpotentialModel()
 {}
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+Foam::scalar Foam::activationOverpotentialModel::exchangeCurrentDensity
+(
+    const scalar T
+) const
+{
+    if (T <= 0)
+    {
+        FatalErrorInFunction
+            << "Electrode temperature must be greater than zero Kelvin; "
+            << "received " << T << exit(FatalError);
+    }
+
+    return j0Ref_.value()*Foam::exp
+    (
+        -Ea_.value()/constant::physicoChemical::R.value()
+       *(1.0/T - 1.0/TRef_.value())
+    );
+}
+
+
 Foam::tmp<Foam::volScalarField>
 Foam::activationOverpotentialModel::Qdot() const
 {

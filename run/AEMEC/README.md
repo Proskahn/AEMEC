@@ -50,6 +50,15 @@ calibration.
 The inherited Nafion dissolved-water and hydration (`lambda`) models are
 disabled for this case.
 
+The Butler-Volmer exchange-current density is also temperature dependent:
+`j0 = j0Ref*exp[-Ea/R*(1/T - 1/TRef)]`. Its reference temperature is unified
+with the conductivity model at `TRef = 313.15 K`. The measured 298.15 K
+baselines are Arrhenius-shifted to `j0Ref = 315.3334 A/m3` for the NiFe-LDH OER
+and `3.011934e6 A/m3` for the Pt/C HER, preserving the original curves. The
+provisional activation energies are 50 and 29.6 kJ/mol, respectively. The
+equation and activation energies follow Yang et al.
+([DOI: 10.1149/1945-7111/ae188f](https://doi.org/10.1149/1945-7111/ae188f)).
+
 For the proof-of-concept run, both Butler–Volmer dictionaries use a numerical
 `jMax = 2e9 A/m3` safeguard and a bounded exponential argument. For the 20 um
 catalyst layers this corresponds to 4 A/cm2, above the intended curve range.

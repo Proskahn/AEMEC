@@ -203,7 +203,7 @@ void Foam::activationOverpotentialModels::ButlerVolmer<Thermo>::correct()
         );
 
         const scalar kineticPrefactor =
-            this->j0_.value()
+            this->exchangeCurrentDensity(T[fluidId])
            *coeff[fluidId]
            *Foam::pow(s[fluidId], this->gamma_);
         const scalar jUnbounded =
