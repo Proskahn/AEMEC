@@ -138,10 +138,12 @@ hydrogenCrossover
 
 sigma
 {
-    // Effective OH- conductivity.  The membrane uses a selected AEM value
-    // of 8.0 S/m, while the porous catalyst layers retain the provisional
-    // effective value of 1.10 S/m.  Calibrate them for the selected AEM
-    // ionomer, temperature, hydration, and electrolyte concentration.
+    // Effective OH- conductivity.  The membrane value is 8.0 S/m at
+    // 313.15 K and follows a reference-state Arrhenius relation using the
+    // provisional 14.9 kJ/mol activation energy reported by Yassin et al.
+    // (ACS Energy Lett. 2026, DOI: 10.1021/acsenergylett.5c04187).  The
+    // catalyst-layer values remain constant and provisional.  Calibrate all
+    // values for the selected AEM ionomer, hydration, and KOH concentration.
     anodeCL
     {
         sigmaModel          constantSigma;
@@ -166,11 +168,14 @@ sigma
 
     membrane
     {
-        sigmaModel          constantSigma;
-        constantSigmaCoeffs
+        sigmaModel          arrheniusSigma;
+        arrheniusSigmaCoeffs
         {
             cellZone            membrane;
-            sigma               8.0;   // S/m
+            T                   T;
+            sigmaRef            8.0;      // S/m
+            TRef               313.15;    // K
+            Ea                 14900;     // J/mol
         }
     }
 }

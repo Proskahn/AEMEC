@@ -38,9 +38,15 @@ anodeCL:    2 OH- → 1/2 O2 + H2O + 2 e-
 solver's generic ionic-potential formulation with an `anion` dictionary key;
 it does **not** solve an OH- concentration field. Calibrate the membrane
 conductivity and add explicit hydroxide/water transport before using results
-for quantitative design decisions. Its selected effective conductivities are
-8.0 S/m for the membrane and 1.10 S/m for each porous catalyst layer; these
-remain provisional inputs rather than an AEM-material calibration.
+for quantitative design decisions. The membrane conductivity now follows
+`sigma = sigmaRef*exp[-Ea/R*(1/T - 1/TRef)]`, with `sigmaRef = 8.0 S/m` at
+`TRef = 313.15 K` and the provisional `Ea = 14.9 kJ/mol` reported by Yassin
+et al. ([DOI: 10.1021/acsenergylett.5c04187](https://doi.org/10.1021/acsenergylett.5c04187)).
+The underlying Arrhenius conductivity equation is stated explicitly by Wang
+et al. ([DOI: 10.1038/s41467-025-56262-6](https://doi.org/10.1038/s41467-025-56262-6)).
+Each porous catalyst layer retains a constant effective conductivity of
+1.10 S/m. These remain provisional inputs rather than an AEM-material
+calibration.
 The inherited Nafion dissolved-water and hydration (`lambda`) models are
 disabled for this case.
 
