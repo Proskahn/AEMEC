@@ -159,6 +159,13 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("electricDiagnostics true;", anode_controller)
         self.assertIn("electricDiagnostics true;", cathode_electric)
         self.assertIn("electricDiagnostics true;", crossover)
+        self.assertRegex(
+            crossover,
+            r"membrane\s*\{\s*sigmaModel\s+arrheniusSigma\s*;",
+        )
+        self.assertIn("sigmaRef            8.0;", crossover)
+        self.assertIn("TRef               313.15;", crossover)
+        self.assertIn("Ea                 14900;", crossover)
         self.assertIn("polarizationCurve", anode_controller)
         self.assertRegex(
             anode_controller,
@@ -246,6 +253,13 @@ class AemecCaseTests(unittest.TestCase):
             constant_sigma,
         )
         self.assertNotIn("dimless/dimLength", constant_sigma)
+
+        arrhenius_sigma = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/sigmaModels/arrheniusSigma/arrheniusSigma.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Ea_.value()/constant::physicoChemical::R.value()", arrhenius_sigma)
+        self.assertIn("1.0/T[cellI] - 1.0/TRef_.value()", arrhenius_sigma)
 
     def test_two_phase_energy_keeps_composition_and_thermo_consistent(self) -> None:
         source = ROOT / "src/libSrc/fuelCellSystems"

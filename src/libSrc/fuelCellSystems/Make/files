@@ -47,6 +47,7 @@ sigmaModels/sigmaModel/sigmaModel.C
 sigmaModels/sigmaModel/newSigmaModel.C
 sigmaModels/sigmaModel/sigmaModelList.C
 sigmaModels/constantSigma/constantSigma.C
+sigmaModels/arrheniusSigma/arrheniusSigma.C
 sigmaModels/lambdaSigma/lambdaSigma.C
 sigmaModels/porousSigma/porousSigma.C
 

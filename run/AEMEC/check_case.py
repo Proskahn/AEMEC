@@ -653,9 +653,38 @@ def check_static(case: Path, errors: list[str]) -> None:
         errors.append(
             "system/phiAnion/fvSolution must use the DICPCG solver for phi"
         )
-    for zone, conductivity in (("anodeCL", "1.10"), ("cathodeCL", "1.10"), ("membrane", "8.0")):
+    for zone, conductivity in (("anodeCL", "1.10"), ("cathodeCL", "1.10")):
         if not has_dictionary_block(anion_properties, zone) or f"sigma               {conductivity};" not in anion_properties:
             errors.append(f"constant/phiAnion/regionProperties is missing effective conductivity {conductivity} for '{zone}'")
+
+    try:
+        membrane_sigma = dictionary_block(anion_properties, "membrane")
+        arrhenius_coeffs = dictionary_block(
+            membrane_sigma, "arrheniusSigmaCoeffs"
+        )
+    except ValueError as error:
+        errors.append(
+            "constant/phiAnion/regionProperties must configure the membrane "
+            f"with arrheniusSigma: {error}"
+        )
+    else:
+        if not has_entry(membrane_sigma, "sigmaModel", "arrheniusSigma"):
+            errors.append(
+                "constant/phiAnion/regionProperties must use arrheniusSigma "
+                "for the membrane"
+            )
+        for entry, value in (
+            ("cellZone", "membrane"),
+            ("T", "T"),
+            ("sigmaRef", "8.0"),
+            ("TRef", "313.15"),
+            ("Ea", "14900"),
+        ):
+            if not has_entry(arrhenius_coeffs, entry, value):
+                errors.append(
+                    "constant/phiAnion/regionProperties must set membrane "
+                    f"arrheniusSigmaCoeffs.{entry} to {value}"
+                )
 
     for entry in (
         "cathodeFluidRegion  cathode;",
