@@ -39,8 +39,9 @@ solver's generic ionic-potential formulation with an `anion` dictionary key;
 it does **not** solve an OH- concentration field. Calibrate the membrane
 conductivity and add explicit hydroxide/water transport before using results
 for quantitative design decisions. The membrane conductivity now follows
-`sigma = sigmaRef*exp[-Ea/R*(1/T - 1/TRef)]`, with `sigmaRef = 8.0 S/m` at
-`TRef = 313.15 K` and the provisional `Ea = 14.9 kJ/mol` reported by Yassin
+`sigma = sigmaRef*exp[-Ea/R*(1/T - 1/TRef)]`, with `sigmaRef = 5.998635 S/m`
+at `TRef = 298.15 K` (equivalent to 8.0 S/m at 313.15 K) and the provisional
+`Ea = 14.9 kJ/mol` reported by Yassin
 et al. ([DOI: 10.1021/acsenergylett.5c04187](https://doi.org/10.1021/acsenergylett.5c04187)).
 The underlying Arrhenius conductivity equation is stated explicitly by Wang
 et al. ([DOI: 10.1038/s41467-025-56262-6](https://doi.org/10.1038/s41467-025-56262-6)).
@@ -52,10 +53,10 @@ disabled for this case.
 
 The Butler-Volmer exchange-current density is also temperature dependent:
 `j0 = j0Ref*exp[-Ea/R*(1/T - 1/TRef)]`. Its reference temperature is unified
-with the conductivity model at `TRef = 313.15 K`. The measured 298.15 K
-baselines are Arrhenius-shifted to `j0Ref = 315.3334 A/m3` for the NiFe-LDH OER
-and `3.011934e6 A/m3` for the Pt/C HER, preserving the original curves. The
-provisional activation energies are 50 and 29.6 kJ/mol, respectively. The
+with the conductivity model at `TRef = 298.15 K`. The measured 298.15 K
+baselines are used directly as `j0Ref = 120 A/m3` for the NiFe-LDH OER and
+`1.7e6 A/m3` for the Pt/C HER, preserving the original curves. The provisional
+activation energies are 50 and 29.6 kJ/mol, respectively. The
 equation and activation energies follow Yang et al.
 ([DOI: 10.1149/1945-7111/ae188f](https://doi.org/10.1149/1945-7111/ae188f)).
 

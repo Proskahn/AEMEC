@@ -119,7 +119,7 @@ Foam::activationOverpotentialModel::activationOverpotentialModel
     (
         "TRef",
         dimTemperature,
-        dict_.lookupOrDefault<scalar>("TRef", 313.15)
+        dict_.lookupOrDefault<scalar>("TRef", 298.15)
     ),
     Ea_
     (
