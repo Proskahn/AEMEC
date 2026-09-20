@@ -154,11 +154,11 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("internalField   uniform 3.0;", ionic_potential)
         self.assertIn("relax           1.0;", anode_reaction)
         self.assertIn("relax           1.0;", cathode_reaction)
-        self.assertIn("j0Ref           3.153334e2;", anode_reaction)
-        self.assertIn("TRef            313.15;", anode_reaction)
+        self.assertIn("j0Ref           1.2e2;", anode_reaction)
+        self.assertIn("TRef            298.15;", anode_reaction)
         self.assertIn("Ea              50000;", anode_reaction)
-        self.assertIn("j0Ref           3.011934e6;", cathode_reaction)
-        self.assertIn("TRef            313.15;", cathode_reaction)
+        self.assertIn("j0Ref           1.7e6;", cathode_reaction)
+        self.assertIn("TRef            298.15;", cathode_reaction)
         self.assertIn("Ea              29600;", cathode_reaction)
         self.assertIn("electrochemicalDiagnostics true;", anode_reaction)
         self.assertIn("electrochemicalDiagnostics true;", cathode_reaction)
@@ -169,8 +169,8 @@ class AemecCaseTests(unittest.TestCase):
             crossover,
             r"membrane\s*\{\s*sigmaModel\s+arrheniusSigma\s*;",
         )
-        self.assertIn("sigmaRef            8.0;", crossover)
-        self.assertIn("TRef               313.15;", crossover)
+        self.assertIn("sigmaRef            5.998635;", crossover)
+        self.assertIn("TRef               298.15;", crossover)
         self.assertIn("Ea                 14900;", crossover)
         self.assertIn("polarizationCurve", anode_controller)
         self.assertRegex(

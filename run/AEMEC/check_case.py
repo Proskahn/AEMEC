@@ -676,8 +676,8 @@ def check_static(case: Path, errors: list[str]) -> None:
         for entry, value in (
             ("cellZone", "membrane"),
             ("T", "T"),
-            ("sigmaRef", "8.0"),
-            ("TRef", "313.15"),
+            ("sigmaRef", "5.998635"),
+            ("TRef", "298.15"),
             ("Ea", "14900"),
         ):
             if not has_entry(arrhenius_coeffs, entry, value):
@@ -908,8 +908,8 @@ def check_static(case: Path, errors: list[str]) -> None:
         )
 
     kinetics = (
-        ("constant/anode/combustionProperties.gas", "3.153334e2", "50000"),
-        ("constant/cathode/combustionProperties.gas", "3.011934e6", "29600"),
+        ("constant/anode/combustionProperties.gas", "1.2e2", "50000"),
+        ("constant/cathode/combustionProperties.gas", "1.7e6", "29600"),
     )
     for relative_path, j0_ref, activation_energy in kinetics:
         text = read(case / relative_path, errors)
@@ -936,7 +936,7 @@ def check_static(case: Path, errors: list[str]) -> None:
             kinetics_block = ""
         for entry, value in (
             ("j0Ref", j0_ref),
-            ("TRef", "313.15"),
+            ("TRef", "298.15"),
             ("Ea", activation_energy),
         ):
             if kinetics_block and not has_entry(kinetics_block, entry, value):
