@@ -73,7 +73,13 @@ activationOverpotentialModel
     // when distributed uniformly through this 20 um catalyst layer.  This
     // setting uses the conservative lower end of that independently measured
     // range (Scientific Reports 11, 2021, DOI: 10.1038/s41598-021-04347-9).
-    j0              1.2e2;
+    // The measured 298.15 K baseline is shifted to the common model reference
+    // temperature of 313.15 K using the provisional AEMWE OER activation
+    // energy from Yang et al. (J. Electrochem. Soc. 172, 114503, 2025,
+    // DOI: 10.1149/1945-7111/ae188f).  This preserves the Arrhenius curve.
+    j0Ref           3.153334e2;
+    TRef            313.15;
+    Ea              50000;  // J/mol
     // Numerical safeguard for this proof-of-concept case [A/m3].  For the
     // 20 um catalyst layer, 2e9 A/m3 corresponds to a 4 A/cm2 ceiling, above
     // the intended polarization range.  It is not a physical limiting current.

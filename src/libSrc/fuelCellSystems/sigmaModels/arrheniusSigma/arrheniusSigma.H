@@ -22,88 +22,93 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::ButlerVolmer.C
+    Foam::sigmaModels::arrheniusSigma
 
 Description
-    The Butler-Volmer relation is an abstract concept in electrochemistry
-    that describes the mathematical relationship between the rate of
-    an electrochemical reaction and the overpotential
-    (the deviation from the equilibrium potential) experienced
-    by an electrode during that reaction.
+    Temperature-dependent electric conductivity using the reference-state
+    Arrhenius relation
 
     \f[
-        j = j_0(T) \prod_i\left(\frac{p_i}{p_{ref}}\right)^\ksi (1-s)^\gamma
-        \left(
-            \exp{\frac{n\alpha F}{RT}\eta}
-          - \exp{-\frac{n(1 - \alpha)F}{RT}\eta}
-        \right)
-    \f]
-
-    with
-
-    \f[
-        j_0(T) = j_{0,ref}\exp\left[-\frac{E_a}{R}
+        \sigma(T) = \sigma_{ref}
+        \exp\left[-\frac{E_a}{R}
         \left(\frac{1}{T} - \frac{1}{T_{ref}}\right)\right].
     \f]
 
+    The required coefficients are \c sigmaRef [S/m], \c TRef [K], and
+    \c Ea [J/mol].  The optional \c T entry selects the temperature field
+    and defaults to \c T.
+
 SourceFiles
-    ButlerVolmer.C
+    arrheniusSigma.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef ButlerVolmer_H
-#define ButlerVolmer_H
+#ifndef arrheniusSigma_H
+#define arrheniusSigma_H
 
-#include "activationOverpotentialModelTemplate.H"
+#include "sigmaModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-
-class phaseModel;
-
-namespace activationOverpotentialModels
+namespace sigmaModels
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class ButlerVolmer Declaration
+                         Class arrheniusSigma Declaration
 \*---------------------------------------------------------------------------*/
-template<class Thermo>
-class ButlerVolmer
+
+class arrheniusSigma
 :
-    public ActivationOverpotentialModel<Thermo>
+    public sigmaModel
 {
+    // Private data
+
+        //- Name of the temperature field
+        word TName_;
+
+        //- Conductivity at the reference temperature
+        dimensionedScalar sigmaRef_;
+
+        //- Reference temperature
+        dimensionedScalar TRef_;
+
+        //- Activation energy for ionic conduction
+        dimensionedScalar Ea_;
+
 
 public:
+
     //- Runtime type information
-    TypeName("ButlerVolmer");
+    TypeName("arrheniusSigma");
+
 
     // Constructors
 
-    ButlerVolmer
-    (
-        const phaseModel& phase,
-        const dictionary& dict
-    );
+        //- Construct from components
+        arrheniusSigma
+        (
+            const fvMesh& mesh,
+            const dictionary& sigmaDictionary
+        );
+
 
     //- Destructor
-        virtual ~ButlerVolmer();
+    virtual ~arrheniusSigma();
 
 
     // Member Functions
 
-        virtual void correct();
+        //- Update conductivity in the configured cell zone(s)
+        virtual void correct(volScalarField& sigmaField) const;
 };
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-} // End namespace ActivationOverpotentialModels
-} // End namespace Foam
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#ifdef NoRepository
-    #include "ButlerVolmer.C"
-#endif
+} // End namespace sigmaModels
+} // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

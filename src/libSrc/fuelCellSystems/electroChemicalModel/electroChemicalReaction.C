@@ -175,6 +175,7 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
         scalar waterWeightedSum = 0.0;
         scalar hydrogenWeightedSum = 0.0;
         scalar gasFractionWeightedSum = 0.0;
+        scalar j0WeightedSum = 0.0;
         scalar etaMin = GREAT;
         scalar etaMax = -GREAT;
         scalar nernstMin = GREAT;
@@ -187,6 +188,8 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
         scalar hydrogenMax = -GREAT;
         scalar gasFractionMin = GREAT;
         scalar gasFractionMax = -GREAT;
+        scalar j0Min = GREAT;
+        scalar j0Max = -GREAT;
         const scalar reactionSign =
             eta_->nernst().rxnList()["e"]
            /mag(eta_->nernst().rxnList()["e"]);
@@ -195,6 +198,8 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
         {
             const label fluidId = cells[cellI];
             const scalar volume = fluidPhase.V()[fluidId];
+            const scalar j0 =
+                eta_->exchangeCurrentDensity(temperature[fluidId]);
 
             catalystVolume += volume;
             integratedCurrent += reactionCurrent[fluidId]*volume;
@@ -210,6 +215,7 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
             temperatureWeightedSum += temperature[fluidId]*volume;
             waterWeightedSum += waterMoleFraction[fluidId]*volume;
             gasFractionWeightedSum += gasVolumeFraction[fluidId]*volume;
+            j0WeightedSum += j0*volume;
             etaMin = min(etaMin, activationOverpotential[fluidId]);
             etaMax = max(etaMax, activationOverpotential[fluidId]);
             nernstMin = min(nernstMin, nernstPotential[fluidId]);
@@ -220,6 +226,8 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
             waterMax = max(waterMax, waterMoleFraction[fluidId]);
             gasFractionMin = min(gasFractionMin, gasVolumeFraction[fluidId]);
             gasFractionMax = max(gasFractionMax, gasVolumeFraction[fluidId]);
+            j0Min = min(j0Min, j0);
+            j0Max = max(j0Max, j0);
 
             if (hydrogenMoleFraction)
             {
@@ -239,6 +247,7 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
         reduce(waterWeightedSum, sumOp<scalar>());
         reduce(hydrogenWeightedSum, sumOp<scalar>());
         reduce(gasFractionWeightedSum, sumOp<scalar>());
+        reduce(j0WeightedSum, sumOp<scalar>());
         reduce(etaMin, minOp<scalar>());
         reduce(etaMax, maxOp<scalar>());
         reduce(nernstMin, minOp<scalar>());
@@ -251,6 +260,8 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
         reduce(hydrogenMax, maxOp<scalar>());
         reduce(gasFractionMin, minOp<scalar>());
         reduce(gasFractionMax, maxOp<scalar>());
+        reduce(j0Min, minOp<scalar>());
+        reduce(j0Max, maxOp<scalar>());
 
         const scalar electronCount = mag(eta_->nernst().rxnList()["e"]);
         const scalar hydrogenStoich = eta_->nernst().rxnList().found("H2")
@@ -266,7 +277,9 @@ void Foam::combustionModels::electroChemicalReaction<ReactionThermo>::correct()
             << ", zone=" << eta_->zoneName()
             << ", reactionCurrent=" << integratedCurrent << " A"
             << ", H2FaradaicRate=" << hydrogenFaradaicRate << " mol/s"
-            << ", j0=" << eta_->j0().value() << " A/m3"
+            << ", j0Ref=" << eta_->j0().value() << " A/m3"
+            << ", j0[min,mean,max]=(" << j0Min << ","
+            << j0WeightedSum/safeVolume << "," << j0Max << ") A/m3"
             << ", activationPower=" << activationPower << " W"
             << ", equivalentActivationVoltage="
             << activationPower/safeCurrent << " V"

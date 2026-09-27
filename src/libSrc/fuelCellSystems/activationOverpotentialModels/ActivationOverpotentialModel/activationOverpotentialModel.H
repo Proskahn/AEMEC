@@ -103,11 +103,17 @@ protected:
         HashTable<word> phiNames_;
 
         // Properties
-        // relax, alpha, j0, Xref, gamma
+        // relax, alpha, reference j0, Xref, gamma
         scalar relax_;
         scalar alpha_;
         scalar gamma_;
-        dimensionedScalar j0_;
+        dimensionedScalar j0Ref_;
+
+        //- Reference temperature for the exchange-current density
+        dimensionedScalar TRef_;
+
+        //- Apparent activation energy of the electrode reaction
+        dimensionedScalar Ea_;
 
         //- Current density
         //- A/cm3
@@ -208,12 +214,15 @@ public:
             return zoneName_;
         }
 
-        //- Exchange current density
+        //- Reference exchange current density
         //- A/cm3
         const dimensionedScalar& j0() const
         {
-            return j0_;
+            return j0Ref_;
         }
+
+        //- Temperature-dependent exchange current density [A/m3]
+        scalar exchangeCurrentDensity(const scalar T) const;
 
         //- Activation overpotential [V]
         const volScalarField& eta() const
