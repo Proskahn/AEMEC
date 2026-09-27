@@ -154,11 +154,24 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("internalField   uniform 3.0;", ionic_potential)
         self.assertIn("relax           1.0;", anode_reaction)
         self.assertIn("relax           1.0;", cathode_reaction)
+        self.assertIn("j0Ref           1.2e2;", anode_reaction)
+        self.assertIn("TRef            298.15;", anode_reaction)
+        self.assertIn("Ea              50000;", anode_reaction)
+        self.assertIn("j0Ref           1.7e6;", cathode_reaction)
+        self.assertIn("TRef            298.15;", cathode_reaction)
+        self.assertIn("Ea              29600;", cathode_reaction)
         self.assertIn("electrochemicalDiagnostics true;", anode_reaction)
         self.assertIn("electrochemicalDiagnostics true;", cathode_reaction)
         self.assertIn("electricDiagnostics true;", anode_controller)
         self.assertIn("electricDiagnostics true;", cathode_electric)
         self.assertIn("electricDiagnostics true;", crossover)
+        self.assertRegex(
+            crossover,
+            r"membrane\s*\{\s*sigmaModel\s+arrheniusSigma\s*;",
+        )
+        self.assertIn("sigmaRef            5.998635;", crossover)
+        self.assertIn("TRef               298.15;", crossover)
+        self.assertIn("Ea                 14900;", crossover)
         self.assertIn("polarizationCurve", anode_controller)
         self.assertRegex(
             anode_controller,
@@ -232,6 +245,10 @@ class AemecCaseTests(unittest.TestCase):
             / "src/libSrc/fuelCellSystems/activationOverpotentialModels/ButlerVolmer/ButlerVolmer.C"
         ).read_text(encoding="utf-8")
         self.assertIn("dSIdPhiAnion[anionId] = dSourceDphi;", butler_volmer)
+        self.assertIn(
+            "this->exchangeCurrentDensity(T[fluidId])",
+            butler_volmer,
+        )
         self.assertNotRegex(
             electric_source,
             r"for\s*\([^)]*nCells\(\)[^)]*\)\s*\{[^}]*setReference",
@@ -246,6 +263,24 @@ class AemecCaseTests(unittest.TestCase):
             constant_sigma,
         )
         self.assertNotIn("dimless/dimLength", constant_sigma)
+
+        activation_model = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/activationOverpotentialModels"
+            / "ActivationOverpotentialModel/activationOverpotentialModel.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "-Ea_.value()/constant::physicoChemical::R.value()",
+            activation_model,
+        )
+        self.assertIn("1.0/T - 1.0/TRef_.value()", activation_model)
+
+        arrhenius_sigma = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/sigmaModels/arrheniusSigma/arrheniusSigma.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Ea_.value()/constant::physicoChemical::R.value()", arrhenius_sigma)
+        self.assertIn("1.0/T[cellI] - 1.0/TRef_.value()", arrhenius_sigma)
 
     def test_two_phase_energy_keeps_composition_and_thermo_consistent(self) -> None:
         source = ROOT / "src/libSrc/fuelCellSystems"

@@ -653,9 +653,38 @@ def check_static(case: Path, errors: list[str]) -> None:
         errors.append(
             "system/phiAnion/fvSolution must use the DICPCG solver for phi"
         )
-    for zone, conductivity in (("anodeCL", "1.10"), ("cathodeCL", "1.10"), ("membrane", "8.0")):
+    for zone, conductivity in (("anodeCL", "1.10"), ("cathodeCL", "1.10")):
         if not has_dictionary_block(anion_properties, zone) or f"sigma               {conductivity};" not in anion_properties:
             errors.append(f"constant/phiAnion/regionProperties is missing effective conductivity {conductivity} for '{zone}'")
+
+    try:
+        membrane_sigma = dictionary_block(anion_properties, "membrane")
+        arrhenius_coeffs = dictionary_block(
+            membrane_sigma, "arrheniusSigmaCoeffs"
+        )
+    except ValueError as error:
+        errors.append(
+            "constant/phiAnion/regionProperties must configure the membrane "
+            f"with arrheniusSigma: {error}"
+        )
+    else:
+        if not has_entry(membrane_sigma, "sigmaModel", "arrheniusSigma"):
+            errors.append(
+                "constant/phiAnion/regionProperties must use arrheniusSigma "
+                "for the membrane"
+            )
+        for entry, value in (
+            ("cellZone", "membrane"),
+            ("T", "T"),
+            ("sigmaRef", "5.998635"),
+            ("TRef", "298.15"),
+            ("Ea", "14900"),
+        ):
+            if not has_entry(arrhenius_coeffs, entry, value):
+                errors.append(
+                    "constant/phiAnion/regionProperties must set membrane "
+                    f"arrheniusSigmaCoeffs.{entry} to {value}"
+                )
 
     for entry in (
         "cathodeFluidRegion  cathode;",
@@ -878,10 +907,11 @@ def check_static(case: Path, errors: list[str]) -> None:
             "potentiostatic voltage table must end at system/controlDict.run endTime"
         )
 
-    for relative_path in (
-        "constant/anode/combustionProperties.gas",
-        "constant/cathode/combustionProperties.gas",
-    ):
+    kinetics = (
+        ("constant/anode/combustionProperties.gas", "1.2e2", "50000"),
+        ("constant/cathode/combustionProperties.gas", "1.7e6", "29600"),
+    )
+    for relative_path, j0_ref, activation_energy in kinetics:
         text = read(case / relative_path, errors)
         if "jMax            2.0e9;" not in text or "exponentLimit   50;" not in text:
             errors.append(
@@ -897,6 +927,23 @@ def check_static(case: Path, errors: list[str]) -> None:
             errors.append(
                 f"{relative_path} must use relax 1.0 with the current-balance root solve"
             )
+        try:
+            kinetics_block = dictionary_block(
+                text, "activationOverpotentialModel"
+            )
+        except ValueError as error:
+            errors.append(f"{relative_path}: {error}")
+            kinetics_block = ""
+        for entry, value in (
+            ("j0Ref", j0_ref),
+            ("TRef", "298.15"),
+            ("Ea", activation_energy),
+        ):
+            if kinetics_block and not has_entry(kinetics_block, entry, value):
+                errors.append(
+                    f"{relative_path} must set temperature-dependent kinetics "
+                    f"entry {entry} to {value}"
+                )
 
     cathode_reaction = read(
         case / "constant/cathode/combustionProperties.gas", errors
