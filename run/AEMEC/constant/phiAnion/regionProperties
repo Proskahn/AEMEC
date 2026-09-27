@@ -138,10 +138,9 @@ hydrogenCrossover
 
 sigma
 {
-    // Effective OH- conductivity.  The membrane reference value is
-    // 5.998635 S/m at 298.15 K, which is equivalent to 8.0 S/m at 313.15 K,
-    // and follows a reference-state Arrhenius relation using the provisional
-    // 14.9 kJ/mol activation energy reported by Yassin et al.
+    // Effective OH- conductivity.  The membrane value is 8.0 S/m at
+    // 313.15 K and follows a reference-state Arrhenius relation using the
+    // provisional 14.9 kJ/mol activation energy reported by Yassin et al.
     // (ACS Energy Lett. 2026, DOI: 10.1021/acsenergylett.5c04187).  The
     // catalyst-layer values remain constant and provisional.  Calibrate all
     // values for the selected AEM ionomer, hydration, and KOH concentration.
@@ -174,8 +173,13 @@ sigma
         {
             cellZone            membrane;
             T                   T;
+<<<<<<< HEAD
             sigmaRef            5.998635; // S/m
             TRef               298.15;    // K
+=======
+            sigmaRef            8.0;      // S/m
+            TRef               313.15;    // K
+>>>>>>> b316ee8 (include more temperature influence in the model)
             Ea                 14900;     // J/mol
         }
     }

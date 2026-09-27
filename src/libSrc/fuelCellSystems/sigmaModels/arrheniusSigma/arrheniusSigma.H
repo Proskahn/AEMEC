@@ -38,11 +38,6 @@ Description
     \c Ea [J/mol].  The optional \c T entry selects the temperature field
     and defaults to \c T.
 
-    The underlying Arrhenius form is given in Wang et al., Nature
-    Communications 16, 934 (2025), DOI: 10.1038/s41467-025-56262-6.
-    The reference-state form is obtained by dividing that relation by its
-    value at TRef.
-
 SourceFiles
     arrheniusSigma.C
 

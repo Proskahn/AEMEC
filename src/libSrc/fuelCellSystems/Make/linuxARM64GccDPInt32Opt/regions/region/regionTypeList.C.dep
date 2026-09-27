@@ -750,5 +750,6 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/DiagonalSolver.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/DiagonalSolver.C \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/PrecisionAdaptor.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/fvScalarMatrix.H \
+lnInclude/electric.H \
 
 #END
