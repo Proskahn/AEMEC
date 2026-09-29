@@ -110,3 +110,18 @@ Regenerate both figures from the saved CSV without rerunning OpenFOAM:
 ```bash
 python3 crossover_experiements/scripts/plot_current_sweep.py
 ```
+
+Compare membrane thicknesses over the same 0–2 A/cm² current sweep:
+
+```bash
+python3 crossover_experiements/run_current_sweep.py --thicknesses 20 40 60 80
+```
+
+This runs an independently remeshed sweep for each thickness and writes
+`membrane_thickness_current_sweep.png` in the current-sweep output directory,
+with one labeled curve per thickness. Error bars show the standard deviation
+within each accepted stable window. Individual results and solver logs are
+stored in `20um/`, `40um/`, `60um/`, and `80um/` subdirectories; work cases use
+the same subdirectories under the work directory. The existing single-thickness
+results are preserved. Repeat the command to reuse completed cases and regenerate
+the comparison, or add `--dry-run` to configure all four cases without solving.
