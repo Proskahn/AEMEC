@@ -184,13 +184,8 @@ sigma
         {
             cellZone            membrane;
             T                   T;
-<<<<<<< HEAD
-            sigmaRef            5.998635; // S/m
-            TRef               298.15;    // K
-=======
             sigmaRef            8.0;      // S/m
             TRef               313.15;    // K
->>>>>>> b316ee8 (include more temperature influence in the model)
             Ea                 14900;     // J/mol
         }
     }
