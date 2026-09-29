@@ -7,6 +7,7 @@ import argparse
 import csv
 import math
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
@@ -48,17 +49,21 @@ def load_completed_records(results_path: Path) -> list[TrialRecord]:
             objectives = tuple(
                 float(row[name]) for name in AEMEC_REPORT.objective_names
             )
+            additional = {
+                name: float(row[name]) for name, _label in AEMEC_REPORT.additional_parameters
+                if name in row
+            }
         except (TypeError, ValueError) as exc:
             raise OptimizationError(
                 "Optimization results contain an invalid trial or numeric value"
             ) from exc
         if not math.isfinite(parameter) or not all(
-            math.isfinite(value) for value in objectives
+            math.isfinite(value) for value in (*objectives, *additional.values())
         ):
             raise OptimizationError(
                 "Optimization results contain a non-finite parameter or objective"
             )
-        records.append(TrialRecord(trial, parameter, objectives, {}))
+        records.append(TrialRecord(trial, parameter, objectives, {}, additional))
     return sorted(records, key=lambda record: record.number)
 
 
@@ -88,10 +93,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     study_dir = args.study_dir.resolve()
     try:
         records = load_completed_records(study_dir / "optimization_results.csv")
+        # Old thickness-only studies remain readable, without inventing an
+        # inlet temperature that was never recorded for those trials.
+        spec = replace(AEMEC_REPORT, additional_parameters=tuple(
+            (name, label) for name, label in AEMEC_REPORT.additional_parameters
+            if name in records[0].additional_parameters
+        ))
         knees = write_pareto_artifacts(
             records,
             study_dir,
-            AEMEC_REPORT,
+            spec,
             ("minimize", "minimize"),
             args.bend_angle_threshold_deg,
         )
@@ -104,6 +115,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "Chebyshev knee: "
         f"trial {chebyshev.record.number}, "
         f"{AEMEC_REPORT.parameter_name}={chebyshev.record.parameter_value:g}, "
+        + "".join(f"{name}={value:g}, " for name, value in chebyshev.record.additional_parameters.items())
+        +
         f"normalized distance={chebyshev.metric_value:.8g}"
     )
     bend_angle = by_method.get("bend_angle")
@@ -118,6 +131,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "Bend-angle knee: "
             f"trial {bend_angle.record.number}, "
             f"{AEMEC_REPORT.parameter_name}={bend_angle.record.parameter_value:g}, "
+            + "".join(f"{name}={value:g}, " for name, value in bend_angle.record.additional_parameters.items())
+            +
             f"angle={bend_angle.metric_value:.8g} degrees"
         )
     print(f"Wrote knee points: {study_dir / 'knee_points.csv'}")

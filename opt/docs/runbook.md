@@ -20,17 +20,21 @@ crossover-objective logging change.
 
 ## Run a study
 
-The default 50-evaluation study searches 10–100 um:
+The default 50-evaluation study jointly searches thickness 10–100 µm and
+common anode/cathode water inlet temperature 298.15–353.15 K (25–80°C):
 
 ```bash
 python3 opt/run_optimization.py \
   --iterations 50 \
   --min-thickness-um 10 \
-  --max-thickness-um 100
+  --max-thickness-um 100 \
+  --min-water-inlet-temperature-k 298.15 \
+  --max-water-inlet-temperature-k 353.15
 ```
 
 The bounds are engineering inputs, not solver-inferred material limits. Use a
-smaller pilot before a full study:
+smaller pilot before a full study. Temperature arguments are in kelvin and
+must be positive, finite, and strictly ordered:
 
 ```bash
 python3 opt/run_optimization.py \
@@ -38,7 +42,7 @@ python3 opt/run_optimization.py \
   --study-name aemec-fast-pilot
 ```
 
-Validate thin, middle, and thick designs with a small study before a long run:
+Check sample thickness/temperature combinations with a small study before a long run:
 
 ```bash
 python3 opt/run_optimization.py --iterations 3 --startup-trials 3 --study-name validate-sweep
@@ -49,12 +53,23 @@ and about 2% for crossover. Every trial runs the full 165 s voltage sweep; use
 `--current-relative-tolerance` and `--timeout-minutes` to adjust the final-window
 current coefficient-of-variation limit and command timeout.
 
+The temperature variable changes the feed boundaries of the parent energy
+mesh and both phases. The initial temperature and collector cooling remain
+313.15 K in the current template, and Arrhenius reference temperatures remain
+298.15 K. Local temperature follows the energy equation rather than being
+set uniformly to the sampled inlet value. Outlet backflow values also retain
+the source-case settings. Assess whether the hold durations are sufficient
+for thermal settling across your temperature range.
+
 ## Outputs and resume
 
 Each study writes a settings-specific directory under `opt/results/` containing
 `optimization.db`, `optimization_results.csv`, `pareto_front.csv`,
 `knee_points.csv`, `pareto_front.png`, and `logs/trial_*`. The Pareto plot marks
-the normalized Chebyshev knee and the bend-angle knee. Each completed solver
+the normalized Chebyshev knee and the bend-angle knee, with separate panels
+coloured by thickness and water inlet temperature. Both parameters appear in
+`optimization_results.csv`, `pareto_front.csv`, and `knee_points.csv`.
+Each completed solver
 call has both its raw `trial_XXXX_solver.log` and a compact
 `trial_XXXX_polarization_curve.csv` plus its matching
 `trial_XXXX_polarization_curve.png`. Results are checkpointed after every
@@ -85,7 +100,17 @@ python3 opt/scripts/plot_membrane_polarization_curves.py \
 ```
 
 The comparison is written as `selected_polarization_curves.png` in the study
-directory. Use `--thicknesses` to select a different set.
+directory. Use `--thicknesses` to select a different set; all matching
+temperatures are included. For the new continuous two-variable studies,
+select completed trial IDs directly:
+
+```bash
+python3 opt/scripts/plot_membrane_polarization_curves.py \
+  STUDY_DIR --trials 0 3 7
+```
+
+Curve labels include thickness and recorded inlet temperature. Old
+thickness-only CSVs are still supported.
 
 Recompute knee points and update `pareto_front.png` for an existing study
 without rerunning OpenFOAM:
@@ -105,6 +130,10 @@ reported or plotted.
 Re-run the same command to resume until its completed-trial budget is reached.
 Use a new `--study-name` after changing bounds, source case, operating settings,
 or other study settings. `--output-dir` selects a different artifact root.
+The default study name is now `aemec-thickness-temperature`. The multi-variable
+engine uses a new settings schema and rejects old studies rather than mixing
+different search spaces or boundary conditions. Existing result files remain
+available for post-processing.
 
 To provide a serial wrapper, pass a command without shell pipes:
 

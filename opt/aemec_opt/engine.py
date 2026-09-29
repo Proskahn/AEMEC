@@ -2,13 +2,14 @@
 
 This module deliberately knows nothing about OpenFOAM, membranes, plotting, or
 the meaning of an objective.  An application supplies an evaluator that maps a
-continuous design value to objective values and JSON-compatible metadata.
+mapping of continuous design values to objectives and JSON-compatible metadata.
 """
 
 from __future__ import annotations
 
 import hashlib
 import math
+import random
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,18 +23,13 @@ class OptimizationError(RuntimeError):
 
 
 @dataclass(frozen=True)
-class SearchConfig:
-    parameter_name: str
+class SearchParameter:
+    name: str
     lower_bound: float
     upper_bound: float
-    completed_evaluations: int
-    startup_trials: int
-    seed: int
-    max_consecutive_failures: int
-    directions: tuple[str, ...] = ("minimize", "minimize")
 
     def validate(self) -> None:
-        if not self.parameter_name:
+        if not self.name:
             raise OptimizationError("The design-parameter name cannot be empty")
         if (
             not math.isfinite(self.lower_bound)
@@ -41,6 +37,22 @@ class SearchConfig:
             or self.lower_bound >= self.upper_bound
         ):
             raise OptimizationError("Search bounds must be finite and ordered")
+
+
+@dataclass(frozen=True)
+class SearchConfig:
+    parameters: tuple[SearchParameter, ...]
+    completed_evaluations: int
+    startup_trials: int
+    seed: int
+    max_consecutive_failures: int
+    directions: tuple[str, ...] = ("minimize", "minimize")
+
+    def validate(self) -> None:
+        if not self.parameters or len({p.name for p in self.parameters}) != len(self.parameters):
+            raise OptimizationError("Search parameters must be non-empty and uniquely named")
+        for parameter in self.parameters:
+            parameter.validate()
         if self.completed_evaluations <= 0:
             raise OptimizationError("Completed-evaluation budget must be positive")
         if self.startup_trials < 2:
@@ -69,7 +81,7 @@ class ObjectiveResult:
             raise OptimizationError("Evaluator returned a non-finite objective")
 
 
-Evaluator = Callable[[int, float], ObjectiveResult]
+Evaluator = Callable[[int, Mapping[str, float]], ObjectiveResult]
 Checkpoint = Callable[[optuna.study.Study, optuna.trial.FrozenTrial], None]
 
 
@@ -83,10 +95,11 @@ def study_artifact_directory(output_root: Path, study_name: str) -> Path:
 def study_settings(config: SearchConfig, application_settings: Mapping[str, object]) -> dict[str, object]:
     """Combine engine identity with settings supplied by the application adapter."""
     return {
-        "optimization_engine_schema_version": 1,
-        "parameter_name": config.parameter_name,
-        "lower_bound": config.lower_bound,
-        "upper_bound": config.upper_bound,
+        "optimization_engine_schema_version": 2,
+        "parameters": [
+            {"name": p.name, "lower_bound": p.lower_bound, "upper_bound": p.upper_bound}
+            for p in config.parameters
+        ],
         "directions": list(config.directions),
         "startup_trials": config.startup_trials,
         "seed": config.seed,
@@ -143,11 +156,21 @@ def create_or_load_study(
     if not study.trials:
         count = min(config.startup_trials, config.completed_evaluations)
         denominator = max(1, count - 1)
+        rng = random.Random(config.seed)
+        columns: dict[str, list[float]] = {}
+        for parameter in config.parameters:
+            values = [
+                parameter.lower_bound
+                + (parameter.upper_bound - parameter.lower_bound) * index / denominator
+                for index in range(count)
+            ]
+            # Independently permute each dimension to cover the design space,
+            # instead of correlating all parameters along its diagonal.
+            if len(config.parameters) > 1:
+                rng.shuffle(values)
+            columns[parameter.name] = values
         for index in range(count):
-            value = config.lower_bound + (
-                config.upper_bound - config.lower_bound
-            ) * index / denominator
-            study.enqueue_trial({config.parameter_name: value})
+            study.enqueue_trial({name: values[index] for name, values in columns.items()})
     return study
 
 
@@ -177,12 +200,15 @@ def run_study(
     last_finished: optuna.trial.FrozenTrial | None = None
 
     def objective(trial: optuna.trial.Trial) -> tuple[float, ...]:
-        value = trial.suggest_float(
-            config.parameter_name, config.lower_bound, config.upper_bound
-        )
-        progress(f"\nTrial {trial.number}: {config.parameter_name} = {value:.8g}")
+        parameters = {
+            p.name: trial.suggest_float(p.name, p.lower_bound, p.upper_bound)
+            for p in config.parameters
+        }
+        progress(f"\nTrial {trial.number}: " + ", ".join(
+            f"{name} = {value:.8g}" for name, value in parameters.items()
+        ))
         try:
-            result = evaluate(trial.number, value)
+            result = evaluate(trial.number, parameters)
         except (OptimizationError, OSError) as exc:
             trial.set_user_attr("failure", str(exc))
             progress(f"  trial failed: {exc}")

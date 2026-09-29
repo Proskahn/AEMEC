@@ -16,9 +16,9 @@ from aemec_opt.reporting import (
 class ReportingTests(unittest.TestCase):
     def test_writes_completed_records_and_pareto_artifacts(self) -> None:
         records = (
-            TrialRecord(0, 10.0, (1.0, 3.0), {"mode": "fast"}),
-            TrialRecord(1, 20.0, (2.0, 2.0), {"mode": "fast"}),
-            TrialRecord(2, 30.0, (3.0, 3.0), {"mode": "fast"}),
+            TrialRecord(0, 10.0, (1.0, 3.0), {"mode": "fast"}, {"water_inlet_temperature_k": 333.15}),
+            TrialRecord(1, 20.0, (2.0, 2.0), {"mode": "fast"}, {"water_inlet_temperature_k": 313.15}),
+            TrialRecord(2, 30.0, (3.0, 3.0), {"mode": "fast"}, {"water_inlet_temperature_k": 343.15}),
         )
         spec = ReportSpec(
             parameter_name="membrane_thickness_um",
@@ -27,6 +27,7 @@ class ReportingTests(unittest.TestCase):
             objective_labels=("Cell voltage [V]", "Crossover [mol/s]"),
             title="Test Pareto front",
             metadata_columns=("mode",),
+            additional_parameters=(("water_inlet_temperature_k", "Water inlet temperature [K]"),),
         )
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp)
@@ -38,6 +39,11 @@ class ReportingTests(unittest.TestCase):
             with (output / "pareto_front.csv").open(newline="") as handle:
                 rows = list(csv.DictReader(handle))
             self.assertEqual([row["trial"] for row in rows], ["0", "1"])
+            for name in ("optimization_results.csv", "pareto_front.csv", "knee_points.csv"):
+                with (output / name).open(newline="") as handle:
+                    for row in csv.DictReader(handle):
+                        expected = records[int(row["trial"])].additional_parameters["water_inlet_temperature_k"]
+                        self.assertEqual(float(row["water_inlet_temperature_k"]), expected)
 
     def test_selects_distinct_chebyshev_and_bend_angle_knees(self) -> None:
         objective_values = (

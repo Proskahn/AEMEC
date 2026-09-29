@@ -23,6 +23,7 @@ from .case import (
 from .engine import (
     OptimizationError,
     SearchConfig,
+    SearchParameter,
     completed_trial_count,
     create_or_load_study,
     run_study,
@@ -34,6 +35,8 @@ from .reporting import ReportSpec, completed_records, write_results
 DEFAULT_ITERATIONS = 50
 DEFAULT_MIN_THICKNESS_UM = 10.0
 DEFAULT_MAX_THICKNESS_UM = 100.0
+DEFAULT_MIN_WATER_INLET_TEMPERATURE_K = 298.15
+DEFAULT_MAX_WATER_INLET_TEMPERATURE_K = 353.15
 DEFAULT_STARTUP_TRIALS = 10
 DEFAULT_SEED = 42
 DEFAULT_MAX_CONSECUTIVE_FAILURES = 3
@@ -43,13 +46,15 @@ LEGACY_DEFAULT_ITERATION_CLOCK_STEP = 1.0
 LEGACY_DEFAULT_TARGET_HOLD_DURATION_S = 30.0
 LEGACY_DEFAULT_CONTROLLER_STEP_TOLERANCE_V = 0.001
 PARAMETER_NAME = "membrane_thickness_um"
+TEMPERATURE_PARAMETER_NAME = "water_inlet_temperature_k"
 
 AEMEC_REPORT = ReportSpec(
     parameter_name=PARAMETER_NAME,
     parameter_label="Membrane thickness [um]",
     objective_names=("cell_voltage_v", "crossover_rate_mol_s"),
     objective_labels=("Cell voltage at 1 A/cm2 [V]", "H2 crossover rate [mol/s]"),
-    title="AEMEC membrane-thickness Pareto front",
+    title="AEMEC thickness and water-temperature Pareto front",
+    additional_parameters=((TEMPERATURE_PARAMETER_NAME, "Water inlet temperature [K]"),),
     metadata_columns=(
         "target_current_density_a_m2",
         "interpolation_fraction",
@@ -81,7 +86,7 @@ def parse_command(value: str) -> tuple[str, ...]:
 def build_parser() -> argparse.ArgumentParser:
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(
-        description="Run a resumable AEMEC membrane-thickness Pareto optimization."
+        description="Optimize AEMEC membrane thickness and water inlet temperature."
     )
     parser.add_argument("--case", type=Path, default=root / "run/AEMEC")
     parser.add_argument("--output-dir", type=Path, default=root / "opt/results")
@@ -89,10 +94,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--iterations", type=int, default=DEFAULT_ITERATIONS, help="Completed CFD evaluations.")
     parser.add_argument("--min-thickness-um", type=float, default=DEFAULT_MIN_THICKNESS_UM)
     parser.add_argument("--max-thickness-um", type=float, default=DEFAULT_MAX_THICKNESS_UM)
+    parser.add_argument("--min-water-inlet-temperature-k", type=float, default=DEFAULT_MIN_WATER_INLET_TEMPERATURE_K, help="Common anode/cathode water-feed lower bound [K] (default: 298.15).")
+    parser.add_argument("--max-water-inlet-temperature-k", type=float, default=DEFAULT_MAX_WATER_INLET_TEMPERATURE_K, help="Common anode/cathode water-feed upper bound [K] (default: 353.15).")
     parser.add_argument("--startup-trials", type=int, default=DEFAULT_STARTUP_TRIALS)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--max-consecutive-failures", type=int, default=DEFAULT_MAX_CONSECUTIVE_FAILURES)
-    parser.add_argument("--study-name", default="aemec-membrane-thickness")
+    parser.add_argument("--study-name", default="aemec-thickness-temperature")
     parser.add_argument("--target-current-density-a-m2", type=float, default=DEFAULT_TARGET_CURRENT_DENSITY_A_M2)
     parser.add_argument("--current-relative-tolerance", type=float, default=DEFAULT_CURRENT_RELATIVE_TOLERANCE, help="Maximum current coefficient of variation in each objective voltage-hold window.")
     parser.add_argument("--run-mode", choices=("fast", "ramp"), default=LEGACY_DEFAULT_RUN_MODE, help="Legacy compatibility option; the optimizer always runs the complete voltage sweep.")
@@ -121,9 +128,10 @@ def _evaluation_config(args: argparse.Namespace) -> AemecEvaluationConfig:
 
 def _search_config(args: argparse.Namespace) -> SearchConfig:
     return SearchConfig(
-        parameter_name=PARAMETER_NAME,
-        lower_bound=args.min_thickness_um,
-        upper_bound=args.max_thickness_um,
+        parameters=(
+            SearchParameter(PARAMETER_NAME, args.min_thickness_um, args.max_thickness_um),
+            SearchParameter(TEMPERATURE_PARAMETER_NAME, args.min_water_inlet_temperature_k, args.max_water_inlet_temperature_k),
+        ),
         completed_evaluations=args.iterations,
         startup_trials=args.startup_trials,
         seed=args.seed,
@@ -134,6 +142,8 @@ def _search_config(args: argparse.Namespace) -> SearchConfig:
 def validate_args(args: argparse.Namespace) -> tuple[SearchConfig, AemecEvaluationConfig]:
     search = _search_config(args)
     search.validate()
+    if args.min_thickness_um <= 0 or args.min_water_inlet_temperature_k <= 0:
+        raise OptimizationError("Thickness [um] and water inlet temperature [K] must be positive")
     evaluation = _evaluation_config(args)
     evaluation.validate()
     if args.timeout_minutes is not None and (
@@ -172,8 +182,12 @@ def run_optimization(args: argparse.Namespace):
         timeout_s=None if args.timeout_minutes is None else args.timeout_minutes * 60.0,
     )
 
-    def evaluate(trial_number: int, thickness_um: float):
-        result = evaluator.evaluate(trial_number, thickness_um)
+    def evaluate(trial_number: int, parameters: dict[str, float]):
+        result = evaluator.evaluate(
+            trial_number,
+            parameters[PARAMETER_NAME],
+            parameters[TEMPERATURE_PARAMETER_NAME],
+        )
         objective = result.objective
         print(
             f"  interpolated voltage={objective.cell_voltage_v:.8g} V, "

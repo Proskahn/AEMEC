@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Overlay polarization curves for selected membrane thicknesses."""
+"""Overlay polarization curves by membrane thickness or trial number."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ class TrialCurve:
     membrane_thickness_um: float
     current_density_a_cm2: tuple[float, ...]
     cell_voltage_v: tuple[float, ...]
+    water_inlet_temperature_k: float | None = None
 
 
 def _format_thickness(value: float) -> str:
@@ -83,7 +84,9 @@ def _select_trial_rows(
                 f"no completed trial found at {requested:g} um; "
                 f"available thicknesses: {values}"
             )
-        selected.append(min(matches, key=lambda item: item[0]))
+        for match in sorted(matches):
+            if match not in selected:
+                selected.append(match)
     return selected
 
 
@@ -91,6 +94,7 @@ def _load_curve(
     study_dir: Path,
     trial_number: int,
     membrane_thickness_um: float,
+    water_inlet_temperature_k: float | None = None,
 ) -> TrialCurve:
     curve_path = (
         study_dir
@@ -125,6 +129,7 @@ def _load_curve(
         membrane_thickness_um,
         tuple(current_density),
         tuple(voltage),
+        water_inlet_temperature_k,
     )
 
 
@@ -132,15 +137,26 @@ def load_selected_curves(
     study_dir: Path,
     thicknesses_um: Sequence[float] = DEFAULT_THICKNESSES_UM,
     tolerance_um: float = 1.0e-6,
+    trial_numbers: Sequence[int] | None = None,
 ) -> list[TrialCurve]:
     study_dir = study_dir.resolve()
-    selected = _select_trial_rows(
-        _trial_rows(study_dir / "optimization_results.csv"),
-        thicknesses_um,
-        tolerance_um,
-    )
+    rows = _trial_rows(study_dir / "optimization_results.csv")
+    by_trial = {int(row["trial"]): row for row in rows}
+    if trial_numbers is None:
+        selected = _select_trial_rows(rows, thicknesses_um, tolerance_um)
+    else:
+        missing = set(trial_numbers).difference(by_trial)
+        if missing:
+            raise ValueError(f"completed trials not found: {sorted(missing)}")
+        selected = [(trial, float(by_trial[trial]["membrane_thickness_um"])) for trial in trial_numbers]
+    temperatures = {}
+    for trial, _thickness in selected:
+        value = by_trial[trial].get("water_inlet_temperature_k")
+        temperatures[trial] = float(value) if value is not None else None
+        if value is not None and (not math.isfinite(temperatures[trial]) or temperatures[trial] <= 0):
+            raise ValueError(f"invalid water inlet temperature for trial {trial}")
     return [
-        _load_curve(study_dir, trial, thickness)
+        _load_curve(study_dir, trial, thickness, temperatures[trial])
         for trial, thickness in selected
     ]
 
@@ -152,20 +168,23 @@ def plot_curves(curves: Sequence[TrialCurve], output_path: Path) -> None:
     markers = ("o", "s", "^", "D", "v", "P", "X")
     figure, voltage_axes = plt.subplots(figsize=(7.4, 5.2), constrained_layout=True)
     for index, curve in enumerate(curves):
+        label = f"{curve.membrane_thickness_um:g} µm"
+        if curve.water_inlet_temperature_k is not None:
+            label += f", {curve.water_inlet_temperature_k:g} K (trial {curve.trial_number})"
         voltage_axes.plot(
             curve.current_density_a_cm2,
             curve.cell_voltage_v,
             marker=markers[index % len(markers)],
             linewidth=1.8,
             markersize=5,
-            label=f"{curve.membrane_thickness_um:g} µm",
+            label=label,
         )
 
     voltage_axes.set_xlabel(r"$|j|$ [A/cm$^2$]")
     voltage_axes.set_ylabel("Cell voltage [V]")
-    voltage_axes.set_title("Membrane-Thickness Polarization Curves")
+    voltage_axes.set_title("AEMEC Polarization Curves")
     voltage_axes.grid(True, which="major", alpha=0.3)
-    voltage_axes.legend(title="Membrane thickness")
+    voltage_axes.legend(title="Design")
     voltage_axes.ticklabel_format(axis="x", style="plain")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output_path, dpi=220)
@@ -179,14 +198,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Study directory containing optimization_results.csv and logs/.",
     )
-    parser.add_argument(
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument(
         "--thicknesses",
         type=float,
         nargs="+",
         default=DEFAULT_THICKNESSES_UM,
         metavar="UM",
-        help="Membrane thicknesses to compare (default: 20 40 60 80).",
+        help="Compare all trials matching these thicknesses (default: 20 40 60 80).",
     )
+    selection.add_argument("--trials", type=int, nargs="+", help="Trial numbers to compare, including both thickness and temperature in labels.")
     parser.add_argument(
         "--thickness-tolerance-um",
         type=float,
@@ -218,6 +239,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             study_dir,
             args.thicknesses,
             args.thickness_tolerance_um,
+            trial_numbers=args.trials,
         )
         plot_curves(curves, output_path)
     except (OSError, ValueError) as exc:
@@ -227,6 +249,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             f"trial {curve.trial_number}: "
             f"{curve.membrane_thickness_um:g} um, "
+            + (f"water inlet {curve.water_inlet_temperature_k:g} K, " if curve.water_inlet_temperature_k is not None else "")
+            +
             f"{len(curve.cell_voltage_v)} points"
         )
     print(f"Wrote comparison plot: {output_path}")

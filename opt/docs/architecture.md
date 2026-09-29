@@ -14,17 +14,21 @@ small public surface.
 | `scripts/` | Post-processing of completed study artifacts | package API or standalone plotting dependencies |
 
 `engine.py` contains no OpenFOAM terminology, case layout, or plotting code. A
-different simulator can supply an evaluator that maps a candidate value to an
+different simulator can supply an evaluator that maps a parameter dictionary to an
 `ObjectiveResult`, then reuse the engine and optional reporting layer.
 
 ## Optimizer engine
 
-The engine is a simulator-independent, one-parameter, multi-objective layer. It
+The engine is a simulator-independent, multi-parameter, multi-objective layer. It
 stores Optuna studies in SQLite and minimizes an arbitrary tuple of objective
-values. The AEMEC CLI configures membrane thickness as its parameter and cell
-voltage plus hydrogen crossover as its two objectives.
+values. `SearchConfig.parameters` contains named `SearchParameter` bounds;
+evaluators receive `(trial_number, {parameter_name: value, ...})`. The AEMEC
+CLI configures membrane thickness and common water inlet temperature as its
+parameters, and cell voltage plus hydrogen crossover as its two objectives.
 
-The first `--startup-trials` proposals are evenly spaced across the bounds.
+The first `--startup-trials` proposals use evenly spaced levels in each
+dimension, independently shuffled using the seed. This covers each parameter's
+range without coupling thickness and temperature along the search-box diagonal.
 Later proposals use Optuna's multi-objective TPE sampler. The requested
 `--iterations` value counts completed evaluations; failed simulator calls are
 recorded but do not consume the budget. A settings fingerprint prevents
@@ -38,17 +42,39 @@ point minimizing normalized Chebyshev distance and, when one exceeds the
 configured positive-angle threshold, the maximum bend-angle point. The bend
 angle uses the two normalized extreme trade-off points as its left and right
 references.
+Both design parameters are retained in all three CSVs and in the SQLite
+database. The Pareto figure shows the same objective front in two panels,
+coloured by thickness and temperature respectively. Legacy thickness-only
+CSVs remain usable with the knee and polarization comparison commands.
 
 ## AEMEC adapter
 
-The adapter converts a membrane thickness into a self-contained OpenFOAM
-evaluation. It copies `run/AEMEC`, modifies the block-mesh geometry, runs the
+The adapter converts membrane thickness and water inlet temperature into an
+OpenFOAM evaluation. It copies `run/AEMEC`, modifies the geometry and inlets, runs the
 mesh and solver commands, and parses the resulting log. The source case is
 never modified.
 
 The baseline block mesh has a centred 30 um membrane. For a proposed thickness,
 the adapter translates both half-stacks by half of the thickness difference;
 the catalyst, porous, channel, and interconnect thicknesses remain unchanged.
+
+The inlet temperature is written as an explicit `uniform` value on
+`anodeInlet` and `cathodeInlet` in `0.orig/T`, and on each region's inlet in
+`0.orig/{anode,cathode}/T.{water,gas}`. These fields must agree because the
+parent mesh solves the conjugate energy equation and the phases use local
+thermal equilibrium. Updating only the water fields would leave the parent
+energy inlet at its baseline temperature. Templates are updated before
+meshing; generated `0` fields are updated again before the solver starts.
+The adapter rejects an isothermal (`solveEnergy false`) source case.
+
+The source-case initial temperature, collector thermal boundaries, outlet
+backflow temperatures, and Arrhenius reference coefficients are preserved.
+Thus the design variable controls feed temperature, not an imposed uniform
+cell temperature. Temperature-dependent conductivity, kinetics, and crossover
+use the resulting local temperature fields. The objective contract still
+checks settled current/crossover windows; it does not establish that the
+entire temperature field has reached steady state. Validate sweep duration
+for the chosen thermal boundary conditions when using the results.
 
 Every trial runs the complete 1.3--2.3 V potentiostatic table. The adapter takes
 the settled final window from each hold and linearly interpolates the cell
