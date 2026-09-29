@@ -27,8 +27,8 @@ The multidimensional equation is
 
 ```text
 d(epsilonIon*cH2)/dt
-  + div(Udrag*cH2)
-  = div(DH2Eff*grad(cH2))
+  + div(aT*UdragRef*cH2)
+  = div(aT*DH2EffRef*grad(cH2))
   + beta*GammaFaradaic
   - GammaDissolvedToGas
 ```
@@ -36,8 +36,9 @@ d(epsilonIon*cH2)/dt
 Equivalently, the dissolved-hydrogen molar flux is
 
 ```text
-N_H2,diss = -DH2Eff*grad(cH2)
-           + nDrag*cH2*iIon/(zIon*F*cH2O)
+aT = exp[(Ea/R)*(1/TRef - 1/T)]
+N_H2,diss = aT*(-DH2EffRef*grad(cH2)
+           + nDrag*cH2*iIon/(zIon*F*cH2O))
 ```
 
 There is no independent hydraulic or bulk-convection contribution to this
@@ -46,10 +47,19 @@ flux.
 where `beta` is `faradaicDissolvedFraction` and
 
 ```text
-Udrag = nDrag*iIon/(zIon*F*cH2O)
+UdragRef = nDrag*iIon/(zIon*F*cH2O)
 GammaDissolvedToGas = kLa*(cH2 - cSat)
 cSat = henryCoefficient*p*XH2
 ```
+
+The same local reference-state Arrhenius factor is deliberately applied to
+both diffusion and electro-osmotic drag. This is a lumped crossover scaling,
+not a claim that the two mechanisms have identical microscopic activation
+energies. `TRef = 298.15 K` is shared with the other reference-state material
+models. `DelecH2` and `nDrag` are therefore reference-temperature inputs. The
+factor equals one at `TRef` and, with the sample `Ea = 21.03 kJ/mol`, equals
+about 1.50 at 313.15 K. Henry equilibrium, `kLa`, storage, and Faradaic H2
+generation are not scaled by this factor.
 
 `GammaDissolvedToGas` is active only in the two catalyst layers. It is signed:
 positive values desorb H2 from ionomer to pore gas, while negative values
@@ -68,9 +78,12 @@ convection term is included.
 transient storage term. Separate values are configured for the membrane,
 cathode CL, and anode CL. `diffusivityModel` selects
 
-- `constant`: `DH2Eff = DelecH2`
-- `porosityTortuosity`: `DH2Eff = epsilonIonH2*DelecH2/tau`
-- `bruggeman`: `DH2Eff = epsilonIonH2^bruggemanExponent*DelecH2`
+- `constant`: `DH2EffRef = DelecH2`
+- `porosityTortuosity`: `DH2EffRef = epsilonIonH2*DelecH2/tau`
+- `bruggeman`: `DH2EffRef = epsilonIonH2^bruggemanExponent*DelecH2`
+
+The written field is the temperature-corrected quantity
+`DH2Eff = aT*DH2EffRef`.
 
 The current case uses `porosityTortuosity`. The configured volume fractions,
 tortuosities, base diffusivity, Henry coefficient, and drag coefficient are
@@ -126,6 +139,7 @@ Hydrogen dissolved-gas coupling conservation: ... imbalance = ... mol/s
 - `cH2`: dissolved concentration in the connected CL--membrane--CL ionomer.
 - `epsilonIonH2`: local storage fraction.
 - `DH2Eff`: local effective diffusivity.
+- `h2CrossoverArrheniusFactor`: local dimensionless multiplier `aT`.
 - `h2DissolvedProduction`: Faradaic production assigned to dissolved H2.
 - `h2MassTransferCoeff`: local CL `kLa`, zero in the membrane.
 - `h2DissolvedToGas`: signed CL interphase transfer rate in mol/(m3 s).
@@ -145,6 +159,10 @@ Hydrogen dissolved-gas coupling conservation: ... imbalance = ... mol/s
   are omitted.
 - KOH, OH-, and water concentrations are not solved explicitly, so `cH2O`, ionic
   conductivity, and drag remain calibrated effective properties.
+- One apparent Arrhenius factor scales both diffusion and electro-osmotic drag.
+  The sample `Ea = 21.03 kJ/mol` comes from Nafion hydrogen-permeability data,
+  not an AEMEC membrane calibration; it must be replaced when suitable
+  membrane-specific AEM measurements are available.
 - The configured thickness must be the swollen membrane thickness.
 
 Primary model references:
@@ -153,3 +171,9 @@ Primary model references:
   559 (2023) 232582, https://doi.org/10.1016/j.jpowsour.2022.232582.
 - A. Klinger et al., *Advanced Materials Interfaces* 12 (2025) 2400515,
   https://doi.org/10.1002/admi.202400515.
+- S. S. Kocha, J. D. Yang, and J. S. Yi, *AIChE Journal* 52 (2006)
+  1916--1925, https://doi.org/10.1002/aic.10780 (Nafion H2-permeation
+  activation energy).
+- J. Dang et al., *Applied Energy* 321 (2022) 119351,
+  https://doi.org/10.1016/j.apenergy.2022.119351 (reference-state Arrhenius
+  scaling of hydrogen crossover mechanisms in a PEM electrolyzer model).
