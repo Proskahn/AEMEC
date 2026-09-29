@@ -23,6 +23,7 @@ class standardH2Crossover
     word sinkZoneName_;
     word iName_;
     word jName_;
+    word TName_;
     word diffusivityModel_;
     word dragModel_;
     word cathodeInterfaceType_;
@@ -33,6 +34,8 @@ class standardH2Crossover
     dimensionedScalar nDrag_;
     dimensionedScalar cH2O_;
     scalar zIon_;
+    dimensionedScalar TRef_;
+    dimensionedScalar Ea_;
     dimensionedScalar DelecH2_;
     dimensionedScalar epsilonMembrane_;
     dimensionedScalar epsilonCathodeCL_;
@@ -49,6 +52,9 @@ class standardH2Crossover
     dimensionedScalar henryAnode_;
     scalar faradaicDissolvedFraction_;
     scalar relax_;
+
+    //- Local Arrhenius multiplier for dissolved-H2 transport.
+    volScalarField arrheniusFactor_;
 
     //- Hydrated-ionomer volume fraction used for dissolved-H2 storage.
     volScalarField epsilonIon_;
@@ -84,6 +90,8 @@ class standardH2Crossover
         scalar epsilon,
         scalar tau
     );
+
+    void updateArrheniusFactor();
 
     scalar zoneIntegral(const volScalarField& field, const word& zoneName) const;
 
