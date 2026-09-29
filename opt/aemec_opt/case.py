@@ -25,10 +25,9 @@ from typing import Iterable, Sequence
 from .engine import ObjectiveResult, OptimizationError
 
 
-# Version 6 derives the 1 A/cm2 objective from a potentiostatic polarization
-# sweep. It must not resume studies whose objective came from galvanostatic
-# feedback.
-OBJECTIVE_SCHEMA_VERSION = 6
+# Version 7 varies a shared water-feed temperature in the coupled energy
+# boundary conditions as well as membrane thickness.
+OBJECTIVE_SCHEMA_VERSION = 7
 DEFAULT_TARGET_CURRENT_DENSITY_A_M2 = 10_000.0
 DEFAULT_CURRENT_RELATIVE_TOLERANCE = 0.05
 DEFAULT_STABILITY_SAMPLES = 5
@@ -276,6 +275,53 @@ def _named_block_span(text: str, name: str) -> tuple[int, int]:
         raise OptimizationError(f"Cannot find {name!r} dictionary block")
     opening = text.find("{", match.start())
     return opening + 1, _matching_delimiter(text, opening, "{", "}")
+
+
+def configure_water_inlet_temperature(case_path: Path, temperature_k: float) -> None:
+    """Set the common feed temperature in the parent and both phase inlets.
+
+    The parent mesh solves the coupled energy equation. Its inlet conditions
+    and both phase temperatures must agree under local thermal equilibrium.
+    Explicit patch values avoid changing initialization, collector cooling,
+    outlet backflow reservoirs, or any Arrhenius reference coefficients.
+    Update templates before meshing and generated fields when they exist.
+    """
+    if not math.isfinite(temperature_k) or temperature_k <= 0:
+        raise OptimizationError("Water inlet temperature must be finite and positive [K]")
+    cell_properties = (case_path / "constant/cellProperties").read_text(encoding="utf-8")
+    if not re.search(r"(?m)^\s*solveEnergy\s+true\s*;", cell_properties):
+        raise OptimizationError("Water inlet temperature optimization requires solveEnergy true")
+
+    fields = {"T": ("anodeInlet", "cathodeInlet")}
+    for region in ("anode", "cathode"):
+        for phase in ("water", "gas"):
+            fields[f"{region}/T.{phase}"] = (f"{region}Inlet",)
+
+    updates: dict[Path, str] = {}
+    for time_directory in ("0.orig", "0"):
+        if time_directory == "0" and not (case_path / time_directory).exists():
+            continue
+        for relative, patches in fields.items():
+            path = case_path / time_directory / relative
+            text = path.read_text(encoding="utf-8")
+            boundary_start, boundary_end = _named_block_span(text, "boundaryField")
+            boundary = text[boundary_start:boundary_end]
+            for patch in patches:
+                start, end = _named_block_span(boundary, patch)
+                block = boundary[start:end]
+                if not re.search(r"(?m)^\s*type\s+fixedValue\s*;", block):
+                    raise OptimizationError(f"Expected fixedValue temperature at {path}:{patch}")
+                block, count = re.subn(
+                    r"(?m)^(\s*value\s+)[^;]+;",
+                    lambda match: match.group(1) + f"uniform {_format_number(temperature_k)};",
+                    block,
+                )
+                if count != 1:
+                    raise OptimizationError(f"Cannot set inlet temperature at {path}:{patch}")
+                boundary = boundary[:start] + block + boundary[end:]
+            updates[path] = text[:boundary_start] + boundary + text[boundary_end:]
+    for path, text in updates.items():
+        path.write_text(text, encoding="utf-8")
 
 
 def _replace_control_scalar(path: Path, keyword: str, value: float, required: bool = True) -> None:
@@ -952,7 +998,7 @@ def run_command(command: Sequence[str], cwd: Path, log_path: Path, timeout_s: fl
 
 
 class AemecOpenFoamEvaluator:
-    """Evaluate a membrane thickness in a fresh OpenFOAM scratch case."""
+    """Evaluate thickness and water inlet temperature in a fresh scratch case."""
     required_mesh_regions = (
         "anode",
         "cathode",
@@ -975,10 +1021,11 @@ class AemecOpenFoamEvaluator:
         if missing:
             raise OptimizationError("Mesh command completed but required mesh files are missing:\n  " + "\n  ".join(missing))
 
-    def evaluate(self, trial_number: int, thickness_um: float) -> AemecEvaluation:
+    def evaluate(self, trial_number: int, thickness_um: float, water_inlet_temperature_k: float) -> AemecEvaluation:
         started = time.monotonic()
         copy_clean_case(self.source_case, self.work_case)
         rewrite_block_mesh_thickness(self.work_case / "system/blockMeshDict", thickness_um)
+        configure_water_inlet_temperature(self.work_case, water_inlet_temperature_k)
         sweep = configure_voltage_sweep(self.work_case, self.config)
         mesh_log = self.logs_dir / f"trial_{trial_number:04d}_mesh.log"
         solver_log = self.logs_dir / f"trial_{trial_number:04d}_solver.log"
@@ -990,6 +1037,11 @@ class AemecOpenFoamEvaluator:
         )
         run_command(self.mesh_command, self.work_case, mesh_log, self.timeout_s)
         self._verify_mesh()
+        configure_water_inlet_temperature(self.work_case, water_inlet_temperature_k)
+        curve_title = (
+            f"Trial {trial_number}: {thickness_um:g} µm, "
+            f"water inlet {water_inlet_temperature_k:g} K"
+        )
         solver_output = run_command(self.solver_command, self.work_case, solver_log, self.timeout_s)
         try:
             objective = interpolate_voltage_objective(
@@ -1003,7 +1055,7 @@ class AemecOpenFoamEvaluator:
                 write_polarization_curve_plot(
                     curve_csv,
                     curve_plot,
-                    f"Trial {trial_number} Polarization Curve",
+                    curve_title,
                 )
             raise
         write_polarization_curve_csv(
@@ -1019,7 +1071,7 @@ class AemecOpenFoamEvaluator:
         write_polarization_curve_plot(
             curve_csv,
             curve_plot,
-            f"Trial {trial_number} Polarization Curve",
+            curve_title,
         )
         return AemecEvaluation(
             objective,

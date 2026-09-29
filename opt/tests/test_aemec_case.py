@@ -15,6 +15,8 @@ from aemec_opt.case import (
     VoltageHold,
     VoltageSweep,
     configure_voltage_sweep,
+    configure_water_inlet_temperature,
+    case_fingerprint,
     copy_clean_case,
     interpolate_voltage_objective,
     parse_voltage_sweep_samples,
@@ -410,6 +412,45 @@ class AemecCaseTests(unittest.TestCase):
             self.assertEqual(update.new_thickness_um, 50.0)
             self.assertIn("0.025", mesh.read_text(encoding="utf-8"))
 
+    def test_inlet_temperature_changes_only_feed_patches(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            case = Path(directory) / "case"
+            copy_clean_case(ROOT / "run/AEMEC", case)
+            shutil.copytree(case / "0.orig", case / "0")
+            originals = {path: path.read_bytes() for path in case.rglob("*") if path.is_file()}
+            for temperature in (298.15, 343.15):
+                configure_water_inlet_temperature(case, temperature)
+                for path, original in originals.items():
+                    relative = path.relative_to(case).as_posix()
+                    if relative in ("0/T", "0.orig/T"):
+                        patches = ("anodeInlet", "cathodeInlet")
+                    elif relative in tuple(f"{time}/{region}/T.{phase}" for time in ("0", "0.orig") for region in ("anode", "cathode") for phase in ("gas", "water")):
+                        patches = (f"{path.parent.name}Inlet",)
+                    else:
+                        self.assertEqual(path.read_bytes(), original, relative)
+                        continue
+                    expected = original.decode("utf-8")
+                    for patch in patches:
+                        original_block = f"{patch}\n    {{\n        type            fixedValue;\n        value           $internalField;"
+                        self.assertIn(original_block, expected)
+                        expected = expected.replace(original_block, original_block.replace("$internalField", f"uniform {temperature:g}"))
+                    self.assertEqual(path.read_text(), expected, relative)
+                preflight = subprocess.run([sys.executable, str(case / "check_case.py"), "--static"], cwd=case, capture_output=True, text=True)
+                self.assertEqual(preflight.returncode, 0, preflight.stdout + preflight.stderr)
+            before = case_fingerprint(case)
+            for invalid in (0, -1, float("nan"), float("inf")):
+                with self.assertRaises(OptimizationError):
+                    configure_water_inlet_temperature(case, invalid)
+                self.assertEqual(case_fingerprint(case), before)
+
+    def test_inlet_temperature_rejects_isothermal_case(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            case = Path(directory)
+            (case / "constant").mkdir()
+            (case / "constant/cellProperties").write_text("solveEnergy false;\n")
+            with self.assertRaisesRegex(OptimizationError, "solveEnergy true"):
+                configure_water_inlet_temperature(case, 333.15)
+
     def test_optimizer_configures_complete_voltage_sweep(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             case = Path(directory)
@@ -660,9 +701,13 @@ End
             root = Path(directory)
             source = root / "source"
             copy_controls(source)
+            shutil.copytree(ROOT / "run/AEMEC/0.orig", source / "0.orig")
+            shutil.copy2(ROOT / "run/AEMEC/constant/cellProperties", source / "constant/cellProperties")
             shutil.copy2(ROOT / "run/AEMEC/system/blockMeshDict", source / "system/blockMeshDict")
             (source / "mesh.py").write_text(
                 """from pathlib import Path
+import shutil
+shutil.copytree('0.orig', '0')
 for region in ('', 'anode', 'cathode', 'electrolyte', 'interconnect', 'phiECathode', 'phiEAnode', 'phiAnion'):
     base = Path('constant') if not region else Path('constant') / region
     target = base / 'polyMesh/points'
@@ -672,10 +717,19 @@ for region in ('', 'anode', 'cathode', 'electrolyte', 'interconnect', 'phiECatho
                 encoding="utf-8",
             )
             (source / "solver.py").write_text(
-                """voltages = [1.3 + 0.1 * index for index in range(11)]
+                """from pathlib import Path
+import re
+text = Path('0/T').read_text()
+temperature = float(re.search(r'anodeInlet\\s*\\{[^}]*value\\s+uniform\\s+([0-9.]+)', text).group(1))
+for region in ('anode', 'cathode'):
+    for phase in ('gas', 'water'):
+        phase_text = Path(f'0/{region}/T.{phase}').read_text()
+        inlet = float(re.search(region + r'Inlet\\s*\\{[^}]*value\\s+uniform\\s+([0-9.]+)', phase_text).group(1))
+        assert inlet == temperature
+voltages = [1.3 + 0.1 * index for index in range(11)]
 for index, voltage in enumerate(voltages, start=1):
     end = 15.0 * index
-    current_density = -(voltage - 1.3) * 18000.0
+    current_density = -(voltage - 1.3) * 18000.0 * temperature / 333.15
     for offset in (0.4, 0.3, 0.2, 0.1, 0.0):
         print(f'Time = {end - offset:.1f}')
         print(f'Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = {current_density} A/m2, voltage = {voltage}')
@@ -685,7 +739,8 @@ print('End')
                 encoding="utf-8",
             )
             evaluator = AemecOpenFoamEvaluator(source, root / "work/case", root / "logs", (sys.executable, "mesh.py"), (sys.executable, "solver.py"), AemecEvaluationConfig(), 10.0)
-            result = evaluator.evaluate(0, 40.0)
+            source_fingerprint = case_fingerprint(source)
+            result = evaluator.evaluate(0, 40.0, 333.15)
             self.assertAlmostEqual(result.objective.cell_voltage_v, 1.8555555556)
             self.assertAlmostEqual(
                 result.objective.crossover_rate_mol_s, 1.8555555556e-5
@@ -697,6 +752,9 @@ print('End')
                 len(result.polarization_curve_csv.read_text().splitlines()),
                 12,
             )
+            warmer_result = evaluator.evaluate(1, 40.0, 343.15)
+            self.assertLess(warmer_result.objective.cell_voltage_v, result.objective.cell_voltage_v)
+            self.assertEqual(case_fingerprint(source), source_fingerprint)
 
             (source / "solver.py").write_text(
                 """voltages = [1.3 + 0.1 * index for index in range(11)]
@@ -711,9 +769,9 @@ print('End')
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(OptimizationError, "does not bracket"):
-                evaluator.evaluate(1, 50.0)
-            rejected_curve = root / "logs/trial_0001_polarization_curve.csv"
-            rejected_plot = root / "logs/trial_0001_polarization_curve.png"
+                evaluator.evaluate(2, 50.0, 343.15)
+            rejected_curve = root / "logs/trial_0002_polarization_curve.csv"
+            rejected_plot = root / "logs/trial_0002_polarization_curve.png"
             self.assertTrue(rejected_curve.is_file())
             self.assertTrue(rejected_plot.is_file())
             self.assertEqual(len(rejected_curve.read_text().splitlines()), 12)

@@ -7,7 +7,7 @@ OpenFOAM or AEMEC dependency.
 from __future__ import annotations
 
 import csv
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -27,6 +27,7 @@ class TrialRecord:
     parameter_value: float
     objective_values: tuple[float, ...]
     metadata: Mapping[str, object]
+    additional_parameters: Mapping[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class ReportSpec:
     objective_labels: tuple[str, str]
     title: str
     metadata_columns: tuple[str, ...] = ()
+    additional_parameters: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,10 @@ def completed_records(
                 parameter_value=float(trial.params[parameter_name]),
                 objective_values=tuple(float(value) for value in trial.values),
                 metadata=dict(trial.user_attrs),
+                additional_parameters={
+                    name: float(value) for name, value in trial.params.items()
+                    if name != parameter_name
+                },
             )
         )
     return sorted(records, key=lambda record: record.number)
@@ -151,12 +157,15 @@ def write_pareto_artifacts(
     )
 
     pareto_path = output_dir / "pareto_front.csv"
+    additional_names = [name for name, _label in spec.additional_parameters]
     with pareto_path.open("w", newline="", encoding="utf-8") as output_file:
         writer = csv.writer(output_file)
-        writer.writerow(["trial", spec.parameter_name, *spec.objective_names])
+        writer.writerow(["trial", spec.parameter_name, *additional_names, *spec.objective_names])
         for record in pareto_records:
             writer.writerow(
-                [record.number, record.parameter_value, *record.objective_values]
+                [record.number, record.parameter_value,
+                 *[record.additional_parameters[name] for name in additional_names],
+                 *record.objective_values]
             )
 
     knee_path = output_dir / "knee_points.csv"
@@ -167,6 +176,7 @@ def write_pareto_artifacts(
                 "method",
                 "trial",
                 spec.parameter_name,
+                *additional_names,
                 *spec.objective_names,
                 "normalized_objective_1",
                 "normalized_objective_2",
@@ -180,6 +190,7 @@ def write_pareto_artifacts(
                     knee.method,
                     knee.record.number,
                     knee.record.parameter_value,
+                    *[knee.record.additional_parameters[name] for name in additional_names],
                     *knee.record.objective_values,
                     *knee.normalized_objectives,
                     knee.metric_name,
@@ -189,11 +200,21 @@ def write_pareto_artifacts(
 
     if not records:
         return knees
-    fig, ax = plt.subplots(figsize=(7.0, 5.0), constrained_layout=True)
+    colour_parameters = ((spec.parameter_name, spec.parameter_label), *spec.additional_parameters)
+    fig, axes = plt.subplots(1, len(colour_parameters), figsize=(7.0 * len(colour_parameters), 5.0), constrained_layout=True, squeeze=False)
+    for ax, (parameter_name, parameter_label) in zip(axes[0], colour_parameters):
+        _plot_pareto_panel(ax, fig, records, pareto_records, knees, spec, parameter_name, parameter_label)
+    fig.savefig(output_dir / "pareto_front.png", dpi=220)
+    plt.close(fig)
+    return knees
+
+
+def _plot_pareto_panel(ax, fig, records, pareto_records, knees, spec, parameter_name, parameter_label) -> None:
     scatter = ax.scatter(
         [record.objective_values[0] for record in records],
         [record.objective_values[1] for record in records],
-        c=[record.parameter_value for record in records],
+        c=[record.parameter_value if parameter_name == spec.parameter_name
+           else record.additional_parameters[parameter_name] for record in records],
         cmap="viridis",
         s=48,
         alpha=0.78,
@@ -235,15 +256,12 @@ def write_pareto_artifacts(
             **style,
         )
     colorbar = fig.colorbar(scatter, ax=ax)
-    colorbar.set_label(spec.parameter_label)
+    colorbar.set_label(parameter_label)
     ax.set_xlabel(spec.objective_labels[0])
     ax.set_ylabel(spec.objective_labels[1])
     ax.set_title(spec.title)
     ax.grid(True, alpha=0.28)
     ax.legend()
-    fig.savefig(output_dir / "pareto_front.png", dpi=220)
-    plt.close(fig)
-    return knees
 
 
 def write_results(
@@ -266,6 +284,7 @@ def write_results(
             [
                 "trial",
                 spec.parameter_name,
+                *[name for name, _label in spec.additional_parameters],
                 *spec.objective_names,
                 *spec.metadata_columns,
                 "is_pareto",
@@ -276,6 +295,7 @@ def write_results(
                 [
                     record.number,
                     record.parameter_value,
+                    *[record.additional_parameters[name] for name, _label in spec.additional_parameters],
                     *record.objective_values,
                     *[_csv_value(record.metadata.get(key)) for key in spec.metadata_columns],
                     is_pareto,

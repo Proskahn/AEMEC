@@ -63,6 +63,22 @@ class MembranePolarizationCurvePlotTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "no completed trial found at 40"):
                 load_selected_curves(study_dir, (40.0,))
 
+    def test_same_thickness_keeps_both_temperatures_and_trial_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            study_dir = Path(directory)
+            (study_dir / "logs").mkdir()
+            with (study_dir / "optimization_results.csv").open("w", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["trial", "membrane_thickness_um", "water_inlet_temperature_k"])
+                writer.writerows([(0, 40, 313.15), (1, 40, 343.15)])
+            for trial in (0, 1):
+                (study_dir / f"logs/trial_{trial:04d}_polarization_curve.csv").write_text("cell_voltage_v,final_current_density_magnitude_a_cm2\n1.8,1\n")
+            curves = load_selected_curves(study_dir, (40,))
+            self.assertEqual([c.water_inlet_temperature_k for c in curves], [313.15, 343.15])
+            selected = load_selected_curves(study_dir, trial_numbers=[1])
+            self.assertEqual([c.trial_number for c in selected], [1])
+            plot_curves(curves, study_dir / "comparison.png")
+
 
 if __name__ == "__main__":
     unittest.main()

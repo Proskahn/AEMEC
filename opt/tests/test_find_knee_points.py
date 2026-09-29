@@ -51,6 +51,20 @@ class FindKneePointsCommandTests(unittest.TestCase):
                 {"chebyshev": "3", "bend_angle": "4"},
             )
 
+    def test_joint_study_knees_retain_temperature(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            study_dir = Path(tmp)
+            with (study_dir / "optimization_results.csv").open("w", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["trial", "membrane_thickness_um", "water_inlet_temperature_k", "cell_voltage_v", "crossover_rate_mol_s"])
+                writer.writerows([(0, 20, 343.15, 1, 4), (1, 40, 323.15, 2, 2), (2, 60, 303.15, 4, 1)])
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(main([str(study_dir)]), 0)
+            with (study_dir / "knee_points.csv").open() as handle:
+                rows = list(csv.DictReader(handle))
+            self.assertTrue(rows)
+            self.assertTrue(all(float(row["water_inlet_temperature_k"]) == 323.15 for row in rows))
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
