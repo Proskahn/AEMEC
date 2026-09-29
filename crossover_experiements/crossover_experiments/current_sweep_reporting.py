@@ -90,3 +90,31 @@ def write_current_sweep_reports(
     plot_current_sweep_timeseries(
         output_dir / "current_sweep_timeseries.png", samples, membrane_area_m2
     )
+
+
+def plot_thickness_current_sweeps(
+    path: Path,
+    curves: Sequence[tuple[float, Sequence[CurrentSweepPoint]]],
+) -> None:
+    """Overlay independently simulated membrane-thickness sweeps."""
+    if not curves or any(not points for _, points in curves):
+        raise OptimizationError("Each membrane thickness needs accepted sweep points")
+    figure, axis = plt.subplots(figsize=(7.4, 5.2), constrained_layout=True)
+    markers = ("o", "s", "^", "D")
+    for index, (thickness, points) in enumerate(curves):
+        ordered = sorted(points, key=lambda point: point.target_current_density_a_cm2)
+        axis.errorbar(
+            [point.target_current_density_a_cm2 for point in ordered],
+            [point.mean_crossover_flux_density_mol_m2_s for point in ordered],
+            yerr=[point.crossover_flux_density_std_mol_m2_s for point in ordered],
+            marker=markers[index % len(markers)], linewidth=1.8,
+            markersize=5, capsize=3, label=f"{thickness:g} µm",
+        )
+    axis.set_xlabel(r"Current density [A cm$^{-2}$]")
+    axis.set_ylabel(r"H$_2$ crossover flux [mol m$^{-2}$ s$^{-1}$]")
+    axis.set_title("Membrane-Thickness Hydrogen Crossover Curves")
+    axis.legend(title="Membrane thickness")
+    _style(axis)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(path, dpi=220)
+    plt.close(figure)
