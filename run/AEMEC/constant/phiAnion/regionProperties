@@ -63,6 +63,16 @@ hydrogenCrossover
 
         i               i;
         j               J;
+        T               T;
+
+        // Reference-state Arrhenius multiplier applied equally to dissolved
+        // H2 diffusion and electro-osmotic drag:
+        // aT = exp[Ea/R*(1/TRef - 1/T)]. DelecH2 and nDrag are interpreted
+        // at TRef. The 21.03 kJ/mol value is transferred from a Nafion H2
+        // permeability correlation and is only a PEM-derived AEM sensitivity
+        // assumption; replace it when membrane-specific AEM data are known.
+        TRef            298.15;
+        Ea              21030;  // J/mol
 
         // Names used by the conservative species-source mapping.  Mapping is
         // through the common parent mesh, not local region-cell ordering.
@@ -75,8 +85,9 @@ hydrogenCrossover
         // from the gas reaction source, so H2 is generated only once.
         faradaicDissolvedFraction  1.0;
 
-        // J_H2,drag = nDrag*cH2*iIon/(zIon*F*cH2O). The constant drag
-        // coefficient is the initial extension point for correlations.
+        // J_H2,drag = aT*nDrag*cH2*iIon/(zIon*F*cH2O). The constant drag
+        // coefficient is the reference-temperature extension point for
+        // future AEM-specific correlations.
         dragModel       constant;
         nDrag           1;
         zIon            -1;    // OH- charge number sets drag direction

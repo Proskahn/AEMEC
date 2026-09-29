@@ -87,6 +87,7 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
     sinkZoneName_(dict_.lookupOrDefault<word>("sinkZone", "acl")),
     iName_(dict_.lookupOrDefault<word>("i", "i")),
     jName_(dict_.lookupOrDefault<word>("j", "j")),
+    TName_(dict_.lookupOrDefault<word>("T", "T")),
     diffusivityModel_
     (
         dict_.lookupOrDefault<word>("diffusivityModel", "porosityTortuosity")
@@ -111,6 +112,8 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
     nDrag_("nDrag", dimless, dict_),
     cH2O_("cH2O", dimMoles/dimVol, dict_),
     zIon_(dict_.lookupOrDefault<scalar>("zIon", -1.0)),
+    TRef_("TRef", dimTemperature, dict_),
+    Ea_("Ea", dimEnergy/dimMoles, dict_),
     DelecH2_("DelecH2", sqr(dimLength)/dimTime, dict_),
     epsilonMembrane_
     (
@@ -233,6 +236,20 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
         dict_.lookupOrDefault<scalar>("faradaicDissolvedFraction", 1.0)
     ),
     relax_(dict_.lookupOrDefault<scalar>("relax", 1.0)),
+    arrheniusFactor_
+    (
+        IOobject
+        (
+            "h2CrossoverArrheniusFactor",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("h2CrossoverArrheniusFactor", dimless, 1.0),
+        zeroGradientFvPatchScalarField::typeName
+    ),
     epsilonIon_
     (
         IOobject
@@ -371,6 +388,13 @@ Foam::hydrogenCrossoverModels::standardH2Crossover::standardH2Crossover
             << "faradaicDissolvedFraction must be in [0,1]; nDrag must be "
             << "non-negative, cH2O positive, and zIon non-zero"
             << exit(FatalError);
+    }
+
+    if (TRef_.value() <= 0.0 || Ea_.value() < 0.0)
+    {
+        FatalErrorInFunction
+            << "Hydrogen-crossover TRef must be positive and Ea must be "
+            << "non-negative" << exit(FatalError);
     }
 }
 
@@ -522,6 +546,34 @@ setZoneTransportProperties
 }
 
 
+void Foam::hydrogenCrossoverModels::standardH2Crossover::
+updateArrheniusFactor()
+{
+    const scalarField& T = mesh_.lookupObject<volScalarField>(TName_);
+    const scalar activationTemperature =
+        Ea_.value()/constant::physicoChemical::R.value();
+
+    forAll(arrheniusFactor_, cellI)
+    {
+        if (T[cellI] <= 0.0)
+        {
+            FatalErrorInFunction
+                << "Temperature field '" << TName_ << "' contains "
+                << T[cellI] << " K in cell " << cellI
+                << exit(FatalError);
+        }
+
+        arrheniusFactor_[cellI] = Foam::exp
+        (
+            activationTemperature
+           *(1.0/TRef_.value() - 1.0/T[cellI])
+        );
+    }
+
+    arrheniusFactor_.correctBoundaryConditions();
+}
+
+
 Foam::scalar Foam::hydrogenCrossoverModels::standardH2Crossover::zoneIntegral
 (
     const volScalarField& field,
@@ -557,6 +609,8 @@ Foam::scalar Foam::hydrogenCrossoverModels::standardH2Crossover::zoneIntegral
 
 void Foam::hydrogenCrossoverModels::standardH2Crossover::correct()
 {
+    updateArrheniusFactor();
+
     epsilonIon_ = epsilonMembrane_;
 
     if (diffusivityModel_ == "constant")
@@ -586,17 +640,22 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::correct()
         tauAnodeCL_.value()
     );
 
+    // DelecH2 and its porous-medium reductions are reference-temperature
+    // values. Apply the temperature multiplier once after all zones are set.
+    DH2Eff_ *= arrheniusFactor_;
+
     epsilonIon_.correctBoundaryConditions();
     DH2Eff_.correctBoundaryConditions();
 
     JH2Diff_ = mag(DH2Eff_*fvc::grad(cH2_));
 
     const volVectorField& i = mesh_.lookupObject<volVectorField>(iName_);
-    JH2Drag_ = mag(i)*nDrag_*cH2_/(mag(zIon_)*F*cH2O_);
+    JH2Drag_ =
+        arrheniusFactor_*mag(i)*nDrag_*cH2_/(mag(zIon_)*F*cH2O_);
     JH2Cross_ = mag
     (
        -DH2Eff_*fvc::grad(cH2_)
-      + nDrag_*cH2_/(zIon_*F*cH2O_)*i
+      + arrheniusFactor_*nDrag_*cH2_/(zIon_*F*cH2O_)*i
     );
 
     JH2Diff_.correctBoundaryConditions();
@@ -703,7 +762,9 @@ void Foam::hydrogenCrossoverModels::standardH2Crossover::solve()
             mesh_.time().timeName(),
             mesh_
         ),
-        nDrag_/(zIon_*F*cH2O_)*(fvc::interpolate(i) & mesh_.Sf())
+        fvc::interpolate(arrheniusFactor_)
+       *nDrag_/(zIon_*F*cH2O_)
+       *(fvc::interpolate(i) & mesh_.Sf())
     );
 
     tmp<fvScalarMatrix> h2Eqn

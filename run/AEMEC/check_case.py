@@ -702,6 +702,9 @@ def check_static(case: Path, errors: list[str]) -> None:
         "nDrag           1;",
         "zIon            -1;",
         "cH2O            52000;",
+        "T               T;",
+        "TRef            298.15;",
+        "Ea              21030;",
     ):
         if entry not in anion_properties:
             errors.append(

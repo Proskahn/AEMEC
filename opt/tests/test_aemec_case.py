@@ -146,6 +146,9 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("nDrag           1;", crossover)
         self.assertIn("zIon            -1;", crossover)
         self.assertIn("cH2O            52000;", crossover)
+        self.assertIn("T               T;", crossover)
+        self.assertIn("TRef            298.15;", crossover)
+        self.assertIn("Ea              21030;", crossover)
         self.assertNotIn("UMembrane", crossover)
         self.assertNotIn("dragSign", crossover)
         self.assertRegex(crossover, r"currentBalance\s*\{\s*active\s+true\s*;")
@@ -281,6 +284,20 @@ class AemecCaseTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("Ea_.value()/constant::physicoChemical::R.value()", arrhenius_sigma)
         self.assertIn("1.0/T[cellI] - 1.0/TRef_.value()", arrhenius_sigma)
+
+        crossover_model = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/hydrogenCrossoverModels"
+            / "standardH2Crossover/standardH2Crossover.C"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "Ea_.value()/constant::physicoChemical::R.value()",
+            crossover_model,
+        )
+        self.assertIn(
+            "1.0/TRef_.value() - 1.0/T[cellI]",
+            crossover_model,
+        )
 
     def test_two_phase_energy_keeps_composition_and_thermo_consistent(self) -> None:
         source = ROOT / "src/libSrc/fuelCellSystems"

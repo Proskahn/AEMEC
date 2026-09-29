@@ -62,17 +62,37 @@ class HydrogenCrossoverSourceTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn(
-            "JH2Drag_ = mag(i)*nDrag_*cH2_/(mag(zIon_)*F*cH2O_);",
+            "arrheniusFactor_*mag(i)*nDrag_*cH2_/(mag(zIon_)*F*cH2O_);",
             source,
         )
         self.assertIn("JH2Cross_ = mag", source)
         self.assertIn("-DH2Eff_*fvc::grad(cH2_)", source)
-        self.assertIn("nDrag_*cH2_/(zIon_*F*cH2O_)*i", source)
+        self.assertIn(
+            "arrheniusFactor_*nDrag_*cH2_/(zIon_*F*cH2O_)*i",
+            source,
+        )
         self.assertNotIn("JH2Cross_ = JH2Diff_ + JH2Drag_", source)
         self.assertNotIn(
             "JH2Drag_ = mag(i)*nDrag_*cH2CathodeInterface_",
             source,
         )
+
+    def test_arrhenius_factor_scales_both_transport_mechanisms(self) -> None:
+        source = (
+            ROOT
+            / "src/libSrc/fuelCellSystems/hydrogenCrossoverModels"
+            / "standardH2Crossover/standardH2Crossover.C"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("updateArrheniusFactor();", source)
+        self.assertIn(
+            "activationTemperature\n"
+            "           *(1.0/TRef_.value() - 1.0/T[cellI])",
+            source,
+        )
+        self.assertIn("DH2Eff_ *= arrheniusFactor_;", source)
+        self.assertIn("fvc::interpolate(arrheniusFactor_)", source)
+        self.assertNotIn("h2MassTransferCoeff_ *= arrheniusFactor_", source)
 
 
 if __name__ == "__main__":
