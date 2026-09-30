@@ -700,10 +700,7 @@ End
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "source"
-            copy_controls(source)
-            shutil.copytree(ROOT / "run/AEMEC/0.orig", source / "0.orig")
-            shutil.copy2(ROOT / "run/AEMEC/constant/cellProperties", source / "constant/cellProperties")
-            shutil.copy2(ROOT / "run/AEMEC/system/blockMeshDict", source / "system/blockMeshDict")
+            copy_clean_case(ROOT / "run/AEMEC", source)
             (source / "mesh.py").write_text(
                 """from pathlib import Path
 import shutil
@@ -719,6 +716,7 @@ for region in ('', 'anode', 'cathode', 'electrolyte', 'interconnect', 'phiECatho
             (source / "solver.py").write_text(
                 """from pathlib import Path
 import re
+import math
 text = Path('0/T').read_text()
 temperature = float(re.search(r'anodeInlet\\s*\\{[^}]*value\\s+uniform\\s+([0-9.]+)', text).group(1))
 for region in ('anode', 'cathode'):
@@ -726,10 +724,17 @@ for region in ('anode', 'cathode'):
         phase_text = Path(f'0/{region}/T.{phase}').read_text()
         inlet = float(re.search(region + r'Inlet\\s*\\{[^}]*value\\s+uniform\\s+([0-9.]+)', phase_text).group(1))
         assert inlet == temperature
+flow = Path('constant/anode/porousZones').read_text()
+porosity = float(re.search(r'anodeGDL\\s*\\{.*?^\\s*porosity\\s+([^;]+);', flow, re.S | re.M).group(1))
+darcy = float(re.search(r'\\bd\\s+\\(\\s*([^ ]+)', flow).group(1))
+assert math.isclose(darcy, 1e11 * ((1 - porosity) / 0.3) ** 2 * (0.7 / porosity) ** 3)
+for path in ('constant/anode/diffusivityModel.gas', 'constant/phiEAnode/regionProperties'):
+    epsilon = float(re.search(r'anodeGDL\\s*\\{.*?porosity\\s+([^;]+);', Path(path).read_text(), re.S).group(1))
+    assert epsilon == porosity
 voltages = [1.3 + 0.1 * index for index in range(11)]
 for index, voltage in enumerate(voltages, start=1):
     end = 15.0 * index
-    current_density = -(voltage - 1.3) * 18000.0 * temperature / 333.15
+    current_density = -(voltage - 1.3) * 18000.0 * temperature / 333.15 * porosity / 0.7
     for offset in (0.4, 0.3, 0.2, 0.1, 0.0):
         print(f'Time = {end - offset:.1f}')
         print(f'Controlled boundary current (A) at x: signed = -0.8, magnitude = 0.8, current density = {current_density} A/m2, voltage = {voltage}')
@@ -740,7 +745,7 @@ print('End')
             )
             evaluator = AemecOpenFoamEvaluator(source, root / "work/case", root / "logs", (sys.executable, "mesh.py"), (sys.executable, "solver.py"), AemecEvaluationConfig(), 10.0)
             source_fingerprint = case_fingerprint(source)
-            result = evaluator.evaluate(0, 40.0, 333.15)
+            result = evaluator.evaluate(0, 40.0, 333.15, 0.7)
             self.assertAlmostEqual(result.objective.cell_voltage_v, 1.8555555556)
             self.assertAlmostEqual(
                 result.objective.crossover_rate_mol_s, 1.8555555556e-5
@@ -752,8 +757,11 @@ print('End')
                 len(result.polarization_curve_csv.read_text().splitlines()),
                 12,
             )
-            warmer_result = evaluator.evaluate(1, 40.0, 343.15)
+            warmer_result = evaluator.evaluate(1, 40.0, 343.15, 0.7)
             self.assertLess(warmer_result.objective.cell_voltage_v, result.objective.cell_voltage_v)
+            denser_result = evaluator.evaluate(2, 40.0, 333.15, 0.5)
+            self.assertGreater(denser_result.objective.cell_voltage_v, result.objective.cell_voltage_v)
+            self.assertEqual(denser_result.as_objective_result().metadata["ptl_side"], "anode")
             self.assertEqual(case_fingerprint(source), source_fingerprint)
 
             (source / "solver.py").write_text(
@@ -769,9 +777,9 @@ print('End')
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(OptimizationError, "does not bracket"):
-                evaluator.evaluate(2, 50.0, 343.15)
-            rejected_curve = root / "logs/trial_0002_polarization_curve.csv"
-            rejected_plot = root / "logs/trial_0002_polarization_curve.png"
+                evaluator.evaluate(3, 50.0, 343.15, 0.6)
+            rejected_curve = root / "logs/trial_0003_polarization_curve.csv"
+            rejected_plot = root / "logs/trial_0003_polarization_curve.png"
             self.assertTrue(rejected_curve.is_file())
             self.assertTrue(rejected_plot.is_file())
             self.assertEqual(len(rejected_curve.read_text().splitlines()), 12)

@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from scripts.plot_membrane_polarization_curves import (
+    design_label,
     load_selected_curves,
     plot_curves,
 )
@@ -77,6 +78,22 @@ class MembranePolarizationCurvePlotTests(unittest.TestCase):
             self.assertEqual([c.water_inlet_temperature_k for c in curves], [313.15, 343.15])
             selected = load_selected_curves(study_dir, trial_numbers=[1])
             self.assertEqual([c.trial_number for c in selected], [1])
+            plot_curves(curves, study_dir / "comparison.png")
+
+    def test_porosity_and_side_are_retained_in_curve_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            study_dir = Path(directory)
+            (study_dir / "logs").mkdir()
+            (study_dir / "optimization_results.csv").write_text(
+                "trial,membrane_thickness_um,water_inlet_temperature_k,ptl_porosity,ptl_side\n"
+                "0,40,333.15,0.4,anode\n1,40,333.15,0.8,anode\n"
+            )
+            for trial in (0, 1):
+                (study_dir / f"logs/trial_{trial:04d}_polarization_curve.csv").write_text("cell_voltage_v,final_current_density_magnitude_a_cm2\n1.8,1\n")
+            curves = load_selected_curves(study_dir, trial_numbers=[0, 1])
+            self.assertEqual([c.ptl_porosity for c in curves], [0.4, 0.8])
+            self.assertIn("anode PTL ε=0.4", design_label(curves[0]))
+            self.assertIn("PTL ε=0.8", design_label(curves[1]))
             plot_curves(curves, study_dir / "comparison.png")
 
 

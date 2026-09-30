@@ -23,8 +23,20 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.stability_samples, 5)
         self.assertEqual(args.min_water_inlet_temperature_k, 298.15)
         self.assertEqual(args.max_water_inlet_temperature_k, 353.15)
+        self.assertEqual((args.min_ptl_porosity, args.max_ptl_porosity), (0.4, 0.8))
+        self.assertEqual(args.ptl_side, "anode")
         config, _ = validate_args(args)
-        self.assertEqual([p.name for p in config.parameters], ["membrane_thickness_um", "water_inlet_temperature_k"])
+        self.assertEqual([p.name for p in config.parameters], ["membrane_thickness_um", "water_inlet_temperature_k", "ptl_porosity"])
+
+    def test_porosity_bounds_and_side_are_configurable_and_validated(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(["--min-ptl-porosity", "0.5", "--max-ptl-porosity", "0.75", "--ptl-side", "both"])
+        search, evaluation = validate_args(args)
+        self.assertEqual((search.parameters[2].lower_bound, search.parameters[2].upper_bound), (0.5, 0.75))
+        self.assertEqual(evaluation.ptl_side, "both")
+        for lower, upper in (("nan", "0.8"), ("0.4", "inf"), ("0", "0.8"), ("0.4", "1"), ("-0.1", "0.8"), ("0.7", "0.7"), ("0.8", "0.4")):
+            with self.subTest(lower=lower, upper=upper), self.assertRaises(OptimizationError):
+                validate_args(parser.parse_args(["--min-ptl-porosity", lower, "--max-ptl-porosity", upper]))
 
     def test_temperature_bounds_are_configurable_and_validated(self) -> None:
         parser = build_parser()
@@ -39,7 +51,7 @@ class CliTests(unittest.TestCase):
         self.assertTrue(issubclass(OptimizationError, RuntimeError))
         self.assertTrue(callable(main))
 
-    def test_joint_study_passes_both_parameters_to_adapter_and_reports_them(self) -> None:
+    def test_joint_study_passes_three_parameters_to_adapter_and_reports_them(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "source"
@@ -50,8 +62,8 @@ class CliTests(unittest.TestCase):
                 "--output-dir", str(root / "results"), "--iterations", "3", "--startup-trials", "3",
             ])
 
-            def evaluate(number, thickness, temperature):
-                objective = SimpleNamespace(cell_voltage_v=2 + thickness / 1000 - temperature / 10000, crossover_rate_mol_s=temperature / thickness * 1e-8, target_current_density_a_m2=10000)
+            def evaluate(number, thickness, temperature, porosity):
+                objective = SimpleNamespace(cell_voltage_v=2 + thickness / 1000 - temperature / 10000 + porosity / 10, crossover_rate_mol_s=temperature / thickness * porosity * 1e-8, target_current_density_a_m2=10000)
                 return SimpleNamespace(
                     objective=objective, polarization_curve_csv="curve.csv", polarization_curve_plot="curve.png",
                     as_objective_result=lambda: ObjectiveResult((objective.cell_voltage_v, objective.crossover_rate_mol_s), {}),
@@ -62,15 +74,23 @@ class CliTests(unittest.TestCase):
                 study = run_optimization(args)
                 self.assertEqual(adapter.return_value.evaluate.call_count, 3)
                 for trial, call in zip(study.trials, adapter.return_value.evaluate.call_args_list):
-                    self.assertEqual(call.args, (trial.number, trial.params["membrane_thickness_um"], trial.params["water_inlet_temperature_k"]))
+                    self.assertEqual(call.args, (trial.number, trial.params["membrane_thickness_um"], trial.params["water_inlet_temperature_k"], trial.params["ptl_porosity"]))
                 run_optimization(args)
                 self.assertEqual(adapter.return_value.evaluate.call_count, 3)
+                args.max_ptl_porosity = 0.85
+                with self.assertRaisesRegex(OptimizationError, "different engine"):
+                    run_optimization(args)
+                args.max_ptl_porosity = 0.8
+                args.ptl_side = "both"
+                with self.assertRaisesRegex(OptimizationError, "different engine"):
+                    run_optimization(args)
             for filename in ("optimization_results.csv", "pareto_front.csv", "knee_points.csv"):
                 path = next((root / "results").rglob(filename))
                 with path.open() as handle:
                     for row in csv.DictReader(handle):
                         trial = study.trials[int(row["trial"])]
                         self.assertEqual(float(row["water_inlet_temperature_k"]), trial.params["water_inlet_temperature_k"])
+                        self.assertEqual(float(row["ptl_porosity"]), trial.params["ptl_porosity"])
             self.assertEqual((source / "template").read_text(), "unchanged")
 
 

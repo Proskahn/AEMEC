@@ -93,8 +93,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     study_dir = args.study_dir.resolve()
     try:
         records = load_completed_records(study_dir / "optimization_results.csv")
-        # Old thickness-only studies remain readable, without inventing an
-        # inlet temperature that was never recorded for those trials.
+        # Older studies remain readable without inventing unrecorded design
+        # variables (temperature or PTL porosity).
         spec = replace(AEMEC_REPORT, additional_parameters=tuple(
             (name, label) for name, label in AEMEC_REPORT.additional_parameters
             if name in records[0].additional_parameters

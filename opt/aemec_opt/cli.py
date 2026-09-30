@@ -6,6 +6,7 @@ import argparse
 import math
 import shlex
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
@@ -37,6 +38,8 @@ DEFAULT_MIN_THICKNESS_UM = 10.0
 DEFAULT_MAX_THICKNESS_UM = 100.0
 DEFAULT_MIN_WATER_INLET_TEMPERATURE_K = 298.15
 DEFAULT_MAX_WATER_INLET_TEMPERATURE_K = 353.15
+DEFAULT_MIN_PTL_POROSITY = 0.40
+DEFAULT_MAX_PTL_POROSITY = 0.80
 DEFAULT_STARTUP_TRIALS = 10
 DEFAULT_SEED = 42
 DEFAULT_MAX_CONSECUTIVE_FAILURES = 3
@@ -47,15 +50,20 @@ LEGACY_DEFAULT_TARGET_HOLD_DURATION_S = 30.0
 LEGACY_DEFAULT_CONTROLLER_STEP_TOLERANCE_V = 0.001
 PARAMETER_NAME = "membrane_thickness_um"
 TEMPERATURE_PARAMETER_NAME = "water_inlet_temperature_k"
+POROSITY_PARAMETER_NAME = "ptl_porosity"
 
 AEMEC_REPORT = ReportSpec(
     parameter_name=PARAMETER_NAME,
     parameter_label="Membrane thickness [um]",
     objective_names=("cell_voltage_v", "crossover_rate_mol_s"),
     objective_labels=("Cell voltage at 1 A/cm2 [V]", "H2 crossover rate [mol/s]"),
-    title="AEMEC thickness and water-temperature Pareto front",
-    additional_parameters=((TEMPERATURE_PARAMETER_NAME, "Water inlet temperature [K]"),),
+    title="AEMEC Pareto front",
+    additional_parameters=(
+        (TEMPERATURE_PARAMETER_NAME, "Water inlet temperature [K]"),
+        (POROSITY_PARAMETER_NAME, "PTL porosity [-]"),
+    ),
     metadata_columns=(
+        "ptl_side",
         "target_current_density_a_m2",
         "interpolation_fraction",
         "lower_time_s",
@@ -86,7 +94,7 @@ def parse_command(value: str) -> tuple[str, ...]:
 def build_parser() -> argparse.ArgumentParser:
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(
-        description="Optimize AEMEC membrane thickness and water inlet temperature."
+        description="Optimize AEMEC membrane thickness, water inlet temperature, and PTL porosity."
     )
     parser.add_argument("--case", type=Path, default=root / "run/AEMEC")
     parser.add_argument("--output-dir", type=Path, default=root / "opt/results")
@@ -96,10 +104,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-thickness-um", type=float, default=DEFAULT_MAX_THICKNESS_UM)
     parser.add_argument("--min-water-inlet-temperature-k", type=float, default=DEFAULT_MIN_WATER_INLET_TEMPERATURE_K, help="Common anode/cathode water-feed lower bound [K] (default: 298.15).")
     parser.add_argument("--max-water-inlet-temperature-k", type=float, default=DEFAULT_MAX_WATER_INLET_TEMPERATURE_K, help="Common anode/cathode water-feed upper bound [K] (default: 353.15).")
+    parser.add_argument("--min-ptl-porosity", type=float, default=DEFAULT_MIN_PTL_POROSITY, help="PTL void-fraction lower bound (default: 0.40).")
+    parser.add_argument("--max-ptl-porosity", type=float, default=DEFAULT_MAX_PTL_POROSITY, help="PTL void-fraction upper bound (default: 0.80).")
+    parser.add_argument("--ptl-side", choices=("anode", "cathode", "both"), default="anode", help="GDL/PTL zone(s) controlled by one porosity variable; MPLs/CLs stay fixed (default: anode).")
     parser.add_argument("--startup-trials", type=int, default=DEFAULT_STARTUP_TRIALS)
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--max-consecutive-failures", type=int, default=DEFAULT_MAX_CONSECUTIVE_FAILURES)
-    parser.add_argument("--study-name", default="aemec-thickness-temperature")
+    parser.add_argument("--study-name", default="aemec-thickness-temperature-porosity")
     parser.add_argument("--target-current-density-a-m2", type=float, default=DEFAULT_TARGET_CURRENT_DENSITY_A_M2)
     parser.add_argument("--current-relative-tolerance", type=float, default=DEFAULT_CURRENT_RELATIVE_TOLERANCE, help="Maximum current coefficient of variation in each objective voltage-hold window.")
     parser.add_argument("--run-mode", choices=("fast", "ramp"), default=LEGACY_DEFAULT_RUN_MODE, help="Legacy compatibility option; the optimizer always runs the complete voltage sweep.")
@@ -123,6 +134,7 @@ def _evaluation_config(args: argparse.Namespace) -> AemecEvaluationConfig:
         stability_samples=args.stability_samples,
         voltage_stability_tolerance_v=args.voltage_stability_tolerance_v,
         crossover_stability_relative_tolerance=args.crossover_stability_relative_tolerance,
+        ptl_side=args.ptl_side,
     )
 
 
@@ -131,6 +143,7 @@ def _search_config(args: argparse.Namespace) -> SearchConfig:
         parameters=(
             SearchParameter(PARAMETER_NAME, args.min_thickness_um, args.max_thickness_um),
             SearchParameter(TEMPERATURE_PARAMETER_NAME, args.min_water_inlet_temperature_k, args.max_water_inlet_temperature_k),
+            SearchParameter(POROSITY_PARAMETER_NAME, args.min_ptl_porosity, args.max_ptl_porosity),
         ),
         completed_evaluations=args.iterations,
         startup_trials=args.startup_trials,
@@ -144,6 +157,8 @@ def validate_args(args: argparse.Namespace) -> tuple[SearchConfig, AemecEvaluati
     search.validate()
     if args.min_thickness_um <= 0 or args.min_water_inlet_temperature_k <= 0:
         raise OptimizationError("Thickness [um] and water inlet temperature [K] must be positive")
+    if not 0 < args.min_ptl_porosity < args.max_ptl_porosity < 1:
+        raise OptimizationError("PTL porosity bounds must be strictly between 0 and 1")
     evaluation = _evaluation_config(args)
     evaluation.validate()
     if args.timeout_minutes is not None and (
@@ -155,6 +170,10 @@ def validate_args(args: argparse.Namespace) -> tuple[SearchConfig, AemecEvaluati
 
 def run_optimization(args: argparse.Namespace):
     search, evaluation_config = validate_args(args)
+    report = replace(AEMEC_REPORT, additional_parameters=(
+        (TEMPERATURE_PARAMETER_NAME, "Water inlet temperature [K]"),
+        (POROSITY_PARAMETER_NAME, f"{args.ptl_side.capitalize()} PTL porosity [-]"),
+    ))
     output_dir = study_artifact_directory(args.output_dir, args.study_name)
     work_case = args.work_dir.resolve() / "case"
     validate_path_layout(args.case, work_case, output_dir)
@@ -187,6 +206,7 @@ def run_optimization(args: argparse.Namespace):
             trial_number,
             parameters[PARAMETER_NAME],
             parameters[TEMPERATURE_PARAMETER_NAME],
+            parameters[POROSITY_PARAMETER_NAME],
         )
         objective = result.objective
         print(
@@ -203,7 +223,7 @@ def run_optimization(args: argparse.Namespace):
         write_results(
             completed_records(checkpoint_study, PARAMETER_NAME),
             output_dir,
-            AEMEC_REPORT,
+            report,
             search.directions,
         )
 
@@ -214,7 +234,7 @@ def run_optimization(args: argparse.Namespace):
     )
     run_study(study=study, config=search, evaluate=evaluate, checkpoint=checkpoint)
     records = completed_records(study, PARAMETER_NAME)
-    write_results(records, output_dir, AEMEC_REPORT, search.directions)
+    write_results(records, output_dir, report, search.directions)
     print(f"\nCompleted CFD evaluations: {len(records)}")
     print(f"Results CSV: {output_dir / 'optimization_results.csv'}")
     print(f"Knee points: {output_dir / 'knee_points.csv'}")
