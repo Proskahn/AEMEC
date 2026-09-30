@@ -26,6 +26,8 @@ class TrialCurve:
     current_density_a_cm2: tuple[float, ...]
     cell_voltage_v: tuple[float, ...]
     water_inlet_temperature_k: float | None = None
+    ptl_porosity: float | None = None
+    ptl_side: str | None = None
 
 
 def _format_thickness(value: float) -> str:
@@ -95,6 +97,8 @@ def _load_curve(
     trial_number: int,
     membrane_thickness_um: float,
     water_inlet_temperature_k: float | None = None,
+    ptl_porosity: float | None = None,
+    ptl_side: str | None = None,
 ) -> TrialCurve:
     curve_path = (
         study_dir
@@ -130,6 +134,8 @@ def _load_curve(
         tuple(current_density),
         tuple(voltage),
         water_inlet_temperature_k,
+        ptl_porosity,
+        ptl_side,
     )
 
 
@@ -150,15 +156,30 @@ def load_selected_curves(
             raise ValueError(f"completed trials not found: {sorted(missing)}")
         selected = [(trial, float(by_trial[trial]["membrane_thickness_um"])) for trial in trial_numbers]
     temperatures = {}
+    porosities = {}
     for trial, _thickness in selected:
         value = by_trial[trial].get("water_inlet_temperature_k")
         temperatures[trial] = float(value) if value is not None else None
         if value is not None and (not math.isfinite(temperatures[trial]) or temperatures[trial] <= 0):
             raise ValueError(f"invalid water inlet temperature for trial {trial}")
+        value = by_trial[trial].get("ptl_porosity")
+        porosities[trial] = float(value) if value is not None else None
+        if value is not None and not 0 < porosities[trial] < 1:
+            raise ValueError(f"invalid PTL porosity for trial {trial}")
     return [
-        _load_curve(study_dir, trial, thickness, temperatures[trial])
+        _load_curve(study_dir, trial, thickness, temperatures[trial], porosities[trial], by_trial[trial].get("ptl_side"))
         for trial, thickness in selected
     ]
+
+
+def design_label(curve: TrialCurve) -> str:
+    label = f"{curve.membrane_thickness_um:g} µm"
+    if curve.water_inlet_temperature_k is not None:
+        label += f", {curve.water_inlet_temperature_k:g} K"
+    if curve.ptl_porosity is not None:
+        side = f"{curve.ptl_side} " if curve.ptl_side else ""
+        label += f", {side}PTL ε={curve.ptl_porosity:g}"
+    return f"{label} (trial {curve.trial_number})"
 
 
 def plot_curves(curves: Sequence[TrialCurve], output_path: Path) -> None:
@@ -168,16 +189,13 @@ def plot_curves(curves: Sequence[TrialCurve], output_path: Path) -> None:
     markers = ("o", "s", "^", "D", "v", "P", "X")
     figure, voltage_axes = plt.subplots(figsize=(7.4, 5.2), constrained_layout=True)
     for index, curve in enumerate(curves):
-        label = f"{curve.membrane_thickness_um:g} µm"
-        if curve.water_inlet_temperature_k is not None:
-            label += f", {curve.water_inlet_temperature_k:g} K (trial {curve.trial_number})"
         voltage_axes.plot(
             curve.current_density_a_cm2,
             curve.cell_voltage_v,
             marker=markers[index % len(markers)],
             linewidth=1.8,
             markersize=5,
-            label=label,
+            label=design_label(curve),
         )
 
     voltage_axes.set_xlabel(r"$|j|$ [A/cm$^2$]")
@@ -207,7 +225,7 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="UM",
         help="Compare all trials matching these thicknesses (default: 20 40 60 80).",
     )
-    selection.add_argument("--trials", type=int, nargs="+", help="Trial numbers to compare, including both thickness and temperature in labels.")
+    selection.add_argument("--trials", type=int, nargs="+", help="Trial numbers to compare, including all recorded design variables in labels.")
     parser.add_argument(
         "--thickness-tolerance-um",
         type=float,
@@ -246,13 +264,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.exit(1, f"error: {exc}\n")
 
     for curve in curves:
-        print(
-            f"trial {curve.trial_number}: "
-            f"{curve.membrane_thickness_um:g} um, "
-            + (f"water inlet {curve.water_inlet_temperature_k:g} K, " if curve.water_inlet_temperature_k is not None else "")
-            +
-            f"{len(curve.cell_voltage_v)} points"
-        )
+        print(f"{design_label(curve)}: {len(curve.cell_voltage_v)} points")
     print(f"Wrote comparison plot: {output_path}")
     return 0
 

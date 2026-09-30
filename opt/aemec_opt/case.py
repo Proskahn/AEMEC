@@ -25,9 +25,8 @@ from typing import Iterable, Sequence
 from .engine import ObjectiveResult, OptimizationError
 
 
-# Version 7 varies a shared water-feed temperature in the coupled energy
-# boundary conditions as well as membrane thickness.
-OBJECTIVE_SCHEMA_VERSION = 7
+# Version 8 adds PTL porosity and source-normalized Kozeny-Carman resistance.
+OBJECTIVE_SCHEMA_VERSION = 8
 DEFAULT_TARGET_CURRENT_DENSITY_A_M2 = 10_000.0
 DEFAULT_CURRENT_RELATIVE_TOLERANCE = 0.05
 DEFAULT_STABILITY_SAMPLES = 5
@@ -66,8 +65,11 @@ class AemecEvaluationConfig:
     crossover_stability_relative_tolerance: float = (
         DEFAULT_CROSSOVER_STABILITY_RELATIVE_TOLERANCE
     )
+    ptl_side: str = "anode"
 
     def validate(self) -> None:
+        if self.ptl_side not in ("anode", "cathode", "both"):
+            raise OptimizationError("PTL side must be anode, cathode, or both")
         if (
             not math.isfinite(self.target_current_density_a_m2)
             or self.target_current_density_a_m2 <= 0
@@ -89,6 +91,8 @@ class AemecEvaluationConfig:
         self.validate()
         return {
             "objective_schema_version": OBJECTIVE_SCHEMA_VERSION,
+            "ptl_side": self.ptl_side,
+            "ptl_permeability_model": "source_normalized_kozeny_carman",
             "target_current_density_a_m2": self.target_current_density_a_m2,
             "current_relative_tolerance": self.current_relative_tolerance,
             "stability_samples": self.stability_samples,
@@ -150,6 +154,7 @@ class AemecEvaluation:
     polarization_curve_csv: Path
     polarization_curve_plot: Path
     duration_s: float
+    ptl_side: str = "anode"
 
     def as_objective_result(self) -> ObjectiveResult:
         objective = self.objective
@@ -158,6 +163,7 @@ class AemecEvaluation:
         return ObjectiveResult(
             values=(objective.cell_voltage_v, objective.crossover_rate_mol_s),
             metadata={
+                "ptl_side": self.ptl_side,
                 "target_current_density_a_m2": objective.target_current_density_a_m2,
                 "interpolation_fraction": objective.interpolation_fraction,
                 "lower_time_s": lower.time_s,
@@ -270,11 +276,115 @@ def _matching_delimiter(text: str, start: int, opening: str, closing: str) -> in
 
 
 def _named_block_span(text: str, name: str) -> tuple[int, int]:
-    match = re.search(rf"\b{re.escape(name)}\b\s*\{{", text)
+    # Dictionary names can be followed by comments before the opening brace.
+    # Mask comments without moving offsets used to edit the original text.
+    masked = re.sub(r"//[^\n]*|/\*[\s\S]*?\*/", lambda m: "".join(
+        "\n" if c == "\n" else " " for c in m.group()
+    ), text)
+    match = re.search(rf"\b{re.escape(name)}\b\s*\{{", masked)
     if not match:
         raise OptimizationError(f"Cannot find {name!r} dictionary block")
-    opening = text.find("{", match.start())
-    return opening + 1, _matching_delimiter(text, opening, "{", "}")
+    opening = masked.find("{", match.start())
+    return opening + 1, _matching_delimiter(masked, opening, "{", "}")
+
+
+def _scalar_entry(block: str, keyword: str) -> re.Match[str]:
+    matches = list(re.finditer(
+        rf"(?m)^(\s*{re.escape(keyword)}\s+)({FLOAT_PATTERN})(\s*;)", block
+    ))
+    if len(matches) != 1 or not math.isfinite(float(matches[0].group(2))):
+        raise OptimizationError(f"Expected one finite scalar entry for {keyword}")
+    return matches[0]
+
+
+def _set_scalar_entry(block: str, keyword: str, value: float) -> str:
+    match = _scalar_entry(block, keyword)
+    return block[:match.start(2)] + repr(float(value)) + block[match.end(2):]
+
+
+def configure_ptl_porosity(case_path: Path, porosity: float, side: str = "anode") -> None:
+    """Synchronize selected GDL/PTL properties; leave MPLs and CLs unchanged.
+
+    At fixed characteristic solid size, K/K0 = (eps/eps0)^3 *
+    ((1-eps0)/(1-eps))^2. Apply the reciprocal to every Darcy eigenvalue,
+    retaining source anisotropy. This is a sensitivity-model closure, not
+    a measured PTL correlation. Pore diameter and tortuosity stay fixed.
+    All dictionaries are validated before writing; repeated application at
+    the same porosity is idempotent. Nonzero inertial resistance is unsupported.
+    """
+    if not math.isfinite(porosity) or not 0 < porosity < 1:
+        raise OptimizationError("PTL porosity must be finite and strictly between 0 and 1")
+    if side not in ("anode", "cathode", "both"):
+        raise OptimizationError("PTL side must be anode, cathode, or both")
+    regions = ("anode", "cathode") if side == "both" else (side,)
+    updates: dict[Path, str] = {}
+    for region in regions:
+        zone = f"{region}GDL"
+        path = case_path / "constant" / region / "porousZones"
+        text = path.read_text(encoding="utf-8")
+        start, end = _named_block_span(text, zone)
+        block = text[start:end]
+        if not re.search(r"(?m)^\s*type\s+DarcyForchheimer\s*;", block):
+            raise OptimizationError(f"Expected DarcyForchheimer in {path}:{zone}")
+        if not re.search(r"(?m)^\s*active\s+(?:yes|true|on)\s*;", block):
+            raise OptimizationError(f"PTL porous zone must be active: {path}:{zone}")
+        baseline = float(_scalar_entry(block, "porosity").group(2))
+        if not 0 < baseline < 1:
+            raise OptimizationError(f"Invalid reference PTL porosity in {path}:{zone}")
+        coeff_start, coeff_end = _named_block_span(block, "DarcyForchheimerCoeffs")
+        coefficients = block[coeff_start:coeff_end]
+        vectors = {}
+        for keyword in ("d", "f"):
+            matches = list(re.finditer(
+                rf"(?m)^\s*{keyword}\s+\(\s*({FLOAT_PATTERN})\s+({FLOAT_PATTERN})\s+({FLOAT_PATTERN})\s*\)\s*;",
+                coefficients,
+            ))
+            if len(matches) != 1:
+                raise OptimizationError(f"Expected one {keyword} vector in {path}:{zone}")
+            values = tuple(float(value) for value in matches[0].groups())
+            if not all(math.isfinite(value) for value in values):
+                raise OptimizationError(f"Non-finite {keyword} vector in {path}:{zone}")
+            vectors[keyword] = (matches[0], values)
+        if any(value <= 0 for value in vectors["d"][1]):
+            raise OptimizationError(f"PTL Darcy coefficients must be positive in {path}:{zone}")
+        if any(value != 0 for value in vectors["f"][1]):
+            raise OptimizationError("PTL porosity scaling currently requires f (0 0 0)")
+        try:
+            resistance_scale = ((1 - porosity) / (1 - baseline)) ** 2 * (baseline / porosity) ** 3
+            darcy = tuple(value * resistance_scale for value in vectors["d"][1])
+        except (OverflowError, ZeroDivisionError) as exc:
+            raise OptimizationError("PTL porosity produces an unrepresentable Darcy resistance") from exc
+        if not all(math.isfinite(value) and value > 0 for value in darcy):
+            raise OptimizationError("PTL porosity produces an unrepresentable Darcy resistance")
+        match = vectors["d"][0]
+        for index in (3, 2, 1):
+            # Do not use _format_number's near-zero clipping for resistances.
+            coefficients = coefficients[:match.start(index)] + f"{darcy[index - 1]:.12g}" + coefficients[match.end(index):]
+        block = block[:coeff_start] + coefficients + block[coeff_end:]
+        block = _set_scalar_entry(block, "porosity", porosity)
+        updates[path] = text[:start] + block + text[end:]
+
+        electrical_region = "phiEAnode" if region == "anode" else "phiECathode"
+        for relative, model_keyword, model, coefficient_name in (
+            (f"{region}/diffusivityModel.gas", "type", "porousFSG", "porousFSGCoeffs"),
+            (f"{electrical_region}/regionProperties", "sigmaModel", "porousSigma", "porousSigmaCoeffs"),
+        ):
+            path = case_path / "constant" / relative
+            text = path.read_text(encoding="utf-8")
+            start, end = _named_block_span(text, zone)
+            block = text[start:end]
+            if not re.search(rf"(?m)^\s*{model_keyword}\s+{model}\s*;", block):
+                raise OptimizationError(f"Expected {model} in {path}:{zone}")
+            coeff_start, coeff_end = _named_block_span(block, coefficient_name)
+            coefficients = block[coeff_start:coeff_end]
+            reference = float(_scalar_entry(coefficients, "porosity").group(2))
+            if not math.isclose(reference, baseline, rel_tol=1e-9, abs_tol=1e-12):
+                raise OptimizationError(f"Inconsistent reference PTL porosity in {path}:{zone}")
+            coefficients = _set_scalar_entry(coefficients, "porosity", porosity)
+            block = block[:coeff_start] + coefficients + block[coeff_end:]
+            updates[path] = text[:start] + block + text[end:]
+    for path, text in updates.items():
+        path.write_text(text, encoding="utf-8")
 
 
 def configure_water_inlet_temperature(case_path: Path, temperature_k: float) -> None:
@@ -998,7 +1108,7 @@ def run_command(command: Sequence[str], cwd: Path, log_path: Path, timeout_s: fl
 
 
 class AemecOpenFoamEvaluator:
-    """Evaluate thickness and water inlet temperature in a fresh scratch case."""
+    """Evaluate thickness, inlet temperature, and PTL porosity in a scratch case."""
     required_mesh_regions = (
         "anode",
         "cathode",
@@ -1021,11 +1131,12 @@ class AemecOpenFoamEvaluator:
         if missing:
             raise OptimizationError("Mesh command completed but required mesh files are missing:\n  " + "\n  ".join(missing))
 
-    def evaluate(self, trial_number: int, thickness_um: float, water_inlet_temperature_k: float) -> AemecEvaluation:
+    def evaluate(self, trial_number: int, thickness_um: float, water_inlet_temperature_k: float, ptl_porosity: float) -> AemecEvaluation:
         started = time.monotonic()
         copy_clean_case(self.source_case, self.work_case)
         rewrite_block_mesh_thickness(self.work_case / "system/blockMeshDict", thickness_um)
         configure_water_inlet_temperature(self.work_case, water_inlet_temperature_k)
+        configure_ptl_porosity(self.work_case, ptl_porosity, self.config.ptl_side)
         sweep = configure_voltage_sweep(self.work_case, self.config)
         mesh_log = self.logs_dir / f"trial_{trial_number:04d}_mesh.log"
         solver_log = self.logs_dir / f"trial_{trial_number:04d}_solver.log"
@@ -1040,7 +1151,8 @@ class AemecOpenFoamEvaluator:
         configure_water_inlet_temperature(self.work_case, water_inlet_temperature_k)
         curve_title = (
             f"Trial {trial_number}: {thickness_um:g} µm, "
-            f"water inlet {water_inlet_temperature_k:g} K"
+            f"water inlet {water_inlet_temperature_k:g} K, "
+            f"{self.config.ptl_side} PTL porosity {ptl_porosity:g}"
         )
         solver_output = run_command(self.solver_command, self.work_case, solver_log, self.timeout_s)
         try:
@@ -1081,4 +1193,5 @@ class AemecOpenFoamEvaluator:
             curve_csv,
             curve_plot,
             time.monotonic() - started,
+            self.config.ptl_side,
         )

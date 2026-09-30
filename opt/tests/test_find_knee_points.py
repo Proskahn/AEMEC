@@ -65,6 +65,22 @@ class FindKneePointsCommandTests(unittest.TestCase):
             self.assertTrue(rows)
             self.assertTrue(all(float(row["water_inlet_temperature_k"]) == 323.15 for row in rows))
 
+    def test_three_variable_study_knees_retain_porosity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            study_dir = Path(tmp)
+            with (study_dir / "optimization_results.csv").open("w", newline="") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(["trial", "membrane_thickness_um", "water_inlet_temperature_k", "ptl_porosity", "cell_voltage_v", "crossover_rate_mol_s"])
+                writer.writerows([(0, 20, 343.15, 0.4, 1, 4), (1, 40, 323.15, 0.6, 2, 2), (2, 60, 303.15, 0.8, 4, 1)])
+            output = io.StringIO()
+            with redirect_stdout(output):
+                self.assertEqual(main([str(study_dir)]), 0)
+            self.assertIn("ptl_porosity=0.6", output.getvalue())
+            with (study_dir / "knee_points.csv").open() as handle:
+                rows = list(csv.DictReader(handle))
+            self.assertTrue(rows)
+            self.assertTrue(all(float(row["ptl_porosity"]) == 0.6 for row in rows))
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
