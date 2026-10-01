@@ -1,8 +1,9 @@
 # AEMEC exploratory landscape analysis
 
-Offline, sample-based ELA for three inputs and two minimized outputs. This code
-never launches OpenFOAM or changes the source case. It uses `pflacco` feature
-implementations, not surrogate-generated observations. The exported feature set
+Sample-based ELA for three inputs and two minimized outputs. `sample` generates
+designs, `evaluate` runs them through OpenFOAM in a scratch case, and `analyze`
+computes offline features. The source case is preserved. Analysis uses `pflacco`
+feature implementations, not surrogate-generated observations. The exported feature set
 matches the supplied table: **49 features from seven classes per landscape**.
 
 ## Install and analyze
@@ -56,16 +57,103 @@ ELA/.venv/bin/python ELA/ela.py sample --n 128 --seed 42 \
 
 This writes **unevaluated** scrambled Sobol designs and a JSON sampling manifest.
 Use powers of two. With identical bounds and seed, the first 32 points of a
-128-point design match a 32-point design. Evaluate these exact rows through the
-existing `opt/aemec_opt/case.py` `AemecOpenFoamEvaluator.evaluate()` adapter, retaining
-sample IDs and appending the two objective columns and a status. The adapter takes
-`trial_number, thickness_um, water_inlet_temperature_k, ptl_porosity`. This folder
-does not yet provide a CFD batch runner. Do not feed the design through adaptive
-TPE, which would choose different locations.
+128-point design match a 32-point design. Evaluate these exact rows using the
+command below, which reuses `opt/aemec_opt/case.py`'s
+`AemecOpenFoamEvaluator.evaluate()` adapter. It retains sample IDs and appends
+the two objective columns and a status. It does not use adaptive TPE or replace
+failed designs with new points.
 
 Then analyze the evaluated CSV with `--sampling space-filling`. Existing adaptive
 optimization data are useful exploratory evidence but do not represent uniform
 coverage. The sampling flag records provenance; it cannot verify it.
+
+## Evaluate the designs with OpenFOAM
+
+In your Linux/container OpenFOAM environment, activate your Python environment
+and run from the repository root. The extra requirements supply the existing
+adapter's dependencies (including Optuna, imported by shared data types; no
+optimizer is run):
+
+```bash
+python -m pip install -r ELA/requirements-evaluate.txt
+command -v openFuelCell blockMesh renumberMesh topoSet splitMeshRegions
+```
+
+If executables are missing, source your OpenFOAM installation's `etc/bashrc`.
+Build the repository's current solver and custom tools with `./Allwmake` from
+the `src` directory if not already built. The adapter expects the current
+hydrogen-crossover logging in this repository's solver.
+
+Start with **one design** to check the CFD setup:
+
+```bash
+python ELA/ela.py evaluate ELA/results/design.csv \
+  --output-dir ELA/results/evaluation --limit 1
+```
+
+This runs the first eligible row, remeshing a fresh copy of `run/AEMEC`, applying
+its membrane thickness, common water inlet temperature and anode PTL porosity,
+then running `make mesh` and `openFuelCell`. Every evaluation uses the full
+voltage sweep in the source case and interpolates both objectives at
+**10,000 A/m² = 1 A/cm²**, with the same settling/bracketing checks as `opt`.
+
+Continue with all remaining designs:
+
+```bash
+python ELA/ela.py evaluate ELA/results/design.csv \
+  --output-dir ELA/results/evaluation
+```
+
+Repeating this command skips completed and failed rows, and resumes pending or
+interrupted rows. `--limit` caps attempts **in this invocation**, not the total
+number of successful evaluations. Ctrl-C records the interrupted attempt; after
+a hard process termination a `running` row is also eligible to run again.
+After investigating failed cases, explicitly retry them with:
+
+```bash
+python ELA/ela.py evaluate ELA/results/design.csv \
+  --output-dir ELA/results/evaluation --retry-failed
+```
+
+Results are checkpointed after every attempt:
+
+- `evaluated.csv`: all design rows, including pending/failed rows with blank
+  objectives, statuses, failure reasons, attempt counts, and log paths.
+- `checkpoint.json`: authoritative resume state, design hash, case/adapter hashes,
+  commands, and operating settings. A stale CSV is rebuilt from this state.
+- `logs/sample_NNNN/attempt_NNN/`: per-attempt mesh and solver logs, plus
+  polarization CSV/PNG when available. Retries do not overwrite earlier logs.
+
+Runs are sequential and use a dedicated scratch directory under `ELA/work`.
+The scratch case is replaced between evaluations; full CFD fields for earlier
+designs are not retained. Locks prevent simultaneous runs from using the same
+output or scratch directory. Use a fresh output directory when changing the
+design, source case, adapter, or simulation settings. Keep your compiled solver
+consistent too; the checkpoint does not fingerprint compiled binaries.
+
+Useful options (`python ELA/ela.py evaluate --help` lists all):
+
+- `--dry-run`: validates design/resume settings and prints the planned count and
+  paths without writing output or executing CFD; does not check executable availability.
+- `--case PATH`, `--work-dir PATH`: source case and dedicated scratch root.
+- `--timeout-minutes N`: timeout for **each** mesh or solver command.
+- `--mesh-command "make mesh"`, `--solver-command "openFuelCell"`: command
+  overrides, parsed as arguments without shell expansion. Defaults are serial.
+- `--max-consecutive-failures 3`: stop after repeated failures, preserving the
+  remaining pending designs. Remaining failures produce a nonzero exit status.
+- `--target-current-density-a-m2`, `--ptl-side`, and stability options: defaults
+  match the adapter. Changing them requires a new output directory.
+
+Finally, compute the normalized ELA features:
+
+```bash
+python ELA/ela.py analyze ELA/results/evaluation/evaluated.csv \
+  --output ELA/results/analysis --sampling space-filling
+```
+
+Analysis requires at least 32 successful unique designs. Pending/failed designs
+remain in the audit output; they do not become objective penalties. For custom
+sampling bounds, supply the same `--lower` and `--upper` bounds to `analyze`.
 
 ## Features and outputs
 
@@ -160,6 +248,9 @@ separately before interpreting roughness as physical behavior.
 ```bash
 ELA/.venv/bin/python -m unittest discover -s ELA/tests -v
 ```
+
+Install `requirements-evaluate.txt` to run the full suite, including mock-based
+batch/resume tests. Tests do not launch OpenFOAM.
 
 References: [Mersmann et al. (2011)](https://doi.org/10.1145/2001576.2001690),
 [pflacco API](https://pflacco.readthedocs.io/en/latest/pflacco.classical_ela_features.html)

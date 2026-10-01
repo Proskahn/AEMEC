@@ -1,4 +1,4 @@
-"""Offline AEMEC exploratory landscape analysis; never invokes a simulator."""
+"""AEMEC sampling, OpenFOAM evaluation, and exploratory landscape analysis."""
 from __future__ import annotations
 
 import argparse
@@ -254,8 +254,13 @@ def analyze(source, destination, lower=LOWER, upper=UPPER, seed=42, scales=None,
 
 
 def main():
+    if __package__:
+        from .evaluation import add_parser, run_evaluation
+    else:
+        from evaluation import add_parser, run_evaluation
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest='command', required=True)
+    add_parser(subs)
     for name in ['sample', 'analyze']:
         p = subs.add_parser(name)
         p.add_argument('--lower', nargs=3, type=float, default=LOWER)
@@ -272,7 +277,9 @@ def main():
                            help='Information-content tour: nearest-neighbor (default) or random permutation')
     args = parser.parse_args()
     try:
-        if args.command == 'sample':
+        if args.command == 'evaluate':
+            return run_evaluation(args)
+        elif args.command == 'sample':
             frame = sample(args.n, args.seed, args.lower, args.upper)
             args.output.parent.mkdir(parents=True, exist_ok=True)
             frame.to_csv(args.output, index=False)
@@ -286,9 +293,11 @@ def main():
             print(f"Analyzed {meta['accepted']} designs; report: {args.output / 'report.md'}")
             for note in meta['notes']:
                 print(note)
-    except (ValueError, ImportError, OSError) as exc:
+    except (ValueError, ImportError, OSError, RuntimeError) as exc:
         parser.exit(2, f'ELA error: {exc}\n')
+    except KeyboardInterrupt:
+        parser.exit(130, 'Interrupted; completed evaluations are saved. Rerun the same command to resume.\n')
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())
