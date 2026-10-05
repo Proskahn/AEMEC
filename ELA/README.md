@@ -155,6 +155,93 @@ Analysis requires at least 32 successful unique designs. Pending/failed designs
 remain in the audit output; they do not become objective penalties. For custom
 sampling bounds, supply the same `--lower` and `--upper` bounds to `analyze`.
 
+## Plot each variable against both objectives
+
+Use the **evaluated sample CSV** (or `accepted.csv`), not `features.csv`:
+
+```bash
+python ELA/ela.py plot ELA/results/evaluation/evaluated.csv \
+  --output ELA/results/plots
+```
+
+The existing ELA dependencies are sufficient; no CFD calls are made. The plots
+use all accepted samples, preserve physical units, and apply the same validation
+and minimum 32-design requirement as `analyze`. Rows with failed/pending status
+are excluded. Known mixed PTL sides or operating current densities are rejected;
+this command is specifically labeled for anode PTL porosity.
+
+| Figure (PNG and PDF) | What it shows |
+| --- | --- |
+| `raw_scatter` | Six panels: each of three inputs versus voltage and crossover, using actual sampled values. All other inputs vary between dots. |
+| `conditional_effects` | Six panels: fitted response when the other two inputs are fixed at their reference values. Dots are model-adjusted observations, not new CFD runs at those settings. |
+| `objective_directions` | Three panels: both fitted objective changes versus each input, scaled by their respective observed output ranges. Opposite slopes indicate a conditional trade-off; same-sign slopes indicate aligned effects. |
+| `model_validation` | Actual outputs versus predictions from five-fold cross-validation, with R² scores. Each validation prediction comes from a fit that did not use that sample. |
+
+Raw scatter can hide a weak temperature/porosity effect under a strong thickness
+effect. Conditional curves help disentangle these inputs but rely on the fitted
+model. The default is ordinary least squares with a **standard quadratic model**:
+intercept, three linear terms, three squared terms, and three pairwise products
+(10 coefficients). This model uses total degree at most two and is distinct from
+pflacco's expanded `quad_w_interact` feature implementation. Use `--model linear`
+for a four-coefficient fit and compare validation errors in separate output folders.
+Inputs are normalized by the study bounds for fitting; output predictions and
+validation RMSE/MAE retain physical units (V and mol/s).
+
+By default the reference is the median of each accepted input. To inspect another
+cross-section of the landscape, specify thickness [µm], temperature [K], and porosity:
+
+```bash
+python ELA/ela.py plot ELA/results/evaluation/evaluated.csv \
+  --output ELA/results/plots_reference \
+  --reference 55 325.65 0.60 --model quadratic
+```
+
+Reference values must lie inside the observed input ranges. In each panel only
+the horizontal-axis input varies; the other two stay at the reference. If
+interactions exist, changing the reference can change the sign of an effect.
+Panel axes scale independently to make small effects visible; compare numerical
+changes in `effect_summary.csv` when judging magnitudes.
+
+The adjusted dots are computed as:
+
+```text
+adjusted_y = observed_y - fitted_y(original_inputs)
+             + fitted_y(plotted_input, other_inputs=reference)
+```
+
+Thus their deviation from a conditional curve equals the original fit residual.
+They are not independent evidence validating the curve. The accompanying
+cross-validation plot provides a separate check of predictive fit.
+
+`objective_directions` displays `(predicted_y - predicted_y_at_reference) /
+observed_objective_range`; zero means no change from the reference and negative
+means improvement for either minimized objective. A constant objective is shown
+as zero change and has undefined range-normalized statistics in the CSV exports.
+This plotting command uses its own explicitly recorded display scaling; it does
+not modify the ELA feature calculation or its normalization.
+
+Other outputs:
+
+- `effect_summary.csv`: raw Pearson/Spearman correlations, fitted direction,
+  endpoint change, effect span, and validation RMSE for all six pairs. The
+  `effect_span_exceeds_cv_rmse` flag is a rough resolution check, not a significance test.
+- `conditional_curves.csv`: plotted curve values, in physical units and normalized changes.
+- `model_coefficients.csv`: signed coefficients; inputs in these equations are
+  normalized, and the output is in physical units. For quadratic fits, the linear
+  coefficient alone is not the slope everywhere: squared and interaction terms also contribute.
+- `model_validation.csv`, `cv_predictions.csv`: held-out error metrics and predictions.
+- `plot_metadata.json`, `plot_report.md`: source hash, fixed reference, bounds,
+  model settings, versions, and interpretation notes; `accepted.csv` and
+  `excluded.csv` preserve the row audit.
+
+Use `--lower`/`--upper` for custom design bounds, `--cv-folds`/`--seed` for validation,
+and `--grid-points` to change the plotted curve resolution (default 201). More grid
+points only draw the surrogate more densely; they do not add CFD evidence.
+Curves cover the observed range of each input, but unobserved combinations can
+still be poorly supported, especially for adaptive or heavily filtered samples.
+Overall CV accuracy does not establish the accuracy of a tiny isolated effect.
+No positivity clipping is used; a nonphysical prediction signals a model limitation.
+
 ## Features and outputs
 
 Inputs are mapped to [0,1] using the supplied domain. Each objective is affinely
