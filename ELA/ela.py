@@ -261,7 +261,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest='command', required=True)
     add_parser(subs)
-    for name in ['sample', 'analyze']:
+    for name in ['sample', 'analyze', 'plot']:
         p = subs.add_parser(name)
         p.add_argument('--lower', nargs=3, type=float, default=LOWER)
         p.add_argument('--upper', nargs=3, type=float, default=UPPER)
@@ -271,10 +271,17 @@ def main():
             p.add_argument('--n', type=int, default=128)
         else:
             p.add_argument('csv', type=Path)
+        if name == 'analyze':
             p.add_argument('--sampling', choices=['space-filling', 'adaptive', 'unknown'], default='unknown')
             p.add_argument('--objective-scales', nargs=4, type=float, metavar=('V_MIN', 'V_MAX', 'C_MIN', 'C_MAX'))
             p.add_argument('--ic-sorting', choices=['nn', 'random'], default='nn',
                            help='Information-content tour: nearest-neighbor (default) or random permutation')
+        elif name == 'plot':
+            p.add_argument('--model', choices=['linear', 'quadratic'], default='quadratic')
+            p.add_argument('--reference', nargs=3, type=float, metavar=('THICKNESS_UM', 'TEMPERATURE_K', 'POROSITY'),
+                           help='Fixed values for conditional plots; defaults to accepted sample medians')
+            p.add_argument('--grid-points', type=int, default=201)
+            p.add_argument('--cv-folds', type=int, default=5)
     args = parser.parse_args()
     try:
         if args.command == 'evaluate':
@@ -287,6 +294,14 @@ def main():
                 {'method': 'scrambled_sobol', 'n': args.n, 'seed': args.seed,
                  'inputs': INPUTS, 'lower': args.lower, 'upper': args.upper}, indent=2)+'\n')
             print(f'Wrote {len(frame)} unevaluated designs to {args.output}')
+        elif args.command == 'plot':
+            if __package__:
+                from .plotting import plot_effects
+            else:
+                from plotting import plot_effects
+            meta = plot_effects(args.csv, args.output, args.lower, args.upper, args.model,
+                                args.reference, args.grid_points, args.cv_folds, args.seed)
+            print(f"Plotted {meta['accepted']} designs; report: {args.output / 'plot_report.md'}")
         else:
             meta = analyze(args.csv, args.output, args.lower, args.upper, args.seed,
                            args.objective_scales, args.sampling, args.ic_sorting)
