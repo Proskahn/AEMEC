@@ -58,12 +58,39 @@ def load_data(path, expected_samples=256):
             raise ValueError(f'Dataset mixes or omits {column}; train on one consistent operating setup')
     if 'ptl_side' in accepted and accepted.ptl_side.iloc[0] != 'anode':
         raise ValueError('This three-variable study expects anode PTL porosity')
-    x = accepted[INPUTS].to_numpy(float)
+    validate_variation(accepted)
+    return accepted.reset_index(drop=True), excluded
+
+
+def validate_variation(frame):
+    """Check the actual fitting subset, as well as the original data pool."""
+    x = frame[INPUTS].to_numpy(float)
     if np.any(np.ptp(x, axis=0) == 0) or np.linalg.matrix_rank((x-x.mean(axis=0))/x.std(axis=0)) < 3:
         raise ValueError('Training designs must span all three input dimensions')
-    if any(np.ptp(accepted[name].to_numpy(float)) == 0 for name in OUTPUTS):
+    if any(np.ptp(frame[name].to_numpy(float)) == 0 for name in OUTPUTS):
         raise ValueError('Both objectives must vary to fit and validate these normalized GP models')
-    return accepted.reset_index(drop=True), excluded
+
+
+def select_samples(frame, n_samples=None, seed=42):
+    """Select rows without replacement or looking at objective values.
+
+    Prefixes of one seeded permutation make smaller subsets nested within larger
+    ones. Restore source order afterwards, including the unchanged all-row case.
+    Indices refer to the accepted data pool before selection.
+    """
+    count = len(frame) if n_samples is None else n_samples
+    if not 16 <= count <= len(frame):
+        raise ValueError(f'--n-samples must be between 16 and {len(frame)} (the valid source sample count)')
+    if count == len(frame):
+        indices = np.arange(len(frame))
+    else:
+        indices = np.sort(np.random.default_rng(seed).permutation(len(frame))[:count])
+    selected_mask = np.zeros(len(frame), dtype=bool)
+    selected_mask[indices] = True
+    selected = frame.iloc[indices].copy().reset_index(drop=True)
+    unused = frame.iloc[~selected_mask].copy().reset_index(drop=True)
+    validate_variation(selected)
+    return selected, unused, indices.tolist()
 
 
 def make_model(seed=42, restarts=3):

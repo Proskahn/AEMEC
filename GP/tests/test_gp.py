@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import qmc
 
-from GP.models import INPUTS, OUTPUTS, cross_validate, load_data, predict_saved
+from GP.models import INPUTS, OUTPUTS, cross_validate, load_data, predict_saved, select_samples
 from GP.train_gp import train
 
 
@@ -106,6 +106,85 @@ class CrossValidationTests(unittest.TestCase):
         self.assertLess(self.oof[f'{OUTPUTS[1]}_gp_std'].max(), 1e-8)
         linear = self.metrics.loc[(self.metrics.objective == OUTPUTS[0]) & (self.metrics.model == 'linear_baseline')]
         self.assertLess(linear.iloc[0].rmse, 1e-12)
+
+
+class SubsetTests(unittest.TestCase):
+    def test_selection_is_reproducible_nested_and_unique(self):
+        frame = sample_frame(256)
+        small, unused, indices = select_samples(frame, 28, seed=42)
+        large, _, _ = select_samples(frame, 56, seed=42)
+        repeated, _, _ = select_samples(frame, 28, seed=42)
+        other, _, _ = select_samples(frame, 28, seed=43)
+        pd.testing.assert_frame_equal(small, repeated)
+        self.assertEqual(len(small), 28)
+        self.assertEqual(small.sample_id.nunique(), 28)
+        self.assertEqual(len(unused), 228)
+        self.assertTrue(set(small.sample_id) < set(large.sample_id))
+        self.assertNotEqual(set(small.sample_id), set(other.sample_id))
+        self.assertFalse(set(small.sample_id) & set(unused.sample_id))
+        self.assertEqual(set(small.sample_id) | set(unused.sample_id), set(frame.sample_id))
+        pd.testing.assert_frame_equal(small, frame.iloc[indices].reset_index(drop=True))
+
+    def test_default_keeps_all_rows_and_selection_ignores_objectives(self):
+        frame = sample_frame(256)
+        selected, unused, indices = select_samples(frame)
+        pd.testing.assert_frame_equal(selected, frame)
+        self.assertTrue(unused.empty)
+        self.assertEqual(indices, list(range(len(frame))))
+        changed = frame.copy()
+        changed[OUTPUTS] = changed[OUTPUTS].iloc[::-1].to_numpy()
+        self.assertEqual(select_samples(frame, 28)[2], select_samples(changed, 28)[2])
+
+    def test_invalid_sample_counts_fail_before_fitting(self):
+        frame = sample_frame(256)
+        for count in [-1, 0, 15, 257]:
+            with self.subTest(count=count), self.assertRaisesRegex(ValueError, '--n-samples'):
+                select_samples(frame, count)
+
+    def test_degenerate_subset_is_rejected_even_if_source_varies(self):
+        frame = sample_frame(256)
+        _, _, indices = select_samples(frame, 28)
+        frame.loc[indices, OUTPUTS[0]] = 2.
+        with self.assertRaisesRegex(ValueError, 'Both objectives must vary'):
+            select_samples(frame, 28)
+
+    def test_training_and_cv_use_only_selected_rows(self):
+        frame = sample_frame(256)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root/'evaluated.csv'
+            frame.to_csv(source, index=False)
+            for count in [28, 56]:
+                with self.subTest(count=count), contextlib.redirect_stdout(io.StringIO()):
+                    output = root/f'n{count}'
+                    metadata = train(source, output, n_samples=count, sample_seed=17,
+                                     folds=5, seed=42, restarts=0)
+                    selected = pd.read_csv(output/'training_data.csv')
+                    unused = pd.read_csv(output/'unused_data.csv')
+                    oof = pd.read_csv(output/'cv_predictions.csv')
+                    expected, _, _ = select_samples(frame, count, seed=17)
+                    self.assertEqual(selected.sample_id.tolist(), expected.sample_id.tolist())
+                    self.assertEqual(len(selected), count)
+                    self.assertEqual(len(unused), 256-count)
+                    self.assertEqual(metadata['sample_count'], count)
+                    self.assertEqual(metadata['source_sample_count'], 256)
+                    self.assertEqual(metadata['unused_count'], 256-count)
+                    self.assertEqual(metadata['selection']['seed'], 17)
+                    self.assertEqual(set(oof.sample_id), set(selected.sample_id))
+                    self.assertEqual(set(oof.cv_fold), {1, 2, 3, 4, 5})
+                    for fit in metadata['cv_fits']:
+                        training = selected.iloc[fit['train_indices']]
+                        np.testing.assert_allclose(fit['input_mean'], training[INPUTS].mean())
+                        np.testing.assert_allclose(fit['output_mean'], training[fit['objective']].mean(), atol=0)
+                        self.assertFalse(set(fit['train_indices']) & set(fit['test_indices']))
+                        self.assertEqual(len(fit['train_indices'])+len(fit['test_indices']), count)
+                    for objective in OUTPUTS:
+                        model = joblib.load(output/f'{objective}.joblib')
+                        self.assertEqual(len(model.named_steps['gp'].X_train_), count)
+                        np.testing.assert_allclose(model.named_steps['scale'].mean_, selected[INPUTS].mean())
+            with self.assertRaisesRegex(ValueError, '--folds'):
+                train(source, root/'bad_folds', n_samples=28, folds=15)
+            self.assertFalse((root/'bad_folds').exists())
 
 
 class SavedModelTests(unittest.TestCase):

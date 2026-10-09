@@ -1,7 +1,8 @@
 # Gaussian-process surrogates for AEMEC
 
 Two independent Gaussian processes map the same three design variables to cell
-voltage and gas crossover, using **256 evaluated samples** from ELA.
+voltage and gas crossover, using all or a selected subset of the **256 evaluated
+samples** from ELA.
 
 | Input column | Unit |
 | --- | --- |
@@ -53,13 +54,48 @@ pd.concat(frames, ignore_index=True).sort_values('sample_id').to_csv(destination
 PY
 ```
 
-Training requires exactly 256 successful, finite, physically valid rows and
+By default, source validation requires exactly 256 successful, finite, physically valid rows and
 rejects duplicate designs, duplicate IDs, mixed operating settings, and
 degenerate input/output data. Failed or pending evaluations are never converted
 to penalty values. If exclusions leave fewer than 256 rows, finish those
 evaluations first. `--expected-samples N` explicitly permits another study size.
 Existing nonempty result directories are preserved; use a different `--output`
 for another run. No CFD evaluations are launched by the GP scripts.
+
+## Choose the number of samples
+
+Use `--n-samples` to choose how many points from the source CSV enter both
+cross-validation and final training. For example, from the repository root:
+
+```bash
+python3 GP/train_gp.py ELA/results/evaluated_256.csv \
+  --n-samples 56 --output GP/results/n56 --folds 5 --seed 42
+
+python3 GP/train_gp.py ELA/results/evaluated_256.csv \
+  --n-samples 28 --output GP/results/n28 --folds 5 --seed 42
+```
+
+The default remains all available samples. The requested count must be between
+16 and the number of valid source rows; it need not be a power of two. These
+commands reuse existing evaluations and do not generate new Sobol designs.
+`--expected-samples` still checks the size of the **source CSV** before selection:
+leave it at 256 when selecting 28 or 56 from the 256-point file. If your source
+CSV itself contains 128 samples, pass `--expected-samples 128` instead.
+
+Selection is random without replacement and does not use objective values.
+`--sample-seed` controls it separately; by default it takes the value of `--seed`.
+For the same source rows in the same order and selection seed, the 28-point
+subset is contained in the 56-point subset. Change `--sample-seed` to explore
+different subsets. Random subsets do not retain the full Sobol design's
+space-filling properties, and small-sample scores can vary across subsets.
+
+**Five-fold CV runs only within the selected subset.** With 56 selected points,
+each fold trains on 44 or 45 and validates on 12 or 11; with 28, each trains on
+22 or 23 and validates on 6 or 5. The final saved models train on all 56 or all
+28 selected points respectively. Unselected points are saved in `unused_data.csv`
+and are not used as an additional test set or to fit scalers/kernels.
+`training_data.csv` records the exact selection; `metadata.json` records the
+source count, selected count, selection seed, and selected source-pool indices.
 
 ## Models and validation
 
@@ -75,12 +111,12 @@ standardized independently with `normalize_y=True`. In cross-validation,
 standard deviations, errors, and intervals are converted back to physical units.
 Do not first apply ELA's whole-dataset objective normalization.
 
-Five-fold shuffled CV uses the same splits for both objectives: each sample
+Five-fold shuffled CV uses the same splits for both objectives: each selected sample
 receives one prediction from a GP trained without that sample. Each training
-fold has 204 or 205 samples; its held-out fold has 52 or 51. Aggregate metrics use
+fold in a full 256-point run has 204 or 205 samples; its held-out fold has 52 or 51. Aggregate metrics use
 the pooled held-out predictions. A linear regression baseline uses the same
 folds, so you can check whether the GP improves on the nearly linear landscape.
-After validation, the two final models are fitted on all 256 samples and saved.
+After validation, the two final models are fitted on all selected samples and saved.
 
 CV estimates interpolation performance under this sampled design distribution.
 It does not establish accuracy outside the sampled domain. Choosing kernels or
@@ -95,8 +131,9 @@ or nested validation for an unbiased comparison.
 | `cv_fold_metrics.csv` | The same metrics separately for each fold |
 | `cv_predictions.csv` | Observations, fold assignments, GP predictions/intervals, and linear predictions |
 | `cross_validation.png`, `.pdf` | Held-out prediction versus observation and residual plots |
-| `training_data.csv`, `excluded.csv` | Accepted samples and exclusion audit |
-| `metadata.json` | Source hash, versions, seed, fold indices, fitted kernels/scales, and optimization warnings |
+| `training_data.csv`, `excluded.csv` | Selected samples and invalid-row exclusion audit |
+| `unused_data.csv` | Valid source samples not selected for this run |
+| `metadata.json` | Source hash, versions, selection settings, fold indices, fitted kernels/scales, and optimization warnings |
 | `report.md` | Validation summary and interpretation limits |
 
 Nominal 95% predictive intervals are mean ± 1.96 standard deviations, including
