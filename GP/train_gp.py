@@ -13,9 +13,9 @@ import joblib
 import numpy as np
 
 if __package__:
-    from .models import INPUTS, OUTPUTS, load_data, cross_validate, fit_model
+    from .models import INPUTS, OUTPUTS, load_data, select_samples, cross_validate, fit_model
 else:
-    from models import INPUTS, OUTPUTS, load_data, cross_validate, fit_model
+    from models import INPUTS, OUTPUTS, load_data, select_samples, cross_validate, fit_model
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,9 +49,12 @@ def plot_validation(oof, destination):
     plt.close(fig)
 
 
-def train(source, output, expected_samples=256, folds=5, seed=42, restarts=3):
+def train(source, output, expected_samples=256, folds=5, seed=42, restarts=3,
+          n_samples=None, sample_seed=None):
     source, output = Path(source), Path(output)
-    frame, excluded = load_data(source, expected_samples)
+    pool, excluded = load_data(source, expected_samples)
+    sample_seed = seed if sample_seed is None else sample_seed
+    frame, unused, selected_indices = select_samples(pool, n_samples, sample_seed)
     if output.exists() and any(output.iterdir()):
         raise ValueError('Output directory is not empty; choose a new --output to preserve trained results')
     if restarts < 0:
@@ -59,12 +62,15 @@ def train(source, output, expected_samples=256, folds=5, seed=42, restarts=3):
     # Validate before creating directories or starting expensive fits.
     if not 2 <= folds <= len(frame)//2:
         raise ValueError('--folds must be between 2 and half the number of samples')
+    print(f'Using {len(frame)} of {len(pool)} valid source samples for {folds}-fold CV and final training; '
+          f'{len(unused)} samples unused (selection seed {sample_seed}).', flush=True)
     output.parent.mkdir(parents=True, exist_ok=True)
     # Failed runs leave no apparently complete model set. Publish only a complete bundle.
     with tempfile.TemporaryDirectory(prefix='.gp-training-', dir=output.parent) as temporary:
         work = Path(temporary)
         oof, metrics, fold_metrics, diagnostics = cross_validate(frame, folds, seed, restarts)
         frame.to_csv(work/'training_data.csv', index=False)
+        unused.to_csv(work/'unused_data.csv', index=False)
         excluded.to_csv(work/'excluded.csv', index=False)
         oof.to_csv(work/'cv_predictions.csv', index=False)
         metrics.to_csv(work/'cv_metrics.csv', index=False)
@@ -72,7 +78,7 @@ def train(source, output, expected_samples=256, folds=5, seed=42, restarts=3):
         final = []
         x = frame[INPUTS].to_numpy(float)
         for j, objective in enumerate(OUTPUTS):
-            print(f'Final fit on all {len(frame)} samples: {objective}', flush=True)
+            print(f'Final fit on all {len(frame)} selected samples: {objective}', flush=True)
             model, details = fit_model(x, frame[objective].to_numpy(float), seed+1000+j, restarts)
             joblib.dump(model, work/f'{objective}.joblib')
             final.append({'objective': objective, **details})
@@ -80,6 +86,12 @@ def train(source, output, expected_samples=256, folds=5, seed=42, restarts=3):
             'schema': 1, 'inputs': INPUTS, 'outputs': OUTPUTS, 'source': str(source.resolve()),
             'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
             'sample_count': len(frame), 'excluded_count': len(excluded),
+            'source_sample_count': len(pool), 'unused_count': len(unused),
+            'selection': {'method': 'all' if len(frame) == len(pool) else 'random_without_replacement',
+                          'requested_count': n_samples, 'seed': sample_seed,
+                          'selected_accepted_indices': selected_indices,
+                          'index_reference': 'zero-based row positions in the accepted source pool; '
+                                             'CV indices instead refer to training_data.csv'},
             'observed_input_min': x.min(axis=0).tolist(), 'observed_input_max': x.max(axis=0).tolist(),
             'folds': folds, 'seed': seed, 'optimizer_restarts': restarts,
             'kernel_specification': 'Constant * Matern(nu=2.5, separate length scale per input) + WhiteKernel',
@@ -95,7 +107,8 @@ def train(source, output, expected_samples=256, folds=5, seed=42, restarts=3):
         (work/'metadata.json').write_text(json.dumps(metadata, indent=2, allow_nan=False)+'\n')
         plot_validation(oof, work)
         warning_count = sum(len(d['warnings']) for d in diagnostics+final)
-        report = [f'# AEMEC Gaussian-process training\n\n{len(frame)} accepted samples, two independent GPs, '
+        report = [f'# AEMEC Gaussian-process training\n\n{len(frame)} selected samples from {len(pool)} valid '
+                  f'source samples (selection seed {sample_seed}), two independent GPs, '
                   f'{folds}-fold shuffled cross-validation (seed {seed}).\n',
                   '| Objective | Model | CV R² | RMSE | MAE | Unit |',
                   '| --- | --- | ---: | ---: | ---: | --- |']
@@ -104,7 +117,9 @@ def train(source, output, expected_samples=256, folds=5, seed=42, restarts=3):
                           f"{row['rmse']:.6g} | {row['mae']:.6g} | {row['unit']} |")
         report += ['', 'Metrics above use pooled held-out predictions, not training predictions. '
                    'Fold metrics, assignments, kernels, and preprocessing parameters are saved.',
-                   'Hyperparameters are refit within every fold. Final saved models use all accepted samples.',
+                   'Hyperparameters are refit within every fold. Final saved models use all selected samples.',
+                   f'{len(unused)} unselected valid samples are saved in unused_data.csv; they are not used '
+                   'for scaling, fitting, or these CV scores. training_data.csv records the selected samples.',
                    'Intervals are nominal GP predictive intervals, not guaranteed error bounds. '
                    'Their held-out coverage is reported in cv_metrics.csv. Negative crossover predictions '
                    'are not clipped; inspect such predictions before using the surrogate.',
@@ -124,13 +139,19 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('csv', type=Path, nargs='?', default=ROOT/'ELA/results/evaluated_256.csv')
     parser.add_argument('--output', type=Path, default=ROOT/'GP/results')
-    parser.add_argument('--expected-samples', type=int, default=256)
+    parser.add_argument('--expected-samples', type=int, default=256,
+                        help='Required valid rows in the source CSV before subset selection (default: 256)')
+    parser.add_argument('--n-samples', type=int,
+                        help='Number of source samples to select for CV and final training (default: all; minimum: 16)')
+    parser.add_argument('--sample-seed', type=int,
+                        help='Random subset selection seed (default: --seed); selection ignores objective values')
     parser.add_argument('--folds', type=int, default=5)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--restarts', type=int, default=3, help='Kernel optimization restarts after the initial optimization')
     args = parser.parse_args(argv)
     try:
-        train(args.csv, args.output, args.expected_samples, args.folds, args.seed, args.restarts)
+        train(args.csv, args.output, args.expected_samples, args.folds, args.seed, args.restarts,
+              n_samples=args.n_samples, sample_seed=args.sample_seed)
     except (ValueError, OSError) as exc:
         parser.exit(2, f'GP error: {exc}\n')
 
