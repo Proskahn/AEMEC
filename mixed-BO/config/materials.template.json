@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "synthetic_demo": false,
+  "description": "Replace descriptor names, units, and null values with human-defined material information.",
+  "variables": {
+    "anode_pte": {
+      "types": [
+        "AnodePTE_1",
+        "AnodePTE_2",
+        "AnodePTE_3"
+      ],
+      "geometry": [
+        {
+          "name": "geometry_descriptor_1",
+          "unit": "DEFINE_UNIT"
+        }
+      ],
+      "physics": [
+        {
+          "name": "physical_descriptor_1",
+          "unit": "DEFINE_UNIT"
+        }
+      ],
+      "descriptors": {
+        "AnodePTE_1": {
+          "geometry": [
+            null
+          ],
+          "physics": [
+            null
+          ]
+        },
+        "AnodePTE_2": {
+          "geometry": [
+            null
+          ],
+          "physics": [
+            null
+          ]
+        },
+        "AnodePTE_3": {
+          "geometry": [
+            null
+          ],
+          "physics": [
+            null
+          ]
+        }
+      }
+    },
+    "membrane_type": {
+      "types": [
+        "Membrane Type_1",
+        "Membrane Type_2",
+        "Membrane Type_3"
+      ],
+      "geometry": [
+        {
+          "name": "geometry_descriptor_1",
+          "unit": "DEFINE_UNIT"
+        }
+      ],
+      "physics": [
+        {
+          "name": "physical_descriptor_1",
+          "unit": "DEFINE_UNIT"
+        }
+      ],
+      "descriptors": {
+        "Membrane Type_1": {
+          "geometry": [
+            null
+          ],
+          "physics": [
+            null
+          ]
+        },
+        "Membrane Type_2": {
+          "geometry": [
+            null
+          ],
+          "physics": [
+            null
+          ]
+        },
+        "Membrane Type_3": {
+          "geometry": [
+            null
+          ],
+          "physics": [
+            null
+          ]
+        }
+      }
+    }
+  }
+}
