@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "synthetic_demo": true,
+  "description": "SYNTHETIC VALUES FOR SOFTWARE TESTING ONLY",
+  "variables": {
+    "anode_pte": {
+      "types": [
+        "AnodePTE_1",
+        "AnodePTE_2",
+        "AnodePTE_3"
+      ],
+      "geometry": [
+        {
+          "name": "geometry_descriptor_1",
+          "unit": "dimensionless"
+        }
+      ],
+      "physics": [
+        {
+          "name": "physical_descriptor_1",
+          "unit": "dimensionless"
+        }
+      ],
+      "descriptors": {
+        "AnodePTE_1": {
+          "geometry": [
+            0.0
+          ],
+          "physics": [
+            0.1
+          ]
+        },
+        "AnodePTE_2": {
+          "geometry": [
+            0.2
+          ],
+          "physics": [
+            0.3
+          ]
+        },
+        "AnodePTE_3": {
+          "geometry": [
+            1.0
+          ],
+          "physics": [
+            0.9
+          ]
+        }
+      }
+    },
+    "membrane_type": {
+      "types": [
+        "Membrane Type_1",
+        "Membrane Type_2",
+        "Membrane Type_3"
+      ],
+      "geometry": [
+        {
+          "name": "geometry_descriptor_1",
+          "unit": "dimensionless"
+        }
+      ],
+      "physics": [
+        {
+          "name": "physical_descriptor_1",
+          "unit": "dimensionless"
+        }
+      ],
+      "descriptors": {
+        "Membrane Type_1": {
+          "geometry": [
+            0.0
+          ],
+          "physics": [
+            0.1
+          ]
+        },
+        "Membrane Type_2": {
+          "geometry": [
+            0.2
+          ],
+          "physics": [
+            0.3
+          ]
+        },
+        "Membrane Type_3": {
+          "geometry": [
+            1.0
+          ],
+          "physics": [
+            0.9
+          ]
+        }
+      }
+    }
+  }
+}

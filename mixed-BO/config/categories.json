@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "synthetic_demo": false,
+  "description": "Category names only; supply human-defined full-design g(x) and p(x) in the cheap pretraining CSV.",
+  "variables": {
+    "anode_pte": {
+      "types": [
+        "AnodePTE_1",
+        "AnodePTE_2",
+        "AnodePTE_3"
+      ]
+    },
+    "membrane_type": {
+      "types": [
+        "Membrane Type_1",
+        "Membrane Type_2",
+        "Membrane Type_3"
+      ]
+    }
+  }
+}
