@@ -6,6 +6,11 @@ computes offline features. The source case is preserved. Analysis uses `pflacco`
 feature implementations, not surrogate-generated observations. The exported feature set
 matches the supplied table: **49 features from seven classes per landscape**.
 
+To evolve cheap mathematical proxy functions that match these ELA features using
+the genetic-programming method of arXiv:2602.04529v1, see [PROXIES.md](PROXIES.md).
+The entry point is `generate_proxies.py`; it reuses this analysis and its accepted
+samples without further OpenFOAM evaluations.
+
 ## Install and analyze
 
 Use Python 3.9–3.11: pflacco 1.2.2 pins NumPy 1.24 and SciPy 1.10, which

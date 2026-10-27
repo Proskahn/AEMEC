@@ -1,0 +1,13 @@
+variable,category,family,descriptor,unit,human_value,reconstructed_at_mean
+anode_pte,AnodePTE_1,geometry,geometry_descriptor_1,dimensionless,0.0,-0.0005425707080567443
+anode_pte,AnodePTE_1,physics,physical_descriptor_1,dimensionless,0.1,0.10501202300643026
+anode_pte,AnodePTE_2,geometry,geometry_descriptor_1,dimensionless,0.2,0.21149603593249133
+anode_pte,AnodePTE_2,physics,physical_descriptor_1,dimensionless,0.3,0.31263876825203235
+anode_pte,AnodePTE_3,geometry,geometry_descriptor_1,dimensionless,1.0,1.004464868160763
+anode_pte,AnodePTE_3,physics,physical_descriptor_1,dimensionless,0.9,0.9060116280059971
+membrane_type,Membrane Type_1,geometry,geometry_descriptor_1,dimensionless,0.0,0.005993319744945713
+membrane_type,Membrane Type_1,physics,physical_descriptor_1,dimensionless,0.1,0.09922493229566332
+membrane_type,Membrane Type_2,geometry,geometry_descriptor_1,dimensionless,0.2,0.21784895521089753
+membrane_type,Membrane Type_2,physics,physical_descriptor_1,dimensionless,0.3,0.3146851706359764
+membrane_type,Membrane Type_3,geometry,geometry_descriptor_1,dimensionless,1.0,1.0251485426164817
+membrane_type,Membrane Type_3,physics,physical_descriptor_1,dimensionless,0.9,0.9198517413147741

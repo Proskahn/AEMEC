@@ -1,0 +1,22 @@
+{
+  "acquisition": "analytic two-objective EHVI; independent latent GP posteriors; q=1; both minimized",
+  "reference_physical_units": [
+    2.1457097721677267,
+    4.609819444656447e-09
+  ],
+  "objective_center": [
+    1.7225996973179278,
+    1.575786477071674e-09
+  ],
+  "objective_scale": [
+    0.3846455225907264,
+    2.7582117887134298e-09
+  ],
+  "seed": 42,
+  "candidate_count": 653,
+  "candidate_pool": "all nine category pairs \u00d7 finite Sobol/corners/centre pool; no global optimum guarantee",
+  "source_model_directory": "/Users/zhuang/AEMEC/mixed-BO/results/shape_dev/gp",
+  "source_representation_sha256": "3fc3f8ed9d52908d7ffd4c70e2882a57f238b7edd2419dc73517cd8c80c5ab05",
+  "pending_file": null,
+  "note": "Pending points are excluded, not fantasized; use a sequential evaluate/refit/suggest loop. GP predictions are not new simulation observations. No material configuration or CFD is executed."
+}

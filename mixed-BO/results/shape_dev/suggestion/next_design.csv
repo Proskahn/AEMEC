@@ -1,0 +1,2 @@
+sample_id,membrane_thickness_um,water_inlet_temperature_k,ptl_porosity,anode_pte,membrane_type,ehvi_normalized,cell_voltage_v_gp_mean,cell_voltage_v_gp_latent_std,crossover_rate_mol_s_gp_mean,crossover_rate_mol_s_gp_latent_std,cell_voltage_v,crossover_rate_mol_s,status
+36,22.31798756867647,311.2790793092921,0.4127316277474165,AnodePTE_1,Membrane Type_2,0.04806297946941514,1.6997586948384857,0.04742105671754412,3.117385515468716e-09,1.314479123247775e-10,,,pending

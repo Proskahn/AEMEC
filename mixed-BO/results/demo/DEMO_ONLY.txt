@@ -1,0 +1,1 @@
+Synthetic descriptors and objectives. No CFD or real material training.
