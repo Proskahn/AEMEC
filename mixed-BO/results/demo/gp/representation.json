@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "catalog": {
+    "schema": 1,
+    "synthetic_demo": true,
+    "description": "SYNTHETIC VALUES FOR SOFTWARE TESTING ONLY",
+    "variables": {
+      "anode_pte": {
+        "types": [
+          "AnodePTE_1",
+          "AnodePTE_2",
+          "AnodePTE_3"
+        ],
+        "geometry": [
+          {
+            "name": "geometry_descriptor_1",
+            "unit": "dimensionless"
+          }
+        ],
+        "physics": [
+          {
+            "name": "physical_descriptor_1",
+            "unit": "dimensionless"
+          }
+        ],
+        "descriptors": {
+          "AnodePTE_1": {
+            "geometry": [
+              0.0
+            ],
+            "physics": [
+              0.1
+            ]
+          },
+          "AnodePTE_2": {
+            "geometry": [
+              0.2
+            ],
+            "physics": [
+              0.3
+            ]
+          },
+          "AnodePTE_3": {
+            "geometry": [
+              1.0
+            ],
+            "physics": [
+              0.9
+            ]
+          }
+        }
+      },
+      "membrane_type": {
+        "types": [
+          "Membrane Type_1",
+          "Membrane Type_2",
+          "Membrane Type_3"
+        ],
+        "geometry": [
+          {
+            "name": "geometry_descriptor_1",
+            "unit": "dimensionless"
+          }
+        ],
+        "physics": [
+          {
+            "name": "physical_descriptor_1",
+            "unit": "dimensionless"
+          }
+        ],
+        "descriptors": {
+          "Membrane Type_1": {
+            "geometry": [
+              0.0
+            ],
+            "physics": [
+              0.1
+            ]
+          },
+          "Membrane Type_2": {
+            "geometry": [
+              0.2
+            ],
+            "physics": [
+              0.3
+            ]
+          },
+          "Membrane Type_3": {
+            "geometry": [
+              1.0
+            ],
+            "physics": [
+              0.9
+            ]
+          }
+        }
+      }
+    }
+  },
+  "catalog_sha256": "0a83c5a74d52b873bb8fe91619b206fd790513d4c76a8effc2c4503614f830d1",
+  "settings": {
+    "epochs": 1200,
+    "seed": 42,
+    "latent_dim": 2,
+    "hidden_dim": 16,
+    "beta": 0.01,
+    "geometry_weight": 1.0,
+    "physics_weight": 1.0,
+    "learning_rate": 0.01
+  },
+  "encoder_input": "one-hot category identity only",
+  "decoder_targets": "category identity plus standardized geometry and physics",
+  "gp_representation": "deterministic posterior mean, frozen before GP fitting",
+  "variables": {
+    "anode_pte": {
+      "means": [
+        [
+          1.499590303654208,
+          -0.826333909789057
+        ],
+        [
+          1.1327242924190113,
+          1.8310436163546884
+        ],
+        [
+          -1.8425274296326544,
+          -0.1654695202448866
+        ]
+      ],
+      "log_variances": [
+        [
+          -2.4625085735127863,
+          -2.745751897725023
+        ],
+        [
+          -2.8791162595175566,
+          -2.6432442733513493
+        ],
+        [
+          -2.771567193971097,
+          -1.502655571155406
+        ]
+      ],
+      "diagnostics": {
+        "identity_accuracy_at_mean": 1.0,
+        "geometry_mse_standardized_at_mean": 0.0002721219157631571,
+        "physics_mse_standardized_at_mean": 0.0006374956985424701,
+        "pair_distances": [
+          {
+            "types": [
+              "AnodePTE_1",
+              "AnodePTE_2"
+            ],
+            "latent_distance": 2.682581962709336,
+            "descriptor_distance": 0.7486251134176307
+          },
+          {
+            "types": [
+              "AnodePTE_1",
+              "AnodePTE_3"
+            ],
+            "latent_distance": 3.4068302987554433,
+            "descriptor_distance": 3.300849041626168
+          },
+          {
+            "types": [
+              "AnodePTE_2",
+              "AnodePTE_3"
+            ],
+            "latent_distance": 3.583041656775159,
+            "descriptor_distance": 2.5581157213769754
+          }
+        ],
+        "constant_geometry_columns": [],
+        "constant_physics_columns": []
+      },
+      "geometry_mean": [
+        0.39999999999999997
+      ],
+      "geometry_scale": [
+        0.43204937989385733
+      ],
+      "physics_mean": [
+        0.43333333333333335
+      ],
+      "physics_scale": [
+        0.33993463423951903
+      ]
+    },
+    "membrane_type": {
+      "means": [
+        [
+          -1.553324691828776,
+          1.3907483643959029
+        ],
+        [
+          1.193878296339665,
+          0.9222076792644586
+        ],
+        [
+          0.18376313632552713,
+          -1.6932045500045787
+        ]
+      ],
+      "log_variances": [
+        [
+          -2.048929734642185,
+          -2.480171138910328
+        ],
+        [
+          -2.837336798913838,
+          -3.0716237327455067
+        ],
+        [
+          -0.6525065769436248,
+          -2.204170183345821
+        ]
+      ],
+      "diagnostics": {
+        "identity_accuracy_at_mean": 1.0,
+        "geometry_mse_standardized_at_mean": 0.0017624183561049623,
+        "physics_mse_standardized_at_mean": 0.0017606151916810357,
+        "pair_distances": [
+          {
+            "types": [
+              "Membrane Type_1",
+              "Membrane Type_2"
+            ],
+            "latent_distance": 2.7868718362754064,
+            "descriptor_distance": 0.7486251134176307
+          },
+          {
+            "types": [
+              "Membrane Type_1",
+              "Membrane Type_3"
+            ],
+            "latent_distance": 3.539525349670639,
+            "descriptor_distance": 3.300849041626168
+          },
+          {
+            "types": [
+              "Membrane Type_2",
+              "Membrane Type_3"
+            ],
+            "latent_distance": 2.8036964467467627,
+            "descriptor_distance": 2.5581157213769754
+          }
+        ],
+        "constant_geometry_columns": [],
+        "constant_physics_columns": []
+      },
+      "geometry_mean": [
+        0.39999999999999997
+      ],
+      "geometry_scale": [
+        0.43204937989385733
+      ],
+      "physics_mean": [
+        0.43333333333333335
+      ],
+      "physics_scale": [
+        0.33993463423951903
+      ]
+    }
+  }
+}
