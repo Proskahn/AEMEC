@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import io
+from contextlib import redirect_stderr
 from pathlib import Path
 import tempfile
 import unittest
@@ -10,10 +12,10 @@ import numpy as np
 import pandas as pd
 import optuna
 
-from aemec_opt.benchmark import BenchmarkProblem, BenchmarkSettings, run_benchmark
-from aemec_opt.benchmark_algorithms import GaussianProcessBO, OptunaAlgorithm
-from aemec_opt.benchmark_cli import build_parser, build_problem, main
-from aemec_opt.benchmark_metrics import expected_hypervolume_improvement, hypervolume_2d, pareto_indices
+from aemec_benchmark.runner import BenchmarkProblem, BenchmarkSettings, run_benchmark
+from aemec_benchmark.algorithms import GaussianProcessBO, OptunaAlgorithm
+from aemec_benchmark.cli import build_parser, build_problem, main
+from aemec_benchmark.metrics import expected_hypervolume_improvement, hypervolume_2d, pareto_indices
 from aemec_opt.engine import ObjectiveResult, OptimizationError
 
 
@@ -85,7 +87,7 @@ class AlgorithmTests(unittest.TestCase):
         def acquisition(mean, std, observed, reference):
             captured.append((mean.copy(), std.copy(), np.asarray(observed).copy()))
             return original(mean, std, observed, reference)
-        with patch('aemec_opt.benchmark_algorithms.expected_hypervolume_improvement', side_effect=acquisition):
+        with patch('aemec_benchmark.algorithms.expected_hypervolume_improvement', side_effect=acquisition):
             point, details = alg.ask()
         self.assertEqual(len(captured[0][2]), 4)
         self.assertTrue(np.isfinite(captured[0][1]).all())
@@ -164,17 +166,14 @@ class RunnerTests(unittest.TestCase):
 
 
 class AdapterTests(unittest.TestCase):
-    def test_zdt1_known_pareto_endpoints_and_dry_run(self):
-        args = build_parser().parse_args(['--backend', 'zdt1', '--output', 'unused'])
-        problem = build_problem(args)
-        evaluate = problem.evaluator_factory(Path('unused'))
-        np.testing.assert_allclose(evaluate(0, problem.lower).values, [0, 1])
-        point = problem.lower.copy()
-        point[0] = problem.upper[0]
-        np.testing.assert_allclose(evaluate(1, point).values, [1, 0])
+    def test_cli_rejects_synthetic_evaluators_and_cfd_dry_run_is_free(self):
+        for backend in ('proxies', 'zdt1'):
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
+                build_parser().parse_args(['--backend', backend, '--output', 'unused'])
+            self.assertEqual(error.exception.code, 2)
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp)/'dry'
-            self.assertEqual(main(['--backend', 'zdt1', '--output', str(out), '--dry-run']), 0)
+            self.assertEqual(main(['--output', str(out), '--dry-run']), 0)
             self.assertFalse(out.exists())
 
     def test_aemec_adapter_preserves_parameter_order_and_scratch_isolation(self):

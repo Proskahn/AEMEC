@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
+from aemec_opt.engine import ObjectiveResult
 from pathlib import Path
 import tempfile
 import unittest
@@ -10,9 +12,9 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from aemec_opt.benchmark import BenchmarkSettings, run_benchmark
-from aemec_opt.benchmark_cli import build_parser, build_problem, main
-from aemec_opt.benchmark_cmaes import MultiObjectiveCMAES
+from aemec_benchmark.runner import BenchmarkSettings, run_benchmark
+from aemec_benchmark.cli import build_parser, build_problem, main
+from aemec_benchmark.cmaes import MultiObjectiveCMAES
 
 
 class CMAESTests(unittest.TestCase):
@@ -129,9 +131,13 @@ class CMAESTests(unittest.TestCase):
     def test_cli_cma_only_odd_budget_and_custom_sigma(self):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp)/'run'
-            self.assertEqual(main(['--backend', 'zdt1', '--algorithms', 'cmaes',
-                                   '--output', str(out), '--initial', '4', '--budget', '9',
-                                   '--seeds', '7', '--cma-sigma', '.35']), 0)
+            with patch('aemec_benchmark.evaluation.shutil.which', return_value='/mock/tool'), \
+                    patch('aemec_opt.case.AemecOpenFoamEvaluator') as adapter:
+                adapter.return_value.evaluate.return_value = SimpleNamespace(
+                    as_objective_result=lambda: ObjectiveResult((2., 3e-9), {}))
+                self.assertEqual(main(['--algorithms', 'cmaes', '--output', str(out),
+                                       '--initial', '4', '--budget', '9', '--seeds', '7', '--cma-sigma', '.35']), 0)
+                self.assertEqual(adapter.return_value.evaluate.call_count, 9)
             manifest = json.loads((out/'manifest.json').read_text())
             self.assertEqual(manifest['actual_evaluator_calls'], 9)
             self.assertEqual(manifest['settings']['cma_sigma'], .35)
@@ -145,9 +151,9 @@ class CMAESTests(unittest.TestCase):
     def test_missing_dependency_fails_before_any_evaluation_or_output(self):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp)/'run'
-            args = build_parser().parse_args(['--backend', 'zdt1', '--output', str(out)])
+            args = build_parser().parse_args(['--output', str(out), '--dry-run'])
             problem = build_problem(args)
-            with patch('aemec_opt.benchmark.require_deap', side_effect=ValueError('install DEAP')):
+            with patch('aemec_benchmark.runner.require_deap', side_effect=ValueError('install DEAP')):
                 with self.assertRaisesRegex(ValueError, 'install DEAP'):
                     run_benchmark(problem, BenchmarkSettings(algorithms=('cmaes',)), out)
             self.assertFalse(out.exists())

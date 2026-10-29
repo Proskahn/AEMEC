@@ -3,6 +3,11 @@
 The optimization workflow has narrow dependency boundaries and an intentionally
 small public surface.
 
+The separate [`benchmark/`](../../benchmark/README.md) workflow imports the
+OpenFOAM adapter and result/error types from this package. Its comparison loop,
+algorithms, attempt-budget accounting, and reports live in `aemec_benchmark`;
+the optimization workflow has no dependency on that package.
+
 | Module | Responsibility | May depend on |
 | --- | --- | --- |
 | `aemec_opt/engine.py` | Resumable multi-objective study, completed-trial budget, trial failures, and generic Pareto selection | Python standard library, Optuna |

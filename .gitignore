@@ -23,6 +23,10 @@ visualization/output/
 opt/results/
 opt/work/
 
+# Local algorithm benchmarks and their isolated scratch cases
+benchmark/results/
+benchmark/work/
+
 # Local crossover experiment results and scratch cases
 crossover_experiements/results/
 crossover_experiements/work/

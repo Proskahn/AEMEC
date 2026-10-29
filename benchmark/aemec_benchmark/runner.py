@@ -11,9 +11,9 @@ There are three distinct representations to keep track of:
   * Optimizer objectives/metrics: two values under one fixed affine scaling.
 Raw evaluator responses are retained in the CSVs for physical interpretation.
 
-This module owns execution, accounting and reporting. benchmark_algorithms.py
-owns proposal strategies; benchmark_metrics.py owns Pareto/HV calculations;
-benchmark_cli.py constructs the particular objective function being benchmarked.
+This module owns execution, accounting and reporting. algorithms.py
+owns proposal strategies; metrics.py owns Pareto/HV calculations;
+cli.py constructs the particular objective function being benchmarked.
 """
 from __future__ import annotations
 
@@ -26,10 +26,10 @@ import time
 import numpy as np
 import pandas as pd
 
-from .benchmark_algorithms import ALGORITHMS, LABELS, GaussianProcessBO, OptunaAlgorithm, sobol_points
-from .benchmark_cmaes import MultiObjectiveCMAES, require_deap
-from .benchmark_metrics import hypervolume_2d, pareto_indices
-from .engine import OptimizationError
+from .algorithms import ALGORITHMS, DEFAULT_ALGORITHMS, LABELS, GaussianProcessBO, OptunaAlgorithm, sobol_points
+from .cmaes import MultiObjectiveCMAES, require_deap
+from .metrics import hypervolume_2d, pareto_indices
+from aemec_opt.engine import OptimizationError
 
 # This ordering is shared by every input array, CSV and evaluator adapter.
 INPUTS = ['membrane_thickness_um', 'water_inlet_temperature_k', 'ptl_porosity']
@@ -98,17 +98,18 @@ class BenchmarkSettings:
     initial: common initial-design count; also the NSGA-II population size.
         Successful initial designs form MO-CMA-ES's parent population.
     seeds: paired repetitions, each with its own Sobol design and optimizer RNGs.
-    algorithms: requested subset of gp/tpe/nsga2/cmaes, evaluated independently.
+    algorithms: requested subset of gp/tpe/nsga2/cmaes/ela_proxy, evaluated independently.
     gp_candidates/gp_restarts: internal model/search effort, not extra backend calls.
     cma_sigma: initial Gaussian step size in the normalized input box.
     """
     budget: int = 64
     initial: int = 16
     seeds: tuple = (42, 43, 44, 45, 46)
-    algorithms: tuple = ALGORITHMS
+    algorithms: tuple = DEFAULT_ALGORITHMS
     gp_candidates: int = 2048
     gp_restarts: int = 1
     cma_sigma: float = .2
+    proxy_candidates: int = 2048
 
     def validate(self):
         """Require a usable initialization and at least one adaptive attempt."""
@@ -124,6 +125,8 @@ class BenchmarkSettings:
             raise ValueError('GP candidates must be >=16 and restarts >=0')
         if not np.isfinite(self.cma_sigma) or self.cma_sigma <= 0:
             raise ValueError('CMA sigma must be finite and positive')
+        if self.proxy_candidates < 16:
+            raise ValueError('Proxy candidates must be >=16')
 
 
 def save_json(path, value):
@@ -171,7 +174,7 @@ def evaluate_once(evaluator, number, x):
                 'evaluation_s': time.perf_counter()-started}
 
 
-def run_benchmark(problem, settings, destination, progress=print):
+def run_benchmark(problem, settings, destination, progress=print, proxy_assets=None):
     """Execute all paired runs and return a DataFrame with one summary per run.
 
     A completed comparison with S seeds, A algorithms, budget B and initialization
@@ -185,6 +188,11 @@ def run_benchmark(problem, settings, destination, progress=print):
     """
     problem.validate()
     settings.validate()
+    if 'ela_proxy' in settings.algorithms:
+        if proxy_assets is None:
+            raise ValueError('ela_proxy requires saved proxy assets; these guide proposals, while CFD evaluates them')
+        if not np.array_equal(proxy_assets.lower, problem.lower) or not np.array_equal(proxy_assets.upper, problem.upper):
+            raise ValueError('Proxy domains must match the CFD study bounds exactly')
     if 'cmaes' in settings.algorithms:
         # Check the new dependency before creating outputs or spending any CFD
         # calls. Runs selecting only the older algorithms do not require DEAP.
@@ -218,6 +226,14 @@ def run_benchmark(problem, settings, destination, progress=print):
             'initial_sigma': settings.cma_sigma, 'boundary_handling': 'reflection in normalized input box',
             'selection': 'Pareto rank then hypervolume contribution using the fixed benchmark reference',
             'failures': 'charged, excluded from selection, no covariance or step-size update'}
+    if 'ela_proxy' in settings.algorithms:
+        manifest['ela_proxy_protocol'] = {
+            'assets': proxy_assets.metadata,
+            'proposal': 'Randomly weighted augmented Tchebycheff minimization over Sobol candidates plus corners/center',
+            'augmentation': .05, 'candidate_pool_size': settings.proxy_candidates,
+            'model_updates': 'None; frozen expressions, all attempted designs excluded',
+            'assessment': 'Only CFD responses enter observations, Pareto fronts, and hypervolume',
+            'budget': 'Online CFD attempts matched to baselines; historical proxy training data/cost additional'}
     save_json(destination/'manifest.json', manifest)
     summaries, all_histories, all_pareto = [], [], []
     started = time.perf_counter()
@@ -258,6 +274,9 @@ def run_benchmark(problem, settings, destination, progress=print):
                     optimizer = GaussianProcessBO(seed, reference, settings.gp_candidates, settings.gp_restarts)
                 elif algorithm == 'cmaes':
                     optimizer = MultiObjectiveCMAES(seed, reference, settings.cma_sigma)
+                elif algorithm == 'ela_proxy':
+                    from .proxy_search import ELAProxySearch
+                    optimizer = ELAProxySearch(seed, proxy_assets, settings.proxy_candidates)
                 else:
                     optimizer = OptunaAlgorithm(algorithm, settings.initial, seed)
                 rows, histories, detailed, successful = [], [], [], []
@@ -402,7 +421,7 @@ def summarize(destination, problem, settings, summaries, histories, fronts):
     # Agg supports terminal/headless Linux runs without a graphical display.
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    colors = {'gp': '#2166ac', 'tpe': '#d95f02', 'nsga2': '#1b9e77', 'cmaes': '#984ea3'}
+    colors = {'gp': '#2166ac', 'tpe': '#d95f02', 'nsga2': '#1b9e77', 'cmaes': '#984ea3', 'ela_proxy': '#b58900'}
     fig, ax = plt.subplots(figsize=(7.5, 4.5), constrained_layout=True)
     for algorithm in settings.algorithms:
         # Compare the algorithms at equal numbers of charged attempts, not at
@@ -436,6 +455,11 @@ def summarize(destination, problem, settings, summaries, histories, fronts):
         f'Algorithms: {", ".join(LABELS[name] for name in settings.algorithms)}.\n\n'
         f'Backend: {problem.metadata["backend"]}. {len(settings.seeds)} paired seeds, '
         f'{settings.budget} attempts per algorithm/seed, including {settings.initial} shared initial designs.\n\n'
+        + ('Objective observations come from actual AEMEC/OpenFOAM voltage sweeps, in volts and mol/s. '
+           'Only CFD responses are scored. The GP is fitted to each run\'s CFD observations to '
+           'choose subsequent designs; its predictions do not replace solver evaluations.\n\n'
+           if problem.metadata['backend'] == 'aemec' else '')
+        +
         'Both objectives are minimized. Larger hypervolume is better. The same fixed normalization '
         'and reference point are used in every run; out-of-reference points are recorded, not used '
         'to silently change the reference. mean_hypervolume_over_budget is the trapezoidal area '
@@ -458,6 +482,10 @@ def summarize(destination, problem, settings, summaries, histories, fronts):
            'are used for adaptation. Failed attempts skip adaptation; if initialization has no success, '
            'a logged Sobol fallback runs until the first success.\n\n' if 'cmaes' in settings.algorithms else '')
         +
-        'For proxy backends, this compares algorithms on an artificial pair of independently '
-        'generated scalar functions. Their joint trade-off/Pareto front is not validated against AEMEC; '
-        'algorithm rankings need validation on the real model.\n')
+        ('ELA proxy search uses frozen expressions to choose proposals via randomly weighted augmented '
+         'Tchebycheff minimization over a finite candidate pool. Every proposal is evaluated by CFD; '
+         'proxy scores are diagnostics, never observations or Pareto/HV inputs. Proxies are not '
+         'retrained from the online responses. Historical CFD data and fitting effort used to build '
+         'these assets are additional prior information, recorded separately in the manifest; '
+         'equal online budgets do not imply equal end-to-end data costs.\n'
+         if 'ela_proxy' in settings.algorithms else ''))

@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from .benchmark_algorithms import sobol_points
-from .benchmark_metrics import hypervolume_2d
+from .algorithms import sobol_points
+from .metrics import hypervolume_2d
 
 
 def require_deap():
@@ -27,7 +27,7 @@ def require_deap():
         from deap import base, cma
     except ImportError as exc:
         raise ValueError('CMA-ES requires DEAP. Install with: '
-                         'python -m pip install -r opt/requirements-benchmark.txt') from exc
+                         'python -m pip install -r benchmark/requirements.txt') from exc
     return base, cma
 
 
