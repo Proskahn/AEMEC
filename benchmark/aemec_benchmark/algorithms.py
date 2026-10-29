@@ -1,6 +1,6 @@
 """GP/TPE/NSGA-II implementations and the shared benchmark algorithm registry.
 
-MO-CMA-ES uses the same interface in benchmark_cmaes.py.
+MO-CMA-ES uses the same interface in cmaes.py.
 
 All inputs here are normalized to [0, 1]^3, in the order thickness, temperature,
 porosity. Objective pairs use the runner's fixed affine normalization and are
@@ -22,11 +22,12 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel
 from threadpoolctl import threadpool_limits
 
-from .benchmark_metrics import expected_hypervolume_improvement
+from .metrics import expected_hypervolume_improvement
 
-ALGORITHMS = ('gp', 'tpe', 'nsga2', 'cmaes')
+DEFAULT_ALGORITHMS = ('gp', 'tpe', 'nsga2', 'cmaes')
+ALGORITHMS = DEFAULT_ALGORITHMS + ('ela_proxy',)
 LABELS = {'gp': 'GP BO (EHVI)', 'tpe': 'TPE BO (MOTPE)', 'nsga2': 'NSGA-II',
-          'cmaes': 'MO-CMA-ES'}
+          'cmaes': 'MO-CMA-ES', 'ela_proxy': 'ELA proxy search'}
 
 
 def sobol_points(count, seed):
@@ -216,3 +217,13 @@ class GaussianProcessBO:
         if y is not None:
             self.x.append(np.asarray(x).copy())
             self.y.append(np.asarray(y).copy())
+
+
+class LLAMEA:
+    """Reserved for the separate LLaMEA optimizer-generation integration.
+
+    This draft is not registered as a benchmark algorithm. ELAProxySearch
+    optimizes the saved expressions directly and does not require LLaMEA.
+    """
+    def __init__(self):
+        raise NotImplementedError('LLaMEA optimizer generation is not implemented')

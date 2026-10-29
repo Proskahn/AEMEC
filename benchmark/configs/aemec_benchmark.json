@@ -1,0 +1,16 @@
+{
+  "description": "Fixed study settings for actual AEMEC/OpenFOAM evaluations. No proxy functions or training observations are stored here.",
+  "input_columns": ["membrane_thickness_um", "water_inlet_temperature_k", "ptl_porosity"],
+  "input_lower": [10.0, 298.15, 0.4],
+  "input_upper": [100.0, 353.15, 0.8],
+  "objective_columns": ["cell_voltage_v", "crossover_rate_mol_s"],
+  "objective_limits": [
+    [1.9603952762842416, 1.9769467762766355e-09],
+    [2.0744894321139697, 4.338666129723523e-09]
+  ],
+  "provenance": {
+    "description": "Bounds and historical objective normalization endpoints copied from the existing ELA analysis. The original metadata file is not required at runtime. These endpoints are scaling settings, not guaranteed response bounds; observations are not clipped.",
+    "source": "ELA/results/analysis/metadata.json",
+    "source_sha256": "4edb4945abf170b99ce8074a7962e93f37831e346808bc447828aa6ee9983b9f"
+  }
+}

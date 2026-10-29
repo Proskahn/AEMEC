@@ -194,3 +194,8 @@ dependence on membrane thickness, pointwise rankings, minimizers, or Pareto fron
 Do not treat them as a validated two-objective surrogate for AEMEC. The functions
 are intended for low-cost optimizer experiments followed by validation on the
 actual problem. LLM-driven optimizer generation is not part of this implementation.
+
+The separate [`ela_proxy` benchmark algorithm](../benchmark/docs/runbook.md#ela-proxy-proposal-algorithm)
+can search these expressions directly to propose designs. Every selected design
+is then assessed by CFD, and only CFD responses enter the benchmark's Pareto
+fronts and hypervolume. Proxy outputs remain internal proposal scores.

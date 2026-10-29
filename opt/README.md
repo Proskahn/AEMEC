@@ -7,10 +7,11 @@ AEMEC/OpenFOAM adapter. The public entry point remains:
 python3 opt/run_optimization.py --iterations 50
 ```
 
-For a budget-matched comparison of **GP-based BO, multiobjective TPE, NSGA-II, and MO-CMA-ES**,
-use `opt/run_benchmark.py`. It supports the generated ELA proxy pairs, an analytic
-ZDT1 check, and the real OpenFOAM evaluator. See the [benchmark guide](docs/benchmark.md)
-for commands, shared initialization, metrics, and repeated-seed comparisons.
+This workflow searches for good AEMEC designs in a resumable Optuna study.
+Algorithm comparisons live separately in [`benchmark/`](../benchmark/README.md),
+which owns the GP BO, TPE, NSGA-II, CMA-ES, and ELA-proxy search comparison code,
+tests, and results. CFD is the common evaluator for every benchmark algorithm.
+The two workflows reuse the same AEMEC/OpenFOAM evaluator.
 
 Each evaluation samples **membrane thickness** (default 10–100 µm), a
 **common water inlet temperature** for the anode and cathode (default

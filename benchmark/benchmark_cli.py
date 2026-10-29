@@ -9,8 +9,9 @@ bounds, two objective names, fixed objective scaling/reference, and a factory
 for per-run evaluators. Consequently, switching backends does not change the
 budget-accounting or optimizer loop in benchmark.py.
 
-The command defaults to proxies. CFD execution requires selecting aemec and
-running without --dry-run in a configured OpenFOAM environment.
+The command defaults to aemec: every objective observation comes from OpenFOAM.
+Synthetic backends require an explicit choice and are never a fallback for a
+missing CFD installation. --dry-run checks configuration without executing CFD.
 """
 from __future__ import annotations
 
@@ -27,7 +28,7 @@ import optuna
 
 from .benchmark import INPUTS, BenchmarkProblem, BenchmarkSettings, run_benchmark
 from .benchmark_algorithms import ALGORITHMS
-from .engine import ObjectiveResult, OptimizationError
+from ..opt.aemec_opt.engine import ObjectiveResult, OptimizationError
 
 # Resolve default assets relative to this repository, regardless of shell cwd.
 ROOT = Path(__file__).resolve().parents[2]
@@ -63,7 +64,8 @@ def build_parser():
     coordinates. Backend-specific settings are consumed only by that adapter.
     """
     p = argparse.ArgumentParser(description='Compare GP BO, multiobjective TPE, NSGA-II, and MO-CMA-ES on three inputs/two minimized outputs.')
-    p.add_argument('--backend', choices=['proxies', 'zdt1', 'aemec'], default='proxies')
+    p.add_argument('--backend', choices=['aemec', 'proxies', 'zdt1'], default='aemec',
+                   help='Objective evaluator (default: aemec, actual OpenFOAM voltage sweeps)')
     p.add_argument('--output', type=Path, required=True, help='Fresh benchmark directory')
     p.add_argument('--budget', type=int, default=64, help='Attempt budget per algorithm/seed, including initial designs')
     p.add_argument('--initial', type=int, default=16, help='Shared Sobol count; NSGA-II population size; successful designs seed MO-CMA-ES')
@@ -79,12 +81,24 @@ def build_parser():
     p.add_argument('--reference', type=float, nargs=2, help='Fixed hypervolume reference in raw objective units')
     p.add_argument('--objective-lower', type=float, nargs=2, help='Fixed normalization lower endpoints (both objectives)')
     p.add_argument('--objective-upper', type=float, nargs=2, help='Fixed normalization upper endpoints (both objectives)')
-    # ELA artifacts identify the two scalar functions making up the proxy pair.
-    p.add_argument('--proxy-root', type=Path, default=ROOT/'ELA/results/proxies_verified')
-    p.add_argument('--proxy-rank', type=int, default=1, help='Pair this rank from voltage and crossover proxy folders')
-    # OpenFOAM uses the same case adapter and stability criteria as the existing
-    # optimizer. The analysis metadata contributes bounds/scales, not training data.
-    p.add_argument('--analysis', type=Path, default=ROOT/'ELA/results/analysis', help='AEMEC bounds/objective scales from metadata.json')
+    # Result directory names differ between machines and generation runs. An
+    # explicit root or file pair takes precedence; otherwise discover one pair.
+    sources = p.add_mutually_exclusive_group()
+    sources.add_argument('--proxy-root', type=Path,
+                         help='Directory containing cell_voltage_v/ and crossover_rate_mol_s/; '
+                              'default: discover a unique complete pair under ELA/results')
+    sources.add_argument('--proxy-files', type=Path, nargs=2, metavar=('VOLTAGE_JSON', 'CROSSOVER_JSON'),
+                         help='Explicit voltage and crossover proxy JSON files, in that order')
+    p.add_argument('--proxy-rank', type=int, default=1,
+                   help='Rank to load with --proxy-root or automatic discovery (default: 1)')
+    # A portable study configuration allows CFD runs on a fresh checkout with
+    # no ELA/results directory. Existing analysis metadata is an optional source
+    # of the same bounds/scales; neither option supplies training observations.
+    configuration = p.add_mutually_exclusive_group()
+    configuration.add_argument('--problem-config', type=Path,
+                               help='AEMEC bounds/scales JSON (default: opt/configs/aemec_benchmark.json)')
+    configuration.add_argument('--analysis', type=Path,
+                               help='Read AEMEC bounds/scales from this directory\'s metadata.json instead')
     p.add_argument('--case', type=Path, default=ROOT/'run/AEMEC')
     p.add_argument('--work-dir', type=Path, default=ROOT/'opt/work/benchmarks')
     p.add_argument('--mesh-command', type=command, default=('make', 'mesh'))
@@ -100,6 +114,54 @@ def build_parser():
     return p
 
 
+def resolve_proxy_paths(args):
+    """Find one voltage/crossover pair without assuming a generated folder name.
+
+    Explicit paths are interpreted relative to the calling shell directory and
+    support '~'. Discovery is restricted to this checkout's ELA/results. Pair
+    only siblings of the same rank in one generation run: combining unrelated
+    runs or silently choosing the newest result would change the benchmark.
+    Artifact content, objective roles and input domains are validated separately
+    by build_problem after path resolution.
+    """
+    if args.proxy_rank < 1:
+        raise ValueError('proxy-rank must be positive')
+    if args.proxy_files is not None:
+        paths = [path.expanduser().resolve() for path in args.proxy_files]
+    else:
+        def pair(root):
+            return [root/name/f'proxy_{args.proxy_rank:02d}'/'proxy.json'
+                    for name in ('cell_voltage_v', 'crossover_rate_mol_s')]
+
+        if args.proxy_root is not None:
+            # An explicit but incorrect root is an error, not permission to
+            # substitute a different proxy function found somewhere else.
+            paths = pair(args.proxy_root.expanduser().resolve())
+        else:
+            search_root = ROOT/'ELA/results'
+            pattern = f'**/cell_voltage_v/proxy_{args.proxy_rank:02d}/proxy.json'
+            roots = sorted({path.parents[2].resolve() for path in search_root.glob(pattern)
+                            if all(item.is_file() for item in pair(path.parents[2]))})
+            if not roots:
+                raise ValueError(
+                    f'No complete rank-{args.proxy_rank} proxy pair found under {search_root}. '
+                    'Pass --proxy-root /path/to/generated_run (containing cell_voltage_v/ and '
+                    'crossover_rate_mol_s/), or --proxy-files /path/to/voltage.json /path/to/crossover.json. '
+                    'If no proxy JSON files exist on this machine, copy the generated proxies '
+                    'or generate them with ELA/generate_proxies.py fit; evaluated CSVs are not proxy functions.')
+            if len(roots) > 1:
+                options = '\n'.join(f'  --proxy-root {shlex.quote(str(root))}' for root in roots)
+                raise ValueError(f'Multiple rank-{args.proxy_rank} proxy pairs found. Choose one explicitly:\n{options}')
+            paths = pair(roots[0])
+    missing = [str(path) for path in paths if not path.is_file()]
+    if missing:
+        raise ValueError('Proxy JSON file(s) not found:\n  '+'\n  '.join(missing)+
+                         '\nSet --proxy-root to the parent of the two objective folders, '
+                         'or pass both JSON paths with --proxy-files. '
+                         'The generated files must exist on this machine.')
+    return paths
+
+
 def build_problem(args):
     """Construct a backend without evaluating any designs or fitting any models.
 
@@ -110,12 +172,11 @@ def build_problem(args):
     """
     lower, upper = LOWER.copy(), UPPER.copy()
     metadata = {'backend': args.backend}
+    if args.backend != 'proxies' and (args.proxy_root is not None or args.proxy_files is not None):
+        raise ValueError('Proxy file options require --backend proxies. The default aemec backend runs actual OpenFOAM evaluations.')
     if args.backend == 'proxies':
         from ELA.proxy_functions import ProxyFunction
-        if args.proxy_rank < 1:
-            raise ValueError('proxy-rank must be positive')
-        paths = [args.proxy_root/name/f'proxy_{args.proxy_rank:02d}'/'proxy.json'
-                 for name in ['cell_voltage_v', 'crossover_rate_mol_s']]
+        paths = resolve_proxy_paths(args)
         # ProxyFunction validates a serialized expression tree and handles its
         # own physical-input normalization. It evaluates a mathematical function,
         # not a fitted GP and not a new high-fidelity CFD observation.
@@ -159,15 +220,23 @@ def build_problem(args):
     else:
         # The parser limits the third branch to aemec. Importing its adapter here
         # keeps CFD configuration/execution concerns out of the optimizer classes.
-        from .case import AemecEvaluationConfig, AemecOpenFoamEvaluator, case_fingerprint, validate_path_layout
-        path = args.analysis/'metadata.json'
-        analysis = json.loads(path.read_text())
+        from ..opt.aemec_opt.case import AemecEvaluationConfig, AemecOpenFoamEvaluator, case_fingerprint, validate_path_layout
+        path = (args.analysis.expanduser()/'metadata.json' if args.analysis is not None else
+                (args.problem_config or ROOT/'opt/configs/aemec_benchmark.json').expanduser())
+        if not path.is_file():
+            raise ValueError(f'AEMEC bounds/scales file not found: {path}. '
+                             'Use the bundled opt/configs/aemec_benchmark.json with no --analysis option, '
+                             'or supply --problem-config pointing to an existing configuration.')
+        study = json.loads(path.read_text())
         # Read metadata only. The 128/256 previously evaluated response rows are
         # not handed to any optimizer as free extra initialization observations.
-        if analysis.get('input_columns') != INPUTS or analysis.get('objective_columns') != ['cell_voltage_v', 'crossover_rate_mol_s']:
-            raise ValueError('AEMEC analysis metadata has incompatible inputs/objectives')
-        lower, upper = np.asarray(analysis['input_lower']), np.asarray(analysis['input_upper'])
-        objective_lower, objective_upper = np.asarray(analysis['objective_limits'], dtype=float)
+        if not isinstance(study, dict) or study.get('input_columns') != INPUTS or study.get('objective_columns') != ['cell_voltage_v', 'crossover_rate_mol_s']:
+            raise ValueError('AEMEC bounds/scales file has incompatible inputs/objectives')
+        lower, upper = np.asarray(study['input_lower'], dtype=float), np.asarray(study['input_upper'], dtype=float)
+        limits = np.asarray(study['objective_limits'], dtype=float)
+        if limits.shape != (2, 2):
+            raise ValueError('AEMEC objective_limits must contain [lower, upper], each with voltage and crossover endpoints')
+        objective_lower, objective_upper = limits
         names = ('cell_voltage_v', 'crossover_rate_mol_s')
         # Each callback obtains the existing two objectives at the target current
         # density from a complete voltage sweep, using the shared stability checks.
@@ -187,14 +256,28 @@ def build_problem(args):
         if not args.dry_run:
             # A dry run can inspect configuration on the Mac without having
             # OpenFOAM executables installed. Actual execution checks them first.
-            for cmd in (args.mesh_command, args.solver_command):
-                if shutil.which(cmd[0]) is None:
-                    raise ValueError(f'Executable not found: {cmd[0]}. Run the aemec backend in your configured OpenFOAM environment.')
+            executables = [args.mesh_command[0], args.solver_command[0]]
+            if args.mesh_command == ('make', 'mesh'):
+                # Checking only `make` misses the common case where OpenFOAM
+                # has not been sourced. These commands are invoked internally
+                # by the bundled Makefile/preprocessing/check_case scripts.
+                executables.extend(['blockMesh', 'renumberMesh', 'topoSet', 'splitMeshRegions', 'python3'])
+            missing = [name for name in dict.fromkeys(executables) if shutil.which(name) is None]
+            if missing:
+                raise ValueError('Required CFD executable(s) not found: '+', '.join(missing)+'. '
+                                 'Load the MPI module, source your OpenFOAM etc/bashrc, and build the '
+                                 'AEMEC solver/tools with src/Allwmake. No proxy fallback is used.')
         metadata.update({'source_case': str(args.case.resolve()), 'case_sha256': case_fingerprint(args.case),
                          'evaluation': config.resume_settings(), 'mesh_command': list(args.mesh_command),
                          'solver_command': list(args.solver_command), 'work_root': str(work_root.resolve()),
-                         'analysis_metadata': str(path.resolve()), 'analysis_sha256': file_hash(path),
-                         'note': 'Analysis supplies fixed bounds/scales only; existing response rows do not train any optimizer.'})
+                         'configuration': {'kind': 'analysis_metadata' if args.analysis is not None else 'problem_config',
+                                           'path': str(path.resolve()), 'sha256': file_hash(path)},
+                         'note': 'Configuration supplies fixed bounds/scales only. Every observation comes from '
+                                 'a new OpenFOAM voltage sweep; existing response rows do not train any optimizer.'})
+        if args.analysis is not None:
+            # Preserve these manifest fields for callers that previously used
+            # --analysis, while documenting either configuration source above.
+            metadata.update({'analysis_metadata': str(path.resolve()), 'analysis_sha256': file_hash(path)})
         def factory(folder):
             """Create a separate CFD adapter for one seed/algorithm or shared pool."""
             work_case = work_root/folder.relative_to(args.output)/'case'
@@ -245,9 +328,20 @@ def main(argv=None):
         print(f'Backend: {args.backend}; {len(settings.algorithms)} algorithms × {len(settings.seeds)} seeds × '
               f'{settings.budget} charged attempts. {maximum} actual evaluator calls with shared initialization.', flush=True)
         print(f'Fixed reference: {problem.reference.tolist()}; outputs: {problem.objective_names}', flush=True)
+        if args.backend == 'aemec':
+            print(f'Actual OpenFOAM voltage sweeps at {args.target_current_density_a_m2:g} A/m²; '
+                  'objective units: V and mol/s. No proxy functions are used.', flush=True)
+            print(f'Source case: {problem.metadata["source_case"]}', flush=True)
+            print(f'Bounds/scales: {problem.metadata["configuration"]["path"]}', flush=True)
+        if args.backend == 'proxies':
+            # Show the exact artifacts even on a dry run; the manifest also
+            # retains their absolute paths and hashes once execution starts.
+            for label, model in zip(('Voltage', 'Crossover'), problem.metadata['models']):
+                print(f'{label} proxy: {model["path"]}', flush=True)
         if args.dry_run:
             # Configuration and source files have been checked, but no output
             # directory, model fit, proxy evaluation or CFD execution is started.
+            print('Dry run only: no evaluations executed; CFD executables and runtime compatibility were not checked.', flush=True)
             return 0
         run_benchmark(problem, settings, args.output, progress=lambda message: print(message, flush=True))
         print(f'Benchmark complete: {args.output / "report.md"}')
