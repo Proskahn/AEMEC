@@ -10,8 +10,10 @@ experiment. The single target is accepted only after the 20 s minimum hold and
 a stable five-sample final window.
 
 The retained `1.3--2.3 V` table is not active in the base crossover case. The
-optimization adapter explicitly disables galvanostatic feedback in its scratch
-copy and restores the complete 165 s voltage sweep used to interpolate its
+optimization adapter uses a configurable fixed-current run (20 solver-clock
+units by default). With `--evaluation-mode voltage-sweep`, it explicitly disables
+galvanostatic feedback in its scratch copy and restores the complete 165-unit
+voltage sweep used to interpolate its
 objectives at `1 A/cm2`.
 
 ## Why the former current scan did not produce a curve

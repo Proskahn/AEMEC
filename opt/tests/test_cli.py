@@ -25,8 +25,20 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.max_water_inlet_temperature_k, 353.15)
         self.assertEqual((args.min_ptl_porosity, args.max_ptl_porosity), (0.4, 0.8))
         self.assertEqual(args.ptl_side, "anode")
+        self.assertEqual(args.evaluation_mode, "fixed-current")
+        self.assertEqual(args.simulation_duration_s, 20)
         config, _ = validate_args(args)
         self.assertEqual([p.name for p in config.parameters], ["membrane_thickness_um", "water_inlet_temperature_k", "ptl_porosity"])
+
+    def test_fixed_current_duration_and_sweep_mode_are_configurable(self):
+        parser = build_parser()
+        _, evaluation = validate_args(parser.parse_args([
+            '--simulation-duration-s', '10', '--final-window-s', '3',
+            '--target-current-relative-tolerance', '.005']))
+        self.assertEqual((evaluation.simulation_duration_s, evaluation.final_window_s), (10, 3))
+        self.assertEqual(evaluation.target_current_relative_tolerance, .005)
+        _, evaluation = validate_args(parser.parse_args(['--evaluation-mode', 'voltage-sweep']))
+        self.assertEqual(evaluation.evaluation_mode, 'voltage-sweep')
 
     def test_porosity_bounds_and_side_are_configurable_and_validated(self) -> None:
         parser = build_parser()
@@ -77,6 +89,10 @@ class CliTests(unittest.TestCase):
                     self.assertEqual(call.args, (trial.number, trial.params["membrane_thickness_um"], trial.params["water_inlet_temperature_k"], trial.params["ptl_porosity"]))
                 run_optimization(args)
                 self.assertEqual(adapter.return_value.evaluate.call_count, 3)
+                args.simulation_duration_s = 10
+                with self.assertRaisesRegex(OptimizationError, "different engine"):
+                    run_optimization(args)
+                args.simulation_duration_s = 20
                 args.max_ptl_porosity = 0.85
                 with self.assertRaisesRegex(OptimizationError, "different engine"):
                     run_optimization(args)

@@ -1,7 +1,7 @@
 """AEMEC/OpenFOAM adapter for the generic optimization engine.
 
 This module contains the case-specific science and runtime integration: the
-membrane geometry convention, potentiostatic sweep, interpolation contract,
+membrane geometry convention, fixed-current endpoints, optional voltage sweeps,
 and safe OpenFOAM scratch-case execution.  It does not know how Optuna selects
 designs or how Pareto reports are rendered.
 """
@@ -20,13 +20,17 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import TYPE_CHECKING, Iterable, Sequence
 
 from .engine import ObjectiveResult, OptimizationError
 
+if TYPE_CHECKING:
+    from .fixed_current import FixedCurrentEvaluation
 
-# Version 8 adds PTL porosity and source-normalized Kozeny-Carman resistance.
-OBJECTIVE_SCHEMA_VERSION = 8
+
+# Version 9 distinguishes fixed-current window means from sweep interpolation.
+# Existing studies must not silently mix these two evaluation protocols.
+OBJECTIVE_SCHEMA_VERSION = 9
 DEFAULT_TARGET_CURRENT_DENSITY_A_M2 = 10_000.0
 DEFAULT_CURRENT_RELATIVE_TOLERANCE = 0.05
 DEFAULT_STABILITY_SAMPLES = 5
@@ -66,8 +70,22 @@ class AemecEvaluationConfig:
         DEFAULT_CROSSOVER_STABILITY_RELATIVE_TOLERANCE
     )
     ptl_side: str = "anode"
+    evaluation_mode: str = "fixed-current"
+    simulation_duration_s: float = 20.0
+    final_window_s: float = 5.0
+    target_current_relative_tolerance: float = 0.01
 
     def validate(self) -> None:
+        if self.evaluation_mode not in ("fixed-current", "voltage-sweep"):
+            raise OptimizationError("Evaluation mode must be fixed-current or voltage-sweep")
+        for name, value in (("Simulation duration", self.simulation_duration_s),
+                            ("Final averaging window", self.final_window_s)):
+            if not math.isfinite(value) or value <= 0:
+                raise OptimizationError(f"{name} must be finite and positive")
+        if self.final_window_s >= self.simulation_duration_s:
+            raise OptimizationError("Final averaging window must be shorter than simulation duration")
+        if not 0 < self.target_current_relative_tolerance < 1:
+            raise OptimizationError("Target-current relative tolerance must be in (0, 1)")
         if self.ptl_side not in ("anode", "cathode", "both"):
             raise OptimizationError("PTL side must be anode, cathode, or both")
         if (
@@ -91,6 +109,10 @@ class AemecEvaluationConfig:
         self.validate()
         return {
             "objective_schema_version": OBJECTIVE_SCHEMA_VERSION,
+            "evaluation_mode": self.evaluation_mode,
+            "simulation_duration_s": self.simulation_duration_s if self.evaluation_mode == "fixed-current" else None,
+            "final_window_s": self.final_window_s if self.evaluation_mode == "fixed-current" else None,
+            "target_current_relative_tolerance": self.target_current_relative_tolerance if self.evaluation_mode == "fixed-current" else None,
             "ptl_side": self.ptl_side,
             "ptl_permeability_model": "source_normalized_kozeny_carman",
             "target_current_density_a_m2": self.target_current_density_a_m2,
@@ -163,6 +185,7 @@ class AemecEvaluation:
         return ObjectiveResult(
             values=(objective.cell_voltage_v, objective.crossover_rate_mol_s),
             metadata={
+                "evaluation_mode": "voltage-sweep",
                 "ptl_side": self.ptl_side,
                 "target_current_density_a_m2": objective.target_current_density_a_m2,
                 "interpolation_fraction": objective.interpolation_fraction,
@@ -1131,13 +1154,19 @@ class AemecOpenFoamEvaluator:
         if missing:
             raise OptimizationError("Mesh command completed but required mesh files are missing:\n  " + "\n  ".join(missing))
 
-    def evaluate(self, trial_number: int, thickness_um: float, water_inlet_temperature_k: float, ptl_porosity: float) -> AemecEvaluation:
+    def evaluate(self, trial_number: int, thickness_um: float, water_inlet_temperature_k: float, ptl_porosity: float) -> AemecEvaluation | FixedCurrentEvaluation:
+        # Import lazily: the fixed-current adapter reuses the case/solver helpers
+        # above, while the historical sweep remains available for comparisons.
+        from .fixed_current import configure_fixed_current, finish_fixed_current
+
         started = time.monotonic()
         copy_clean_case(self.source_case, self.work_case)
         rewrite_block_mesh_thickness(self.work_case / "system/blockMeshDict", thickness_um)
         configure_water_inlet_temperature(self.work_case, water_inlet_temperature_k)
         configure_ptl_porosity(self.work_case, ptl_porosity, self.config.ptl_side)
-        sweep = configure_voltage_sweep(self.work_case, self.config)
+        fixed_current = self.config.evaluation_mode == "fixed-current"
+        protocol = (configure_fixed_current(self.work_case, self.config) if fixed_current
+                    else configure_voltage_sweep(self.work_case, self.config))
         mesh_log = self.logs_dir / f"trial_{trial_number:04d}_mesh.log"
         solver_log = self.logs_dir / f"trial_{trial_number:04d}_solver.log"
         curve_csv = (
@@ -1149,12 +1178,24 @@ class AemecOpenFoamEvaluator:
         run_command(self.mesh_command, self.work_case, mesh_log, self.timeout_s)
         self._verify_mesh()
         configure_water_inlet_temperature(self.work_case, water_inlet_temperature_k)
+        if fixed_current:
+            # Meshing may recreate controlDict. Apply the same protocol to the
+            # active case immediately before starting the solver as well.
+            protocol = configure_fixed_current(self.work_case, self.config)
         curve_title = (
             f"Trial {trial_number}: {thickness_um:g} µm, "
             f"water inlet {water_inlet_temperature_k:g} K, "
             f"{self.config.ptl_side} PTL porosity {ptl_porosity:g}"
         )
         solver_output = run_command(self.solver_command, self.work_case, solver_log, self.timeout_s)
+        if fixed_current:
+            return finish_fixed_current(
+                solver_output, self.config, protocol, solver_log, mesh_log,
+                self.logs_dir / f"trial_{trial_number:04d}_timeseries.csv",
+                self.logs_dir / f"trial_{trial_number:04d}_timeseries.png",
+                curve_title, started,
+            )
+        sweep = protocol
         try:
             objective = interpolate_voltage_objective(
                 solver_output, self.config, sweep

@@ -11,7 +11,7 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from aemec_benchmark.algorithms import ALGORITHMS, sobol_points
+from aemec_benchmark.algorithms import DEFAULT_ALGORITHMS, sobol_points
 from aemec_benchmark.cli import main
 from aemec_benchmark.proxy_assets import ProxyAssets, load_proxy_assets
 from aemec_benchmark.proxy_search import ELAProxySearch
@@ -21,6 +21,7 @@ from aemec_opt.engine import ObjectiveResult, OptimizationError
 
 LOWER = np.array([10., 298.15, .4])
 UPPER = np.array([100., 353.15, .8])
+PROXY_COMPARISON = DEFAULT_ALGORITHMS + ('ela_proxy',)
 
 
 def write_pair(root):
@@ -131,7 +132,7 @@ class ProxySearchTests(unittest.TestCase):
                     patch('aemec_benchmark.evaluation.shutil.which', return_value='/mock/tool'), \
                     redirect_stdout(io.StringIO()):
                 adapter.return_value.evaluate.side_effect = evaluate
-                self.assertEqual(main(['--algorithms', *ALGORITHMS, '--output', str(out),
+                self.assertEqual(main(['--algorithms', *PROXY_COMPARISON, '--output', str(out),
                                        '--proxy-files', *map(str, paths), '--budget', '6', '--initial', '4',
                                        '--seeds', '42', '--gp-candidates', '16', '--gp-restarts', '0',
                                        '--proxy-candidates', '16']), 0)
@@ -143,7 +144,7 @@ class ProxySearchTests(unittest.TestCase):
             self.assertIn('ela_proxy_protocol', manifest)
             self.assertNotIn('models', manifest['problem'])
             lower, upper = np.asarray(manifest['objective_lower']), np.asarray(manifest['objective_upper'])
-            for name in ALGORITHMS:
+            for name in PROXY_COMPARISON:
                 rows = pd.read_csv(out/f'seed_42/{name}/evaluations.csv')
                 self.assertEqual(len(rows), 6)
                 self.assertEqual(rows.status.tolist(), ['complete']*5+['failed'])

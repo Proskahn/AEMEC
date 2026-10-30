@@ -7,17 +7,18 @@ Example from the repository root::
         --backend aemec --output benchmark/results/benchmark_aemec \
         --budget 64 --initial 16 --seeds 42 43 44 45 46
 
-The only evaluator runs actual OpenFOAM voltage sweeps and requires the built
+The only evaluator runs actual OpenFOAM CFD (fixed current by default) and requires the built
 AEMEC solver in a configured OpenFOAM environment. Use --dry-run to preview.
 
 Reading order for the implementation:
   1. aemec_benchmark/cli.py: arguments and backend construction.
   2. aemec_benchmark/runner.py: shared initialization, ask/evaluate/tell, reports.
   3. aemec_benchmark/algorithms.py: GP BO, TPE BO and NSGA-II proposals.
-  4. aemec_benchmark/cmaes.py: bounded multiobjective CMA-ES proposals.
-  5. aemec_benchmark/metrics.py: Pareto sets, hypervolume and analytic EHVI.
-  6. aemec_benchmark/proxy_search.py: ELA proxy proposals, never CFD responses.
-  7. aemec_benchmark/evaluation.py: common OpenFOAM evaluation contract.
+  4. aemec_benchmark/cmaes.py: pinned OptunaHub MoCmaSampler and protocol metadata.
+  5. aemec_benchmark/llamea.py: optional LLaMEA code evolution under the CFD budget.
+  6. aemec_benchmark/metrics.py: Pareto sets, hypervolume and analytic EHVI.
+  7. aemec_benchmark/proxy_search.py: ELA proxy proposals, never CFD responses.
+  8. aemec_benchmark/evaluation.py: common OpenFOAM evaluation contract.
 
 This file only arranges imports and forwards to the CLI. It does not launch
 evaluations when imported; execution starts under the __main__ guard below.

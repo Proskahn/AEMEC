@@ -20,7 +20,8 @@ INPUTS = ('membrane_thickness_um', 'water_inlet_temperature_k', 'ptl_porosity')
 OUTPUTS = ('cell_voltage_v', 'crossover_rate_mol_s')
 COLUMNS = ('sample_id', *INPUTS, *OUTPUTS, 'status', 'failure_reason', 'attempts',
            'ptl_side', 'target_current_density_a_m2', 'duration_s', 'mesh_log',
-           'solver_log', 'polarization_curve_csv', 'polarization_curve_plot', 'metadata_json')
+           'solver_log', 'polarization_curve_csv', 'polarization_curve_plot',
+           'timeseries_csv', 'timeseries_plot', 'metadata_json')
 
 
 def command(text):
@@ -40,6 +41,10 @@ def add_parser(subparsers):
     parser.add_argument('--solver-command', type=command, default=('openFuelCell',))
     parser.add_argument('--ptl-side', choices=['anode', 'cathode', 'both'], default='anode')
     parser.add_argument('--target-current-density-a-m2', type=float, default=10000.)
+    # This helper has no scientific dependencies; sample/analyze stay usable.
+    sys.path.insert(0, str(ROOT/'opt'))
+    from aemec_opt.protocol import add_protocol_arguments
+    add_protocol_arguments(parser)
     parser.add_argument('--current-relative-tolerance', type=float)
     parser.add_argument('--crossover-stability-relative-tolerance', type=float)
     parser.add_argument('--voltage-stability-tolerance-v', type=float)
@@ -135,6 +140,7 @@ def run_evaluation(args):
     from aemec_opt.case import (AemecEvaluationConfig, AemecOpenFoamEvaluator,
                                case_fingerprint, validate_path_layout)
     from aemec_opt.engine import OptimizationError
+    from aemec_opt.protocol import protocol_options
 
     design_path = args.csv.resolve()
     output = args.output_dir.resolve()
@@ -160,13 +166,14 @@ def run_evaluation(args):
         'ptl_side', 'target_current_density_a_m2', 'current_relative_tolerance',
         'crossover_stability_relative_tolerance', 'voltage_stability_tolerance_v',
         'stability_samples') if getattr(args, key) is not None}
-    config = AemecEvaluationConfig(**config_options)
+    config = AemecEvaluationConfig(**config_options, **protocol_options(args))
     config.validate()
     rows = load_design(design_path)
     settings = {
         'schema': 1, 'design_sha256': hashlib.sha256(design_path.read_bytes()).hexdigest(),
         'source_case': str(source), 'case_fingerprint': case_fingerprint(source),
         'adapter_sha256': hashlib.sha256((ROOT/'opt/aemec_opt/case.py').read_bytes()).hexdigest(),
+        'fixed_current_adapter_sha256': hashlib.sha256((ROOT/'opt/aemec_opt/fixed_current.py').read_bytes()).hexdigest(),
         'evaluation': config.resume_settings(), 'work_case': str(scratch),
         'mesh_command': list(args.mesh_command), 'solver_command': list(args.solver_command),
         'timeout_minutes': args.timeout_minutes,
@@ -196,6 +203,8 @@ def run_evaluation(args):
         count = sum(eligible(r) for r in restored)
         print(f'{len(rows)} designs; {count} eligible; up to {min(count, args.limit or count)} attempts this invocation.\n'
               f'Source: {source}\nScratch: {scratch}\nResults: {output}/evaluated.csv\n'
+              f'Protocol: {config.evaluation_mode}; fixed-current duration/window: '
+              f'{config.simulation_duration_s:g}/{config.final_window_s:g} solver-clock units\n'
               'Dry run: no CFD calls or output files written; executable availability was not checked.', flush=True)
         return 0
 
@@ -229,8 +238,10 @@ def run_evaluation(args):
             row.update(status='running', failure_reason='', duration_s=None, metadata_json='',
                        ptl_side=config.ptl_side, target_current_density_a_m2=config.target_current_density_a_m2,
                        mesh_log=str(logs/f'{trial}_mesh.log'), solver_log=str(logs/f'{trial}_solver.log'),
-                       polarization_curve_csv=str(logs/f'{trial}_polarization_curve.csv'),
-                       polarization_curve_plot=str(logs/f'{trial}_polarization_curve.png'))
+                       polarization_curve_csv=str(logs/f'{trial}_polarization_curve.csv') if config.evaluation_mode == 'voltage-sweep' else '',
+                       polarization_curve_plot=str(logs/f'{trial}_polarization_curve.png') if config.evaluation_mode == 'voltage-sweep' else '',
+                       timeseries_csv=str(logs/f'{trial}_timeseries.csv') if config.evaluation_mode == 'fixed-current' else '',
+                       timeseries_plot=str(logs/f'{trial}_timeseries.png') if config.evaluation_mode == 'fixed-current' else '')
             checkpoint(output, settings, rows)
             print(f"Sample {row['sample_id']} (attempt {row['attempts']}): "
                   +', '.join(f'{key}={row[key]:g}' for key in INPUTS), flush=True)

@@ -1,7 +1,7 @@
 # Algorithm benchmarking
 
-Compare **GP Bayesian optimization, TPE, NSGA-II, multiobjective CMA-ES, and
-ELA proxy search** on the three-variable, two-objective AEMEC problem.
+Compare **GP Bayesian optimization, TPE, NSGA-II, multiobjective CMA-ES,
+ELA proxy search, and LLaMEA** on the three-variable, two-objective AEMEC problem.
 **CFD is the only evaluator.** Models and proxies choose proposals; actual
 OpenFOAM responses determine performance.
 
@@ -13,6 +13,8 @@ flowchart LR
   CMA[CMA-ES] --> CFD
   P[Frozen ELA proxy functions] --> ELA[ELA proxy search]
   ELA --> CFD
+  LLM[LLM generates optimizer code] --> LM[LLaMEA proposal functions]
+  LM --> CFD
   CFD --> Y[Cell voltage and gas crossover]
   Y --> M[Pareto fronts and hypervolume]
 ```
@@ -33,7 +35,7 @@ python -m pip install -r benchmark/requirements.txt
 ```
 
 In an environment with OpenFOAM and the compiled AEMEC solver available, run a
-small pilot with all five algorithms and the previously generated proxy files:
+small pilot with the four baselines and ELA proxy search using the generated proxy files:
 
 ```bash
 python benchmark/run_benchmark.py \
@@ -45,11 +47,30 @@ python benchmark/run_benchmark.py \
 
 The pilot makes 24 actual design-evaluation attempts: four common initial
 designs, then four further designs per algorithm. Each design requires a full
-voltage sweep. `--dry-run` previews the setup without executing CFD or checking
+fixed-current run (20 solver-clock units, final 5 averaged by default).
+Use `--simulation-duration-s 10` for a shorter run, `--final-window-s` to set
+the averaging window, or `--evaluation-mode voltage-sweep` for the original
+full sweep. See the [shared evaluation protocol](../opt/docs/fixed-current.md).
+`--dry-run` previews the setup without executing CFD or checking
 runtime compatibility. The proxy JSON files must be present on the execution
 machine. The four baselines remain the default; they do not require ELA files.
 Use `--proxy-files` for explicitly located models, or `--proxy-rank` for a
 different pair. These options configure only `ela_proxy`.
+
+`cmaes` uses [OptunaHub's MoCmaSampler](https://hub.optuna.org/samplers/mocma/),
+bundled at a fixed commit and tested with Optuna 4.9.0. No sampler download is
+needed during a run. Its population size is `--initial`; updates happen by
+generation. Remove the old `--cma-sigma` option: upstream fixes the initial
+step size at `1/6`. The [runbook](docs/runbook.md#how-cma-es-handles-the-two-objectives)
+explains the changed behavior and the upstream covariance/selection caveats.
+
+`llamea` is an optional sixth method using the actual LLaMEA 1.4.2 project.
+It evolves proposal functions using CFD hypervolume feedback, then deploys the
+best candidate within the **same total CFD budget**. It requires Python 3.11+
+and `benchmark/requirements-llamea.txt`, plus an explicitly chosen Ollama or
+OpenAI model. See the [LLaMEA guide](docs/llamea.md) for installation, commands,
+candidate budgets, saved code and provider settings. No LLM requests occur
+unless this algorithm is selected and a real run is started.
 
 See the [runbook](docs/runbook.md) for server setup, the full 64-attempt/five-seed
 study, algorithm details, metrics, and output files. `--backend aemec` remains
@@ -61,12 +82,16 @@ accepted for compatibility, but synthetic evaluation backends are removed.
 benchmark/
   run_benchmark.py          Command-line entry point
   requirements.txt         Benchmark dependencies
+  requirements-llamea.txt  Optional LLaMEA dependencies (Python 3.11+)
   aemec_benchmark/
     cli.py                 Algorithm selection and common CFD settings
     evaluation.py          The sole production evaluator: AEMEC/OpenFOAM
     runner.py              Shared initialization, attempt budgets, reports
     algorithms.py          GP BO, TPE, and NSGA-II
-    cmaes.py               Multiobjective CMA-ES
+    cmaes.py               OptunaHub sampler loader and protocol metadata
+    _vendor/mocma/         Pinned upstream sampler, license, and provenance
+    llamea.py              LLaMEA generation, scoring, selection and deployment
+    llamea_worker.py       Restricted numerical execution of generated proposals
     proxy_search.py        Direct ELA-proxy proposal algorithm
     proxy_assets.py        Frozen proxy files, validation, and provenance
     metrics.py             Pareto sets, hypervolume, and EHVI

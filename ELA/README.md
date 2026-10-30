@@ -98,9 +98,13 @@ python ELA/ela.py evaluate ELA/results/design.csv \
 
 This runs the first eligible row, remeshing a fresh copy of `run/AEMEC`, applying
 its membrane thickness, common water inlet temperature and anode PTL porosity,
-then running `make mesh` and `openFuelCell`. Every evaluation uses the full
-voltage sweep in the source case and interpolates both objectives at
-**10,000 A/m² = 1 A/cm²**, with the same settling/bracketing checks as `opt`.
+then running `make mesh` and `openFuelCell`. By default each evaluation holds
+**10,000 A/m² = 1 A/cm²** for 20 solver-clock units and averages both objectives
+over the final 5 after stability checks. Use `--simulation-duration-s 10` to
+try a shorter run, or `--evaluation-mode voltage-sweep` for the original
+full sweep/interpolation. The [shared protocol](../opt/docs/fixed-current.md)
+describes all checks. Choose a fresh `--output-dir` when changing protocols;
+an existing evaluation batch cannot be resumed under different settings.
 
 Continue with all remaining designs:
 
@@ -127,7 +131,8 @@ Results are checkpointed after every attempt:
 - `checkpoint.json`: authoritative resume state, design hash, case/adapter hashes,
   commands, and operating settings. A stale CSV is rebuilt from this state.
 - `logs/sample_NNNN/attempt_NNN/`: per-attempt mesh and solver logs, plus
-  polarization CSV/PNG when available. Retries do not overwrite earlier logs.
+  time-series CSV/PNG (or polarization CSV/PNG in sweep mode) when available.
+  Retries do not overwrite earlier logs.
 
 Runs are sequential and use a dedicated scratch directory under `ELA/work`.
 The scratch case is replaced between evaluations; full CFD fields for earlier

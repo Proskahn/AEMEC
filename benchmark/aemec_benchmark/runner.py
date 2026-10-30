@@ -27,7 +27,8 @@ import numpy as np
 import pandas as pd
 
 from .algorithms import ALGORITHMS, DEFAULT_ALGORITHMS, LABELS, GaussianProcessBO, OptunaAlgorithm, sobol_points
-from .cmaes import MultiObjectiveCMAES, require_deap
+from .cmaes import mocma_protocol, require_mocma
+from .llamea import LLaMEASettings, LLaMEAOptimizer, require_llamea, protocol as llamea_protocol
 from .metrics import hypervolume_2d, pareto_indices
 from aemec_opt.engine import OptimizationError
 
@@ -95,12 +96,11 @@ class BenchmarkSettings:
     """Comparison controls that are shared across backend implementations.
 
     budget: total attempted evaluations per algorithm and seed.
-    initial: common initial-design count; also the NSGA-II population size.
-        Successful initial designs form MO-CMA-ES's parent population.
+    initial: common initial-design count; also the NSGA-II/MO-CMA population size.
+        Failures can delay completion of these samplers' first populations.
     seeds: paired repetitions, each with its own Sobol design and optimizer RNGs.
-    algorithms: requested subset of gp/tpe/nsga2/cmaes/ela_proxy, evaluated independently.
+    algorithms: requested subset of the algorithm registry, evaluated independently.
     gp_candidates/gp_restarts: internal model/search effort, not extra backend calls.
-    cma_sigma: initial Gaussian step size in the normalized input box.
     """
     budget: int = 64
     initial: int = 16
@@ -108,8 +108,8 @@ class BenchmarkSettings:
     algorithms: tuple = DEFAULT_ALGORITHMS
     gp_candidates: int = 2048
     gp_restarts: int = 1
-    cma_sigma: float = .2
     proxy_candidates: int = 2048
+    llamea: LLaMEASettings | None = None
 
     def validate(self):
         """Require a usable initialization and at least one adaptive attempt."""
@@ -123,10 +123,14 @@ class BenchmarkSettings:
             raise ValueError(f'Choose distinct algorithms from {ALGORITHMS}')
         if self.gp_candidates < 16 or self.gp_restarts < 0:
             raise ValueError('GP candidates must be >=16 and restarts >=0')
-        if not np.isfinite(self.cma_sigma) or self.cma_sigma <= 0:
-            raise ValueError('CMA sigma must be finite and positive')
         if self.proxy_candidates < 16:
             raise ValueError('Proxy candidates must be >=16')
+        if 'llamea' in self.algorithms:
+            if self.llamea is None:
+                raise ValueError('llamea requires model/provider settings; supply --llamea-model')
+            self.llamea.validate()
+        elif self.llamea is not None:
+            raise ValueError('LLaMEA settings require --algorithms llamea')
 
 
 def save_json(path, value):
@@ -194,9 +198,11 @@ def run_benchmark(problem, settings, destination, progress=print, proxy_assets=N
         if not np.array_equal(proxy_assets.lower, problem.lower) or not np.array_equal(proxy_assets.upper, problem.upper):
             raise ValueError('Proxy domains must match the CFD study bounds exactly')
     if 'cmaes' in settings.algorithms:
-        # Check the new dependency before creating outputs or spending any CFD
-        # calls. Runs selecting only the older algorithms do not require DEAP.
-        require_deap()
+        # The contributed sampler relies on private Optuna APIs. Validate the
+        # pinned runtime before creating outputs or spending any CFD calls.
+        require_mocma()
+    if 'llamea' in settings.algorithms:
+        require_llamea(settings.llamea)
     destination = Path(destination)
     if destination.exists():
         raise ValueError(f'Output already exists: {destination}; select a new directory')
@@ -217,15 +223,12 @@ def run_benchmark(problem, settings, destination, progress=print, proxy_assets=N
                 'shared_initialization': 'evaluated once per seed, charged in full to every algorithm',
                 'completed_runs': [], 'actual_evaluator_calls': 0,
                 'versions': {p: importlib.metadata.version(p) for p in
-                             ['numpy', 'scipy', 'pandas', 'scikit-learn', 'optuna', 'matplotlib']
-                             + (['deap'] if 'cmaes' in settings.algorithms else [])}}
+                             ['numpy', 'scipy', 'pandas', 'scikit-learn', 'optuna', 'matplotlib']}}
     if 'cmaes' in settings.algorithms:
-        manifest['cmaes_protocol'] = {
-            'implementation': 'DEAP StrategyMultiObjective', 'offspring_per_update': 1,
-            'parents': 'successful shared initial designs; first successful fallback if none',
-            'initial_sigma': settings.cma_sigma, 'boundary_handling': 'reflection in normalized input box',
-            'selection': 'Pareto rank then hypervolume contribution using the fixed benchmark reference',
-            'failures': 'charged, excluded from selection, no covariance or step-size update'}
+        manifest['cmaes_protocol'] = mocma_protocol(settings.initial)
+    if 'llamea' in settings.algorithms:
+        manifest['llamea_protocol'] = llamea_protocol(settings.llamea, settings.initial, settings.budget)
+        manifest['versions']['llamea'] = importlib.metadata.version('llamea')
     if 'ela_proxy' in settings.algorithms:
         manifest['ela_proxy_protocol'] = {
             'assets': proxy_assets.metadata,
@@ -272,11 +275,12 @@ def run_benchmark(problem, settings, destination, progress=print, proxy_assets=N
                 # an earlier algorithm from leaking into a later one.
                 if algorithm == 'gp':
                     optimizer = GaussianProcessBO(seed, reference, settings.gp_candidates, settings.gp_restarts)
-                elif algorithm == 'cmaes':
-                    optimizer = MultiObjectiveCMAES(seed, reference, settings.cma_sigma)
                 elif algorithm == 'ela_proxy':
                     from .proxy_search import ELAProxySearch
                     optimizer = ELAProxySearch(seed, proxy_assets, settings.proxy_candidates)
+                elif algorithm == 'llamea':
+                    optimizer = LLaMEAOptimizer(seed, reference, settings.initial, settings.budget,
+                                                settings.llamea, out)
                 else:
                     optimizer = OptunaAlgorithm(algorithm, settings.initial, seed)
                 rows, histories, detailed, successful = [], [], [], []
@@ -421,7 +425,8 @@ def summarize(destination, problem, settings, summaries, histories, fronts):
     # Agg supports terminal/headless Linux runs without a graphical display.
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    colors = {'gp': '#2166ac', 'tpe': '#d95f02', 'nsga2': '#1b9e77', 'cmaes': '#984ea3', 'ela_proxy': '#b58900'}
+    colors = {'gp': '#2166ac', 'tpe': '#d95f02', 'nsga2': '#1b9e77', 'cmaes': '#984ea3',
+              'ela_proxy': '#b58900', 'llamea': '#e7298a'}
     fig, ax = plt.subplots(figsize=(7.5, 4.5), constrained_layout=True)
     for algorithm in settings.algorithms:
         # Compare the algorithms at equal numbers of charged attempts, not at
@@ -455,7 +460,11 @@ def summarize(destination, problem, settings, summaries, histories, fronts):
         f'Algorithms: {", ".join(LABELS[name] for name in settings.algorithms)}.\n\n'
         f'Backend: {problem.metadata["backend"]}. {len(settings.seeds)} paired seeds, '
         f'{settings.budget} attempts per algorithm/seed, including {settings.initial} shared initial designs.\n\n'
-        + ('Objective observations come from actual AEMEC/OpenFOAM voltage sweeps, in volts and mol/s. '
+        + ('Objective observations come from actual AEMEC/OpenFOAM CFD runs, in volts and mol/s. '
+           f'Evaluation protocol: {problem.metadata.get("evaluation", {}).get("evaluation_mode", "see manifest")}; '
+           f'fixed-current duration/window: {problem.metadata.get("evaluation", {}).get("simulation_duration_s")} / '
+           f'{problem.metadata.get("evaluation", {}).get("final_window_s")} solver-clock units '
+           '(null for voltage-sweep mode). '
            'Only CFD responses are scored. The GP is fitted to each run\'s CFD observations to '
            'choose subsequent designs; its predictions do not replace solver evaluations.\n\n'
            if problem.metadata['backend'] == 'aemec' else '')
@@ -476,11 +485,14 @@ def summarize(destination, problem, settings, summaries, histories, fronts):
         'pool plus corners/center. It is not noise-integrated NEHVI. TPE uses multivariate MOTPE; '
         'NSGA-II uses Optuna SBX and per-variable random-reset mutation, with population size equal '
         'to the initialization count. No final generation is evaluated past the attempt budget.\n\n'
-        + ('MO-CMA-ES uses DEAP StrategyMultiObjective, one offspring per update, and successful shared '
-           'initial designs as parents. Selection uses Pareto rank and fixed-reference hypervolume '
-           'contribution. Gaussian steps are reflected into the unit input box, and repaired positions '
-           'are used for adaptation. Failed attempts skip adaptation; if initialization has no success, '
-           'a logged Sobol fallback runs until the first success.\n\n' if 'cmaes' in settings.algorithms else '')
+        + ('MO-CMA-ES uses the pinned OptunaHub MoCmaSampler, with population size equal to the '
+           'initialization count. It updates by generation, starts with sigma=1/6, and clips proposals '
+           'to the unit input box. Failures leave population slots unfilled; later attempts fill them '
+           'within the same budget. Its internal selection reference depends on the population; '
+           'reporting still uses the fixed benchmark reference. The upstream implementation is '
+           'unmodified and has known covariance/selection caveats recorded in manifest.json and '
+           'the runbook. These results identify this sampler version, not the previous DEAP variant.\n\n'
+           if 'cmaes' in settings.algorithms else '')
         +
         ('ELA proxy search uses frozen expressions to choose proposals via randomly weighted augmented '
          'Tchebycheff minimization over a finite candidate pool. Every proposal is evaluated by CFD; '
@@ -488,4 +500,14 @@ def summarize(destination, problem, settings, summaries, histories, fronts):
          'retrained from the online responses. Historical CFD data and fitting effort used to build '
          'these assets are additional prior information, recorded separately in the manifest; '
          'equal online budgets do not imply equal end-to-end data costs.\n'
-         if 'ela_proxy' in settings.algorithms else ''))
+         if 'ela_proxy' in settings.algorithms else '')
+        + ('\nLLaMEA 1.4.2 evolves proposal functions with its native generation, mutation and elitist '
+           'selection methods. Each candidate receives the shared initial data and an equal CFD '
+           'allowance; fitness is the fixed-reference hypervolume of its own archive. The winning '
+           'code uses all observations from this LLaMEA run for the remaining attempts. Both code '
+           'development and deployment count toward the same CFD budget. The reported archive '
+           'contains all successful CFD responses, including those from rejected optimizers. '
+           'This is an online algorithm-design method, not a benchmark of a separately trained '
+           'frozen optimizer. LLM calls have additional cost and remote outputs may vary despite '
+           'identical seeds. Generated source, replies and scores are retained under seed_*/llamea/code_evolution/.\n'
+           if 'llamea' in settings.algorithms else ''))

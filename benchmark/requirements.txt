@@ -1,8 +1,8 @@
 matplotlib>=3.7,<4
-optuna>=4.9,<5
+# The bundled OptunaHub MoCmaSampler uses Optuna's private APIs.
+optuna==4.9.0
 numpy>=1.24,<2
 scipy>=1.10,<2
 pandas>=2,<3
 scikit-learn>=1.2,<2
 threadpoolctl>=3,<4
-deap>=1.4.3,<1.5

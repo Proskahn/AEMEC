@@ -126,8 +126,10 @@ class RunnerTests(unittest.TestCase):
                 np.testing.assert_array_equal(x, initial[0])
             m = json.loads((out/'manifest.json').read_text())
             self.assertEqual(m['actual_evaluator_calls'], 20)
-            self.assertIn('deap', m['versions'])
-            self.assertEqual(m['cmaes_protocol']['offspring_per_update'], 1)
+            self.assertNotIn('deap', m['versions'])
+            self.assertEqual(m['versions']['optuna'], '4.9.0')
+            self.assertEqual(m['cmaes_protocol']['population_size'], 4)
+            self.assertIn('OptunaHub MoCmaSampler', m['cmaes_protocol']['implementation'])
             self.assertEqual(m['status'], 'complete')
             self.assertEqual(m['reference_normalized'], [1.5, 1.5])
             for name in ['algorithm_summary.csv', 'paired_hypervolume.csv', 'hypervolume.png', 'pareto_fronts.png', 'report.md']:
@@ -155,8 +157,7 @@ class RunnerTests(unittest.TestCase):
     def test_configuration_rejects_invalid_budgets_scales_and_seeds(self):
         for settings in [BenchmarkSettings(budget=4, initial=4), BenchmarkSettings(initial=3),
                          BenchmarkSettings(seeds=(42, 42)), BenchmarkSettings(gp_candidates=0),
-                         BenchmarkSettings(cma_sigma=0), BenchmarkSettings(cma_sigma=np.nan),
-                         BenchmarkSettings(cma_sigma=np.inf)]:
+                         BenchmarkSettings(proxy_candidates=0), BenchmarkSettings(gp_restarts=-1)]:
             with self.assertRaises(ValueError):
                 settings.validate()
         problem = synthetic_problem()

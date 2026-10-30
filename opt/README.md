@@ -27,8 +27,13 @@ python3 opt/run_optimization.py --iterations 50 \
   --ptl-side anode
 ```
 
-The objectives remain cell voltage and hydrogen crossover at 1 A/cm²,
-interpolated from each complete voltage sweep. Temperature is applied to the
+The objectives remain cell voltage and hydrogen crossover at 1 A/cm². By
+default each design gets one **20-unit fixed-current CFD run**, with objectives
+averaged over the final **5 solver-clock units**. Use `--simulation-duration-s 10`
+to try a shorter run, or `--evaluation-mode voltage-sweep` for the original
+sweep/interpolation method. See the [protocol, checks, and commands](docs/fixed-current.md).
+Changing protocol requires a fresh study; existing results are preserved.
+Temperature is applied to the
 coupled parent-mesh and phase inlet boundaries; local cell temperature is
 solved. Initial temperatures and collector cooling conditions remain those
 of the source case, and all Arrhenius reference temperatures remain 298.15 K.
@@ -65,8 +70,10 @@ The directory has four clear roles:
 The source case is never modified: every evaluation receives a fresh scratch
 copy under `opt/work/`.
 
-Every solver run retains its raw log, a compact per-trial polarization-curve
-CSV, and a PNG plot of that curve. Existing study logs can be converted with
+Every completed fixed-current solver run retains its raw log, a time-series
+CSV and a three-panel current/voltage/crossover plot, including rejected
+endpoints. Explicit voltage-sweep runs retain polarization-curve CSV/PNG files.
+Existing sweep study logs can be converted with
 `opt/scripts/export_trial_curves.py` without rerunning the CFD simulations.
 Use `opt/scripts/plot_membrane_polarization_curves.py STUDY_DIR --trials 0 3 7`
 to overlay selected trials with all recorded design variables in the labels. Its

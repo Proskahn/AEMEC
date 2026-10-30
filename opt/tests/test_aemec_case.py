@@ -172,11 +172,9 @@ class AemecCaseTests(unittest.TestCase):
         self.assertIn("electricDiagnostics true;", crossover)
         self.assertRegex(
             crossover,
-            r"membrane\s*\{\s*sigmaModel\s+arrheniusSigma\s*;",
+            r"membrane\s*\{\s*sigmaModel\s+constantSigma\s*;",
         )
-        self.assertIn("sigmaRef            5.998635;", crossover)
-        self.assertIn("TRef               298.15;", crossover)
-        self.assertIn("Ea                 14900;", crossover)
+        self.assertIn("sigma               8.0;", crossover)
         self.assertIn("polarizationCurve", anode_controller)
         self.assertRegex(
             anode_controller,
@@ -743,7 +741,7 @@ print('End')
 """,
                 encoding="utf-8",
             )
-            evaluator = AemecOpenFoamEvaluator(source, root / "work/case", root / "logs", (sys.executable, "mesh.py"), (sys.executable, "solver.py"), AemecEvaluationConfig(), 10.0)
+            evaluator = AemecOpenFoamEvaluator(source, root / "work/case", root / "logs", (sys.executable, "mesh.py"), (sys.executable, "solver.py"), AemecEvaluationConfig(evaluation_mode="voltage-sweep"), 10.0)
             source_fingerprint = case_fingerprint(source)
             result = evaluator.evaluate(0, 40.0, 333.15, 0.7)
             self.assertAlmostEqual(result.objective.cell_voltage_v, 1.8555555556)

@@ -49,13 +49,18 @@ python3 opt/run_optimization.py \
 Check sample thickness/temperature/porosity combinations with a small study before a long run:
 
 ```bash
-python3 opt/run_optimization.py --iterations 3 --startup-trials 3 --study-name validate-sweep
+python3 opt/run_optimization.py --iterations 3 --startup-trials 3 \
+  --simulation-duration-s 20 --final-window-s 5 --study-name validate-fixed-current
 ```
 
 A useful starting comparison is agreement within a few millivolts for voltage
-and about 2% for crossover. Every trial runs the full 165 s voltage sweep; use
-`--current-relative-tolerance` and `--timeout-minutes` to adjust the final-window
-current coefficient-of-variation limit and command timeout.
+and about 2% for crossover. The default is one 20-unit fixed-current run, with
+both objectives averaged over the final 5 solver-clock units. Compare 10 and
+20 on matching designs before selecting a shorter duration. See the
+[protocol reference](fixed-current.md) for acceptance checks. The previous
+165-unit sweep is available with `--evaluation-mode voltage-sweep`.
+`--timeout-minutes` controls elapsed command time independently of the solver
+clock. A new protocol or duration requires a fresh study name.
 
 The temperature variable changes the feed boundaries of the parent energy
 mesh and both phases. The initial temperature and collector cooling remain
@@ -85,17 +90,18 @@ the normalized Chebyshev knee and the bend-angle knee, with separate panels
 coloured by thickness, water inlet temperature, and PTL porosity. All three parameters appear in
 `optimization_results.csv`, `pareto_front.csv`, and `knee_points.csv`.
 Each completed solver
-call has both its raw `trial_XXXX_solver.log` and a compact
-`trial_XXXX_polarization_curve.csv` plus its matching
-`trial_XXXX_polarization_curve.png`. Results are checkpointed after every
-completed evaluation.
+call has its raw `trial_XXXX_solver.log`, `trial_XXXX_timeseries.csv` and
+`trial_XXXX_timeseries.png`. The plot shows current, voltage and crossover,
+with the objective averaging window shaded. Explicit voltage-sweep mode
+instead writes `trial_XXXX_polarization_curve.csv` and its matching PNG.
+Results are checkpointed after every completed evaluation.
 
-The curve CSV contains one final I-V point for each imposed voltage, both
+In voltage-sweep mode, the curve CSV contains one final I-V point for each imposed voltage, both
 signed and magnitude current density in A/cm2, the corresponding crossover
 rate, final-window quality statistics, and flags for the points used to
 interpolate the 1 A/cm2 objective.
 
-Backfill curve CSV and PNG files for an existing study without rerunning
+Backfill curve CSV and PNG files for an existing voltage-sweep study without rerunning
 OpenFOAM:
 
 ```bash
@@ -167,12 +173,14 @@ Forchheimer coefficients. It supports the source case's `DarcyForchheimer`,
 `porousFSG`, and `porousSigma` models. These checks happen before writing the
 PTL property updates in the scratch case.
 
-A trial is rejected for command failures/timeouts, missing mesh files, OpenFOAM
-fatal markers, missing normal termination, incomplete voltage-hold data, an
-unbracketed 1 A/cm2 target, multiple curve crossings, or failed stability
-checks at the interpolation endpoints. Unused voltage holds must be complete
-but do not have to pass the relative crossover-stability test. Inspect that
-trial's log directory, correct the cause, and rerun the same command.
+A trial is rejected for command failures/timeouts, missing mesh files, fatal
+markers or missing normal termination. Fixed-current runs also reject missing
+final-window data, off-target/reversed current, or unstable voltage/crossover.
+They never silently extend the configured duration or return a transient
+endpoint. In explicit sweep mode, the adapter additionally checks complete
+holds, a unique bracket for 1 A/cm2, and stability at interpolation endpoints.
+Unused voltage holds must be complete but need not pass relative crossover
+stability. Inspect the trial's logs and time series before rerunning.
 
 The unit and mocked-adapter tests require no OpenFOAM installation:
 

@@ -54,7 +54,7 @@ class AemecBenchmarkTests(unittest.TestCase):
         self.assertFalse((self.root/'ELA').exists())
         self.assertFalse(self.out.exists())
         self.assertIn('1040 actual evaluator calls', stdout.getvalue())
-        self.assertIn('Actual OpenFOAM voltage sweeps', stdout.getvalue())
+        self.assertIn('Actual OpenFOAM fixed-current runs (20 clock units, final 5 averaged)', stdout.getvalue())
         self.assertIn('runtime compatibility were not checked', stdout.getvalue())
 
     def test_custom_configuration_and_objective_overrides_are_recorded(self):
@@ -74,6 +74,25 @@ class AemecBenchmarkTests(unittest.TestCase):
         self.assertEqual(problem.metadata['configuration']['path'], str(custom))
         self.assertEqual(problem.metadata['configuration']['kind'], 'problem_config')
         self.assertEqual(len(problem.metadata['configuration']['sha256']), 64)
+
+    def test_fixed_current_duration_reaches_every_adapter_and_manifest(self):
+        problem = build_problem(self.args('--dry-run', '--simulation-duration-s', '10', '--final-window-s', '3'))
+        self.assertEqual(problem.metadata['evaluation']['simulation_duration_s'], 10)
+        self.assertEqual(problem.metadata['evaluation']['final_window_s'], 3)
+        self.assertEqual(problem.metadata['evaluation']['evaluation_mode'], 'fixed-current')
+        with patch('aemec_opt.case.AemecOpenFoamEvaluator') as adapter:
+            problem = build_problem(self.args('--dry-run', '--simulation-duration-s', '10', '--final-window-s', '3'))
+            problem.evaluator_factory(self.out / 'seed_42/gp')
+            config = adapter.call_args.kwargs['config']
+            self.assertEqual((config.simulation_duration_s, config.final_window_s), (10, 3))
+        sweep = build_problem(self.args('--dry-run', '--evaluation-mode', 'voltage-sweep'))
+        self.assertEqual(sweep.metadata['evaluation']['evaluation_mode'], 'voltage-sweep')
+        self.assertIsNone(sweep.metadata['evaluation']['simulation_duration_s'])
+
+    def test_bad_duration_is_a_cli_error_without_cfd(self):
+        with redirect_stderr(io.StringIO()) as stderr:
+            self.assertEqual(main(['--output', str(self.out), '--dry-run', '--simulation-duration-s', '0']), 2)
+        self.assertIn('Simulation duration', stderr.getvalue())
 
     def test_missing_openfoam_commands_fail_before_output_without_proxy_fallback(self):
         stderr = io.StringIO()
@@ -147,7 +166,8 @@ class AemecBenchmarkTests(unittest.TestCase):
             np.testing.assert_allclose(rows[names].iloc[4], observations[4+index])
         manifest = json.loads((self.out/'manifest.json').read_text())
         self.assertEqual(manifest['actual_evaluator_calls'], 8)
-        self.assertIn('actual AEMEC/OpenFOAM voltage sweeps', (self.out/'report.md').read_text())
+        self.assertIn('actual AEMEC/OpenFOAM CFD runs', (self.out/'report.md').read_text())
+        self.assertIn('Evaluation protocol: fixed-current', (self.out/'report.md').read_text())
         self.assertFalse((self.root/'ELA').exists())
 
 

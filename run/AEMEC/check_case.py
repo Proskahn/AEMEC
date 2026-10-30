@@ -9,6 +9,7 @@ which would otherwise fail only after the solver has begun initialisation.
 from __future__ import annotations
 
 import argparse
+import math
 import re
 import sys
 from pathlib import Path
@@ -80,6 +81,55 @@ def dictionary_block(text: str, name: str) -> str:
     opening = clean.find("{", match.start())
     closing = matching_brace(clean, opening)
     return clean[opening + 1 : closing]
+
+
+def finite_scalar(text: str, name: str) -> float:
+    match = re.search(rf"(?m)^\s*{re.escape(name)}\s+([^;\s]+)\s*;", without_comments(text))
+    if match is None:
+        raise ValueError(f"missing scalar '{name}'")
+    value = float(match.group(1))
+    if not math.isfinite(value):
+        raise ValueError(f"'{name}' must be finite")
+    return value
+
+
+def check_current_protocol(controller: str, controls: str) -> None:
+    """Validate configured holds instead of hard-coding the 20-unit experiment.
+
+    This covers one fixed current and the existing multi-target continuation
+    experiment. It validates the CFD setup, not convergence of its solution.
+    """
+    curve = dictionary_block(controller, "polarizationCurve")
+    if not has_entry(curve, "active", "true"):
+        raise ValueError("galvanostatic current scan must enable polarizationCurve feedback")
+    match = re.search(r"\btargets\s*\(([^()]*)\)\s*;", curve)
+    targets = [float(value) for value in match.group(1).split()] if match else []
+    if not targets or any(not math.isfinite(value) or value > 0 for value in targets):
+        raise ValueError("current targets must be finite, nonpositive electrolysis currents")
+    hold = finite_scalar(curve, "minimumHoldDuration")
+    end = finite_scalar(controls, "endTime")
+    if hold <= 0 or end <= 0 or hold * len(targets) > end + 1e-9:
+        raise ValueError("endTime must cover all positive minimum current holds")
+    for name in ("targetCurrentTolerance", "currentStabilityTolerance"):
+        if not 0 <= finite_scalar(curve, name) < 1:
+            raise ValueError(f"{name} must be in [0, 1)")
+    if finite_scalar(curve, "voltageTolerance") < 0:
+        raise ValueError("voltageTolerance must be nonnegative")
+    samples = finite_scalar(curve, "stabilitySamples")
+    if samples < 1 or not samples.is_integer():
+        raise ValueError("stabilitySamples must be a positive integer")
+    ibar = dictionary_block(controller, "ibar")
+    if not has_entry(ibar, "type", "table"):
+        raise ValueError("galvanostatic ibar must use a table")
+    pairs = [(float(t), float(j)) for t, j in re.findall(
+        r"\(\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)\s*\)", ibar)]
+    expected = [(0., targets[0]), (end, targets[-1])]
+    if len(pairs) != 2 or any(
+        not math.isclose(value, reference, rel_tol=1e-12, abs_tol=1e-9)
+        for pair, wanted in zip(pairs, expected)
+        for value, reference in zip(pair, wanted)
+    ):
+        raise ValueError("galvanostatic ibar must match the current targets and run from 0 to endTime")
 
 
 def parse_boundary_field(text: str) -> list[tuple[str, dict[str, str]]]:
@@ -659,32 +709,30 @@ def check_static(case: Path, errors: list[str]) -> None:
 
     try:
         membrane_sigma = dictionary_block(anion_properties, "membrane")
-        arrhenius_coeffs = dictionary_block(
-            membrane_sigma, "arrheniusSigmaCoeffs"
-        )
+        if has_entry(membrane_sigma, "sigmaModel", "constantSigma"):
+            # The current source case selects a constant AEM conductivity.
+            # Validate that selection without changing its material model.
+            coefficients = dictionary_block(membrane_sigma, "constantSigmaCoeffs")
+            if not has_entry(coefficients, "cellZone", "membrane") or finite_scalar(coefficients, "sigma") <= 0:
+                raise ValueError("constantSigma requires membrane cellZone and positive sigma")
+        elif has_entry(membrane_sigma, "sigmaModel", "arrheniusSigma"):
+            arrhenius_coeffs = dictionary_block(membrane_sigma, "arrheniusSigmaCoeffs")
+            for entry, value in (
+                ("cellZone", "membrane"), ("T", "T"), ("sigmaRef", "5.998635"),
+                ("TRef", "298.15"), ("Ea", "14900"),
+            ):
+                if not has_entry(arrhenius_coeffs, entry, value):
+                    errors.append(
+                        "constant/phiAnion/regionProperties must set membrane "
+                        f"arrheniusSigmaCoeffs.{entry} to {value}"
+                    )
+        else:
+            raise ValueError("membrane sigmaModel must be constantSigma or arrheniusSigma")
     except ValueError as error:
         errors.append(
             "constant/phiAnion/regionProperties must configure the membrane "
-            f"with arrheniusSigma: {error}"
+            f"conductivity: {error}"
         )
-    else:
-        if not has_entry(membrane_sigma, "sigmaModel", "arrheniusSigma"):
-            errors.append(
-                "constant/phiAnion/regionProperties must use arrheniusSigma "
-                "for the membrane"
-            )
-        for entry, value in (
-            ("cellZone", "membrane"),
-            ("T", "T"),
-            ("sigmaRef", "5.998635"),
-            ("TRef", "298.15"),
-            ("Ea", "14900"),
-        ):
-            if not has_entry(arrhenius_coeffs, entry, value):
-                errors.append(
-                    "constant/phiAnion/regionProperties must set membrane "
-                    f"arrheniusSigmaCoeffs.{entry} to {value}"
-                )
 
     for entry in (
         "cathodeFluidRegion  cathode;",
@@ -787,25 +835,9 @@ def check_static(case: Path, errors: list[str]) -> None:
         errors.append("constant/phiEAnode/regionProperties must declare galvanostatic.active")
     elif control_mode.group(1) == "true":
         try:
-            curve_block = dictionary_block(anode_controller, "polarizationCurve")
-        except ValueError:
-            curve_block = ""
-        if not curve_block or not has_entry(curve_block, "active", "true"):
-            errors.append(
-                "galvanostatic current scan must enable polarizationCurve feedback"
-            )
-        for entry in (
-            "targets                     (-10000);",
-            "minimumHoldDuration         20;",
-            "targetCurrentTolerance      0.01;",
-            "voltageTolerance            0.002;",
-            "currentStabilityTolerance   0.01;",
-            "stabilitySamples            5;",
-        ):
-            if entry not in anode_controller:
-                errors.append(
-                    f"constant/phiEAnode/regionProperties is missing stable polarization entry '{entry}'"
-                )
+            check_current_protocol(anode_controller, read(case / "system/controlDict.run", errors))
+        except ValueError as error:
+            errors.append(f"constant/phiEAnode/regionProperties: {error}")
 
         if "relax             1.0e-6;" not in anode_controller:
             errors.append(
@@ -814,23 +846,6 @@ def check_static(case: Path, errors: list[str]) -> None:
         if "maxVoltageStep 0.002;" not in anode_controller:
             errors.append(
                 "constant/phiEAnode/regionProperties must use maxVoltageStep 0.002 for the current scan"
-            )
-
-        try:
-            ibar_block = dictionary_block(anode_controller, "ibar")
-        except ValueError as error:
-            errors.append(f"constant/phiEAnode/regionProperties: {error}")
-            ibar_block = ""
-        ibar_pairs = [
-            (float(time_value), float(current_value))
-            for time_value, current_value in re.findall(
-                r"\(\s*([-+0-9.eE]+)\s+([-+0-9.eE]+)\s*\)",
-                ibar_block,
-            )
-        ]
-        if ibar_pairs != [(0.0, -10000.0), (20.0, -10000.0)]:
-            errors.append(
-                "galvanostatic ibar must hold -10000 A/m2 from 0 to 20 s"
             )
 
     voltage_type: str | None = None

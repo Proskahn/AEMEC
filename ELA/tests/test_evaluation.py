@@ -98,6 +98,10 @@ class EvaluationTests(unittest.TestCase):
     def test_resume_rejects_changed_physics_or_design(self):
         self.run_batch('--limit', '1')
         with self.assertRaisesRegex(ValueError, 'Resume settings differ'):
+            self.run_batch('--simulation-duration-s', '10')
+        with self.assertRaisesRegex(ValueError, 'Resume settings differ'):
+            self.run_batch('--evaluation-mode', 'voltage-sweep')
+        with self.assertRaisesRegex(ValueError, 'Resume settings differ'):
             self.run_batch('--ptl-side', 'cathode')
         (self.source/'model').write_text('modified case')
         with self.assertRaisesRegex(ValueError, 'Resume settings differ'):
@@ -107,6 +111,14 @@ class EvaluationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Resume settings differ'):
             self.run_batch()
         self.assertEqual(self.factory.return_value.evaluate.call_count, 1)
+
+    def test_fixed_current_options_and_timeseries_paths(self):
+        self.run_batch('--limit', '1', '--simulation-duration-s', '10', '--final-window-s', '3')
+        config = self.factory.call_args.kwargs['config']
+        self.assertEqual((config.simulation_duration_s, config.final_window_s), (10, 3))
+        row = self.records()[0]
+        self.assertTrue(row['timeseries_csv'].endswith('_timeseries.csv'))
+        self.assertEqual(row['polarization_curve_csv'], '')
 
     def test_dry_run_does_not_write_or_execute(self):
         self.assertEqual(self.run_batch('--dry-run'), 0)

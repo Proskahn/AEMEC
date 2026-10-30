@@ -1,4 +1,4 @@
-"""The production benchmark evaluator: actual AEMEC/OpenFOAM voltage sweeps.
+"""The production benchmark evaluator: actual AEMEC/OpenFOAM CFD runs.
 
 Algorithm models and proxy scores never enter this module or supply responses.
 """
@@ -22,6 +22,7 @@ def build_cfd_problem(args, ROOT):
         raise ValueError('CFD is the only benchmark evaluator; proxies belong to the ela_proxy algorithm')
     metadata = {'backend': 'aemec', 'evaluator': 'cfd'}
     from aemec_opt.case import AemecEvaluationConfig, AemecOpenFoamEvaluator, case_fingerprint, validate_path_layout
+    from aemec_opt.protocol import protocol_options
     path = (args.analysis.expanduser()/'metadata.json' if args.analysis is not None else
             (args.problem_config or ROOT/'benchmark/configs/aemec_benchmark.json').expanduser())
     if not path.is_file():
@@ -39,9 +40,10 @@ def build_cfd_problem(args, ROOT):
         raise ValueError('AEMEC objective_limits must contain [lower, upper], each with voltage and crossover endpoints')
     objective_lower, objective_upper = limits
     names = ('cell_voltage_v', 'crossover_rate_mol_s')
-    # Each callback obtains the existing two objectives at the target current
-    # density from a complete voltage sweep, using the shared stability checks.
+    # Every algorithm shares the same protocol and endpoint checks. The default
+    # is one fixed-current run; a complete sweep is an explicit comparison mode.
     config = AemecEvaluationConfig(
+        **protocol_options(args),
         target_current_density_a_m2=args.target_current_density_a_m2, ptl_side=args.ptl_side,
         stability_samples=args.stability_samples, current_relative_tolerance=args.current_relative_tolerance,
         voltage_stability_tolerance_v=args.voltage_stability_tolerance_v,
@@ -74,7 +76,7 @@ def build_cfd_problem(args, ROOT):
                      'configuration': {'kind': 'analysis_metadata' if args.analysis is not None else 'problem_config',
                                        'path': str(path.resolve()), 'sha256': file_hash(path)},
                      'note': 'Configuration supplies fixed bounds/scales only. Every observation comes from '
-                             'a new OpenFOAM voltage sweep; existing response rows do not train any optimizer.'})
+                             f'a new OpenFOAM {config.evaluation_mode} run; existing response rows do not train any optimizer.'})
     if args.analysis is not None:
         # Preserve these manifest fields for callers that previously used
         # --analysis, while documenting either configuration source above.

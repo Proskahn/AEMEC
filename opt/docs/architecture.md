@@ -78,17 +78,21 @@ Thus the design variable controls feed temperature, not an imposed uniform
 cell temperature. Temperature-dependent conductivity, kinetics, and crossover
 use the resulting local temperature fields. The objective contract still
 checks settled current/crossover windows; it does not establish that the
-entire temperature field has reached steady state. Validate sweep duration
+entire temperature field has reached steady state. Validate run duration
 for the chosen thermal boundary conditions when using the results.
 
-Every trial runs the complete 1.3--2.3 V potentiostatic table. The adapter takes
-the settled final window from each hold and linearly interpolates the cell
-voltage and anode hydrogen-crossover rate at 1 A/cm2. It rejects incomplete,
-unstable, multiply crossing, or unbracketed curves instead of extrapolating.
+By default, each trial runs a single fixed-current evaluation at 1 A/cm2 for
+20 solver-clock units and averages voltage and crossover over the final 5.
+`fixed_current.py` configures the controller, checks complete paired output,
+checks target current and final-window stability, and writes time-series
+CSV/PNG diagnostics even for rejected endpoints. See the
+[fixed-current protocol](fixed-current.md) for tolerances and duration controls.
 
-Each completed solver call retains its raw log and writes a compact
-polarization-curve CSV and PNG. This diagnostic output is written before final
-objective acceptance so rejected curves remain inspectable.
+With `--evaluation-mode voltage-sweep`, the adapter runs the complete 1.3--2.3 V
+potentiostatic table and interpolates from settled final hold samples. It
+rejects incomplete, unstable, multiply crossing or unbracketed curves instead
+of extrapolating, and writes the historical polarization-curve CSV/PNG.
+Both modes retain raw logs. Protocol settings are persisted for safe resume.
 
 The current adapter supports only the block-mesh workflow. The SALOME geometry
 contains separate nominal dimensions and hard-coded identifiers and is not

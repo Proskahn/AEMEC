@@ -1,6 +1,4 @@
-"""GP/TPE/NSGA-II implementations and the shared benchmark algorithm registry.
-
-MO-CMA-ES uses the same interface in cmaes.py.
+"""GP and Optuna optimizers with the shared benchmark algorithm registry.
 
 All inputs here are normalized to [0, 1]^3, in the order thickness, temperature,
 porosity. Objective pairs use the runner's fixed affine normalization and are
@@ -23,11 +21,13 @@ from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel
 from threadpoolctl import threadpool_limits
 
 from .metrics import expected_hypervolume_improvement
+from .cmaes import require_mocma
 
 DEFAULT_ALGORITHMS = ('gp', 'tpe', 'nsga2', 'cmaes')
-ALGORITHMS = DEFAULT_ALGORITHMS + ('ela_proxy',)
+ALGORITHMS = DEFAULT_ALGORITHMS + ('ela_proxy', 'llamea')
 LABELS = {'gp': 'GP BO (EHVI)', 'tpe': 'TPE BO (MOTPE)', 'nsga2': 'NSGA-II',
-          'cmaes': 'MO-CMA-ES', 'ela_proxy': 'ELA proxy search'}
+          'cmaes': 'MO-CMA-ES (OptunaHub)', 'ela_proxy': 'ELA proxy search',
+          'llamea': 'LLaMEA optimizer evolution'}
 
 
 def sobol_points(count, seed):
@@ -41,14 +41,14 @@ def sobol_points(count, seed):
 
 
 class OptunaAlgorithm:
-    """Adapt Optuna's multiobjective TPE and NSGA-II to the common interface.
+    """Adapt TPE, NSGA-II and OptunaHub MoCmaSampler to the common interface.
 
     The in-memory study stores only this run's observations. It does not resume
     another study or obtain observations from competing algorithms. One trial
     is pending at a time, so each ask must be followed by its corresponding tell.
     """
     def __init__(self, algorithm, initial, seed):
-        """Set the sampler and its random seed; ``initial`` is also NSGA-II's size."""
+        """Set the sampler/seed; ``initial`` is the NSGA-II and MO-CMA population size."""
         with warnings.catch_warnings():
             # These Optuna features are intentionally selected and documented.
             # Suppress API experimental-status warnings, not optimizer errors.
@@ -73,10 +73,19 @@ class OptunaAlgorithm:
                 sampler = optuna.samplers.NSGAIISampler(
                     seed=seed, population_size=initial, mutation_prob=1/3,
                     crossover=optuna.samplers.nsgaii.SBXCrossover(eta=20), crossover_prob=.9)
+            elif algorithm == 'cmaes':
+                # This is the contributed multiobjective sampler, not Optuna's
+                # single-objective CmaEsSampler. An explicit static space lets
+                # it assign every initial trial to a distinct population slot.
+                sampler = require_mocma()(
+                    search_space={f'x{j}': optuna.distributions.FloatDistribution(0., 1.)
+                                  for j in range(3)},
+                    popsize=initial, seed=seed)
             else:
                 raise ValueError(f'Unknown Optuna algorithm: {algorithm}')
         self.study = optuna.create_study(directions=['minimize', 'minimize'], sampler=sampler)
         self.algorithm = algorithm
+        self.population_size = initial
         self.trial = None
 
     def ask(self, fixed=None):
@@ -86,6 +95,8 @@ class OptunaAlgorithm:
         outcome through tell makes the common initial observations available to
         the sampler's own density model or evolutionary population.
         """
+        if self.trial is not None:
+            raise ValueError('Complete the pending trial with tell before asking again')
         if fixed is not None:
             self.study.enqueue_trial({f'x{j}': float(v) for j, v in enumerate(fixed)})
         self.trial = self.study.ask()
@@ -96,20 +107,44 @@ class OptunaAlgorithm:
             # observations really are population 0, not unassigned warm-starts.
             details['generation'] = self.study.sampler.get_trial_generation(
                 self.study, self.study.get_trials(deepcopy=False)[-1])
+        elif self.algorithm == 'cmaes' and fixed is not None:
+            # Enqueued parameters bypass sample_relative. MoCmaSampler needs
+            # its mocma:g and mocma:k tags on ALL completed trials, including
+            # the shared Sobol points. Invoke its normal initial-population
+            # bookkeeping once. During generation 0 it returns {} and samples
+            # no coordinates, so the exact shared design is preserved.
+            # Only shared initialization uses fixed points in this runner.
+            frozen = self.study._storage.get_trial(self.trial._trial_id)
+            space = self.study.sampler.infer_relative_search_space(self.study, frozen)
+            self.study.sampler.sample_relative(self.study, frozen, space)
         point = np.array([self.trial.suggest_float(f'x{j}', 0., 1.) for j in range(3)])
+        if self.algorithm == 'cmaes':
+            attrs = self.study._storage.get_trial(self.trial._trial_id).system_attrs
+            generation = attrs['mocma:g']
+            details = {'proposal': 'mocma_initial_population' if generation == 0 else 'optunahub_mocma',
+                       'generation': generation, 'population_size': self.population_size,
+                       'instance': attrs['mocma:k'], 'parent_trial_id': attrs.get('mocma:parent_id')}
+        self.pending_point = point.copy()
         return point, details
 
     def tell(self, x, y):
         """Complete the pending trial, or mark it failed without a penalty value.
 
-        ``x`` is accepted for interface compatibility; the Optuna trial already
-        stores the point returned by ask. A failure consumes the runner's attempt
+        Check that the response belongs to the point returned by ask and has
+        two finite objectives. A failure consumes the runner's attempt
         budget but does not become a fabricated high objective value.
         """
+        if self.trial is None:
+            raise ValueError('Ask for a trial before reporting its outcome')
+        if not np.array_equal(x, self.pending_point):
+            raise ValueError('The reported design does not match the pending trial')
+        if y is not None and (np.shape(y) != (2,) or not np.isfinite(y).all()):
+            raise ValueError('Expected two finite objectives, or None for a failed attempt')
         if y is None:
             self.study.tell(self.trial, state=optuna.trial.TrialState.FAIL)
         else:
             self.study.tell(self.trial, [float(v) for v in y])
+        self.trial = None
 
 
 class GaussianProcessBO:
@@ -217,13 +252,3 @@ class GaussianProcessBO:
         if y is not None:
             self.x.append(np.asarray(x).copy())
             self.y.append(np.asarray(y).copy())
-
-
-class LLAMEA:
-    """Reserved for the separate LLaMEA optimizer-generation integration.
-
-    This draft is not registered as a benchmark algorithm. ELAProxySearch
-    optimizes the saved expressions directly and does not require LLaMEA.
-    """
-    def __init__(self):
-        raise NotImplementedError('LLaMEA optimizer generation is not implemented')

@@ -31,6 +31,7 @@ from .engine import (
     study_artifact_directory,
 )
 from .reporting import ReportSpec, completed_records, write_results
+from .protocol import add_protocol_arguments, protocol_options
 
 
 DEFAULT_ITERATIONS = 50
@@ -63,6 +64,20 @@ AEMEC_REPORT = ReportSpec(
         (POROSITY_PARAMETER_NAME, "PTL porosity [-]"),
     ),
     metadata_columns=(
+        "evaluation_mode",
+        "simulation_duration_s",
+        "window_start_s",
+        "window_end_s",
+        "window_sample_count",
+        "mean_current_density_a_m2",
+        "max_target_current_relative_error",
+        "current_relative_range",
+        "voltage_range_v",
+        "crossover_relative_range",
+        "voltage_std_v",
+        "crossover_std_mol_s",
+        "timeseries_csv",
+        "timeseries_plot",
         "ptl_side",
         "target_current_density_a_m2",
         "interpolation_fraction",
@@ -112,15 +127,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-consecutive-failures", type=int, default=DEFAULT_MAX_CONSECUTIVE_FAILURES)
     parser.add_argument("--study-name", default="aemec-thickness-temperature-porosity")
     parser.add_argument("--target-current-density-a-m2", type=float, default=DEFAULT_TARGET_CURRENT_DENSITY_A_M2)
-    parser.add_argument("--current-relative-tolerance", type=float, default=DEFAULT_CURRENT_RELATIVE_TOLERANCE, help="Maximum current coefficient of variation in each objective voltage-hold window.")
-    parser.add_argument("--run-mode", choices=("fast", "ramp"), default=LEGACY_DEFAULT_RUN_MODE, help="Legacy compatibility option; the optimizer always runs the complete voltage sweep.")
-    parser.add_argument("--solver-iterations", type=int, default=LEGACY_DEFAULT_SOLVER_ITERATIONS, help="Legacy compatibility option; ignored by potentiostatic sweep evaluations.")
-    parser.add_argument("--iteration-clock-step", type=float, default=LEGACY_DEFAULT_ITERATION_CLOCK_STEP, help="Legacy compatibility option; the sweep uses controlDict.run deltaT.")
-    parser.add_argument("--target-hold-duration-s", type=float, default=LEGACY_DEFAULT_TARGET_HOLD_DURATION_S, help="Legacy compatibility option; voltage hold times come from the voltage table.")
+    add_protocol_arguments(parser)
+    parser.add_argument("--current-relative-tolerance", type=float, default=DEFAULT_CURRENT_RELATIVE_TOLERANCE, help="Maximum current relative range in the fixed-current window, or coefficient of variation for voltage sweeps.")
+    parser.add_argument("--run-mode", choices=("fast", "ramp"), default=LEGACY_DEFAULT_RUN_MODE, help="Ignored legacy option; select the CFD protocol with --evaluation-mode.")
+    parser.add_argument("--solver-iterations", type=int, default=LEGACY_DEFAULT_SOLVER_ITERATIONS, help="Ignored legacy option; use --simulation-duration-s for fixed-current runs.")
+    parser.add_argument("--iteration-clock-step", type=float, default=LEGACY_DEFAULT_ITERATION_CLOCK_STEP, help="Ignored legacy option; the solver uses controlDict.run deltaT.")
+    parser.add_argument("--target-hold-duration-s", type=float, default=LEGACY_DEFAULT_TARGET_HOLD_DURATION_S, help="Ignored legacy option; use --simulation-duration-s for fixed-current runs.")
     parser.add_argument("--stability-samples", type=int, default=DEFAULT_STABILITY_SAMPLES)
     parser.add_argument("--voltage-stability-tolerance-v", type=float, default=DEFAULT_VOLTAGE_STABILITY_TOLERANCE_V)
     parser.add_argument("--crossover-stability-relative-tolerance", type=float, default=DEFAULT_CROSSOVER_STABILITY_RELATIVE_TOLERANCE)
-    parser.add_argument("--controller-step-tolerance-v", type=float, default=LEGACY_DEFAULT_CONTROLLER_STEP_TOLERANCE_V, help="Legacy compatibility option; no galvanostatic controller is used.")
+    parser.add_argument("--controller-step-tolerance-v", type=float, default=LEGACY_DEFAULT_CONTROLLER_STEP_TOLERANCE_V, help="Ignored legacy option; use --voltage-stability-tolerance-v.")
     parser.add_argument("--mesh-command", type=parse_command, default=("make", "mesh"))
     parser.add_argument("--solver-command", type=parse_command, default=("openFuelCell",))
     parser.add_argument("--timeout-minutes", type=float, default=None)
@@ -129,6 +145,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _evaluation_config(args: argparse.Namespace) -> AemecEvaluationConfig:
     return AemecEvaluationConfig(
+        **protocol_options(args),
         target_current_density_a_m2=args.target_current_density_a_m2,
         current_relative_tolerance=args.current_relative_tolerance,
         stability_samples=args.stability_samples,
@@ -209,15 +226,17 @@ def run_optimization(args: argparse.Namespace):
             parameters[POROSITY_PARAMETER_NAME],
         )
         objective = result.objective
+        objective_result = result.as_objective_result()
         print(
-            f"  interpolated voltage={objective.cell_voltage_v:.8g} V, "
+            f"  {evaluation_config.evaluation_mode}: voltage={objective.cell_voltage_v:.8g} V, "
             f"crossover={objective.crossover_rate_mol_s:.8g} mol/s at "
-            f"{objective.target_current_density_a_m2:.8g} A/m2\n"
-            f"  polarization data={result.polarization_curve_csv}\n"
-            f"  polarization plot={result.polarization_curve_plot}",
+            f"{objective.target_current_density_a_m2:.8g} A/m2",
             flush=True,
         )
-        return result.as_objective_result()
+        for key in ("timeseries_csv", "timeseries_plot", "polarization_curve_csv", "polarization_curve_plot"):
+            if key in objective_result.metadata:
+                print(f"  {key}={objective_result.metadata[key]}", flush=True)
+        return objective_result
 
     def checkpoint(checkpoint_study, _finished_trial) -> None:
         write_results(

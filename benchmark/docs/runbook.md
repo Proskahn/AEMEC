@@ -1,6 +1,6 @@
 # Benchmark GP BO, TPE BO, NSGA-II, and CMA-ES
 
-`benchmark/run_benchmark.py` compares five available algorithms on the same three-variable,
+`benchmark/run_benchmark.py` compares six available algorithms on the same three-variable,
 two-objective minimization problem. It leaves `opt/run_optimization.py` and existing
 studies unchanged. Inputs remain membrane thickness, water inlet temperature,
 and anode PTL porosity by default.
@@ -16,17 +16,22 @@ syntax; `--backend proxies` and `--backend zdt1` are rejected.
 | `gp` | Two independent Matérn-5/2 Gaussian processes with ARD; analytic expected hypervolume improvement (EHVI) |
 | `tpe` | Optuna multivariate multiobjective TPE (MOTPE), 64 EI candidates |
 | `nsga2` | Optuna NSGA-II, simulated binary crossover (eta=20, probability 0.9) and per-variable random-reset mutation (probability 1/3) |
-| `cmaes` | DEAP multiobjective CMA-ES (MO-CMA-ES), one offspring per update, Pareto-rank and fixed-reference hypervolume selection |
+| `cmaes` | Pinned OptunaHub MoCmaSampler, generation updates, native Pareto/hypervolume selection (see caveats below) |
 | `ela_proxy` | Direct search on frozen ELA proxies; randomly weighted augmented Tchebycheff selection; every proposal assessed by CFD |
+| `llamea` | LLaMEA evolves proposal code using candidate CFD hypervolume, then deploys the best within the same attempt budget |
 
 NSGA-II is the standard name for the requested “NSAG-II”. Its population size
 equals `--initial`. This is Optuna's NSGA-II variant; its mutation resets a
 selected variable, rather than using polynomial mutation.
-The benchmark requires Optuna 4.9; queued initial observations are explicitly
+The benchmark pins Optuna 4.9.0; queued initial observations are explicitly
 assigned to population 0 using its generation API, so they participate in evolution.
 
 The four baselines run by default. Add `ela_proxy` explicitly with its saved models. Select a subset with `--algorithms`; for
 example, `--algorithms gp tpe nsga2` reproduces the previous three-method setup.
+
+LLaMEA is optional and requires Python 3.11+, additional requirements, and a chosen
+LLM provider/model. Its candidate trials and winner deployment share the normal
+CFD budget. See the [LLaMEA guide](llamea.md) for the protocol and run commands.
 
 ## Run on the actual AEMEC/OpenFOAM model
 
@@ -51,7 +56,7 @@ Start with a small **actual CFD pilot** for the four baseline algorithms:
 ```bash
 python benchmark/run_benchmark.py --backend aemec --case run/AEMEC \
   --algorithms gp tpe nsga2 cmaes \
-  --budget 8 --initial 4 --seeds 42 --cma-sigma 0.2 \
+  --budget 8 --initial 4 --seeds 42 \
   --output benchmark/results/benchmark_aemec_pilot
 ```
 
@@ -65,7 +70,7 @@ The full comparison requested earlier is:
 ```bash
 python benchmark/run_benchmark.py --backend aemec --case run/AEMEC \
   --algorithms gp tpe nsga2 cmaes \
-  --budget 64 --initial 16 --seeds 42 43 44 45 46 --cma-sigma 0.2 \
+  --budget 64 --initial 16 --seeds 42 43 44 45 46 \
   --output benchmark/results/benchmark_aemec
 ```
 
@@ -74,9 +79,14 @@ This makes **1040 design-evaluation attempts**, computed as
 while the initial observations are evaluated once per seed and shared.
 
 Each attempt uses `AemecOpenFoamEvaluator` to copy a clean scratch case, update
-the three design variables, generate the mesh, and run a **complete voltage
-sweep**. Voltage and crossover at 10,000 A/m² are interpolated from stable sweep
-holds and stored in V and mol/s. These are CFD model experiments, not laboratory
+the three design variables, generate the mesh, and run a **20-unit fixed-current
+evaluation** at 10,000 A/m². Voltage and crossover are averaged over the final
+5 solver-clock units after checking target current and stability of both
+objectives, and stored in V and mol/s. Use `--simulation-duration-s 10` to
+try a shorter run, and use a fresh output directory for each protocol.
+`--evaluation-mode voltage-sweep` retains the old full-sweep/interpolation
+method. See [settings and convergence checks](../../opt/docs/fixed-current.md).
+These are CFD model experiments, not laboratory
 measurements. The source case is preserved; scratch cases and logs are isolated
 by benchmark, seed, and algorithm.
 
@@ -121,7 +131,7 @@ study settings consistent across algorithms.
 Its proxy functions guide the choice of x. The common CFD evaluator supplies
 cell voltage and crossover for that x, exactly as for every other algorithm.
 
-Run all five, from the repository root in your OpenFOAM/Python environment:
+Run these five methods, from the repository root in your OpenFOAM/Python environment:
 
 ```bash
 python benchmark/run_benchmark.py \
@@ -175,7 +185,8 @@ claim. Proxies remain frozen: the method does not refit them using CFD feedback.
 CFD feedback assesses performance and marks attempted points. ELA matching alone
 does not ensure that proxy minimizers or joint trade-offs coincide with CFD;
 that is why the benchmark evaluates every selected design on the physical model.
-This implementation does not train or generate an optimizer with LLaMEA.
+`ela_proxy` searches the saved functions directly. The separate `llamea` method
+generates optimizer code and is described in the [LLaMEA guide](llamea.md).
 
 Cheap proxy scores, weights, candidate counts, and cumulative mathematical
 function-call counts appear only in `details.json`. Their computation time is
@@ -188,45 +199,57 @@ or total historical data acquisition cost.
 
 ## How CMA-ES handles the two objectives
 
-The `cmaes` option uses **multiobjective CMA-ES**, implemented by DEAP's
-`StrategyMultiObjective` (Voss, Hansen and Igel, 2010). Voltage and crossover
-remain separate objectives; no scalar weighting is introduced. This is an
-evolution strategy, not a Bayesian optimization model.
+The `cmaes` option uses **OptunaHub's `MoCmaSampler`** through the same Optuna
+ask/tell interface as TPE and NSGA-II. This is a contributed multiobjective
+sampler, distinct from Optuna's single-objective `CmaEsSampler`. Both CFD
+objectives remain separate; no weighted scalar objective is introduced.
 
-Each parent design has a Gaussian search distribution. Its covariance learns
-promising combinations of the three input variables, while its step size learns
-how far to search. A new offspring competes with the parents: Pareto ranking
-determines priority, and the least hypervolume contributor is removed when a
-front does not fit. The adapter uses the benchmark's **fixed reference** for this
-truncation, replacing DEAP's default population-dependent reference.
+The sampler source is bundled unchanged at commit
+`7508d98688d3eb55aab09002ea6a8dedfbe5b2c6`, with its MIT license. Runs do not
+fetch executable code from the network. Install `benchmark/requirements.txt`
+to get the tested Optuna 4.9.0 runtime; neither DEAP nor OptunaHub is a runtime
+dependency. The adapter checks compatibility before spending any CFD calls.
 
 The implementation choices are:
 
-- **Initialization:** successful shared Sobol observations become parents.
-  The parent count equals `--initial` when all succeed. Initial failures reduce
-  it; there are no free replacement evaluations. If all fail, a logged Sobol
-  fallback continues until its first success, then initializes one parent.
-- **Sequential updates:** one offspring is evaluated and the strategy updates
-  before the next proposal (`lambda=1`). The exact budget applies even when it
-  is not a multiple of a population size.
-- **Initial scale:** `--cma-sigma 0.2` sets a standard deviation of 20% of each
-  input range, initially with identity covariance. For the default physical
-  bounds, this is 18 µm, 11 K, and 0.08 porosity before boundary handling.
-  The parameter must be finite and positive; it subsequently adapts per parent.
-- **Bounds:** reflect proposals into the unit box, e.g. -0.2 → 0.2 and 1.2 → 0.8.
-  The repaired coordinates are used for both evaluation and adaptation.
-  No boundary-resampling evaluations are hidden from the budget.
-- **Failed offspring:** charge the attempt and skip selection/adaptation.
-  No synthetic penalty objective is supplied. The next proposal uses the
-  existing parent distributions and a new random draw.
-- **Reproducibility:** each optimizer has its own RNG state. DEAP's global NumPy
-  RNG is temporarily swapped and restored during generation; this adapter is
-  intended for the existing serial runner, not concurrent threads.
+- **Initialization:** `--initial` sets a fixed population size. Shared Sobol
+  observations are enqueued and explicitly tagged by the sampler's generation
+  bookkeeping. Only successful observations fill slots. If any initial calls
+  fail, later proposals fill the missing slots with random points; these attempts
+  consume the normal CFD budget. Even an all-failed initialization needs a full
+  population of successful observations before CMA offspring generation begins.
+- **Updates:** CFD runs serially, but the sampler selects parents and adapts
+  after an entire generation has succeeded, at the next ask. A partial last
+  generation stops at the exact budget without extra evaluations. Its successful
+  responses still enter the reporting Pareto front and hypervolume.
+- **Initial scale:** upstream fixes sigma at `1/6` of each normalized input range
+  with identity covariance, then adapts per parent. Remove `--cma-sigma` from old
+  commands: it now produces an explicit migration error rather than being ignored.
+- **Bounds:** upstream clips Gaussian proposals to the unit box. Optuna may nudge
+  the upper float endpoint inward by one representable step. These exact
+  coordinates are evaluated, recorded and supplied back to the sampler.
+- **Selection:** the sampler uses its native Pareto-rank/hypervolume code and
+  a population-derived internal reference. The **reporting** reference remains
+  fixed across every algorithm and seed; it is a separate benchmark setting.
+- **Failures:** trials become Optuna `FAIL`, without penalty objectives. A failed
+  slot remains unfilled until a later charged attempt succeeds. The population
+  does not shrink and the budget is never extended to complete it.
+- **Reproducibility:** each sampler owns its random generators; it does not swap
+  global NumPy state. The static three-variable search space is declared up front.
 
-`details.json` records the parent index, parent count, step size, completed
-updates, and number of reflected coordinates for each CMA proposal. The manifest
-records the DEAP version and the CMA protocol. The reporting Pareto archive
-contains all successful evaluations, independently of the retained parents.
+`details.json` records generation, population size, instance slot and parent
+trial ID for each proposal. `manifest.json` records the source commit, SHA-256,
+Optuna version, protocol and caveats. Old DEAP results describe a different
+implementation and should retain their original identity when comparing runs.
+
+**Upstream caveats:** in this pinned source, the covariance update uses a scalar
+vector dot product where an outer product is expected, and overflow-front
+selection retains the smallest hypervolume contributor first. Both can affect
+optimization quality. They are preserved to benchmark the requested upstream
+implementation and are disclosed in every generated report/manifest. See the
+[vendor notes](../aemec_benchmark/_vendor/mocma/README.md) for the exact operations.
+The tests validate the integration and budget accounting; they do not certify
+this sampler as a mathematically faithful reference implementation of MO-CMA-ES.
 
 ## Comparison protocol
 
@@ -234,7 +257,7 @@ contains all successful evaluations, independently of the retained parents.
   supplied identically to every algorithm. Prefer a power of two for `--initial`.
   GP BO and TPE start adaptive suggestions after this phase. The same observations
   form NSGA-II's first population (failed trials can delay completion of it), and
-  successful ones form MO-CMA-ES's parent population.
+  successful ones fill MO-CMA-ES's initial population; failures delay its completion.
 - **Equal total attempt budget:** initialization, failed evaluations, and duplicate
   proposals all count. No algorithm receives free replacement attempts. Failed
   observations are marked failed and omitted from models/fronts; no arbitrary
@@ -243,10 +266,9 @@ contains all successful evaluations, independently of the retained parents.
 - **Paired seeds:** use the same seed list for all algorithms. Summaries give
   descriptive statistics and paired differences; they do not claim statistical
   significance. More seeds and evaluation budgets are needed for reliable rankings.
-- **Sequential execution:** every algorithm runs serially. NSGA-II retains its
-  generation-based population selection; a partial last generation stops at the
-  same attempt budget, without hidden evaluations past the cutoff. MO-CMA-ES
-  updates after each successful offspring and needs no batch completion.
+- **Sequential execution:** every algorithm runs serially. NSGA-II and MoCmaSampler retain
+  generation-based updates; a partial last generation stops at the same attempt
+  budget, without hidden evaluations past the cutoff.
 - **No optimizer sees future objective values:** models use only observations
   available in their own history. The predeclared bounds, normalization and
   reference are common study settings.
@@ -315,7 +337,8 @@ resume is not implemented; start a new directory to repeat a benchmark.
 - [Optuna TPESampler (v4.9)](https://optuna.readthedocs.io/en/v4.9.0/reference/samplers/generated/optuna.samplers.TPESampler.html)
 - [Optuna NSGAIISampler (v4.9)](https://optuna.readthedocs.io/en/v4.9.0/reference/samplers/generated/optuna.samplers.NSGAIISampler.html)
 - [Optuna SBXCrossover (v4.9)](https://optuna.readthedocs.io/en/v4.9.0/reference/samplers/generated/optuna.samplers.nsgaii.SBXCrossover.html)
-- [DEAP multiobjective CMA-ES strategy](https://deap.readthedocs.io/en/master/api/algo.html#deap.cma.StrategyMultiObjective)
+- [OptunaHub MoCmaSampler](https://hub.optuna.org/samplers/mocma/)
+- [Pinned MoCmaSampler source](https://github.com/optuna/optunahub-registry/blob/7508d98688d3eb55aab09002ea6a8dedfbe5b2c6/package/samplers/mocma/mocma.py)
 
 Run the benchmark tests from the repository root:
 
@@ -327,9 +350,10 @@ PYTHONPATH=opt:benchmark:. MPLCONFIGDIR=/tmp/aemec-matplotlib \
 Tests check deterministic and Monte Carlo EHVI agreement, Pareto/hypervolume
 geometry, shared initialization, NSGA-II generation advancement, failed-attempt
 accounting, reproducibility, output preservation and the mocked CFD adapter.
-CMA tests additionally cover covariance adaptation, fixed-reference selection,
-bound reflection, RNG isolation, recovery after failed initialization, missing
-dependency checks, and exact execution of an odd attempt budget.
+CMA tests additionally cover shared-trial population registration, generation
+advancement/adaptation, clipping, RNG isolation, recovery after failed
+initialization, pinned-source/runtime checks, the removed sigma option, and
+exact execution of an odd attempt budget with the CFD adapter mocked.
 Path tests cover relocated/nested proxy folders, requested ranks, ambiguous or
 incomplete pairs, explicit JSON paths, and discovery during a dry run.
 AEMEC tests cover running without ELA result files, configuration overrides,
